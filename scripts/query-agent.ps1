@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('status', 'latest-telemetry', 'sensor-catalog')]
+    [ValidateSet('status', 'latest-telemetry', 'sensor-catalog', 'list-incidents')]
     [string]$Command = 'status'
 )
 
