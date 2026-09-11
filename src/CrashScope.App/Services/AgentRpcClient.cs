@@ -10,7 +10,10 @@ public sealed class AgentRpcClient
 {
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task<AgentRpcResponse> SendAsync(string command, CancellationToken cancellationToken = default)
+    public async Task<AgentRpcResponse> SendAsync(
+        string command,
+        CancellationToken cancellationToken = default,
+        string? incidentId = null)
     {
         await using var pipe = new NamedPipeClientStream(
             ".",
@@ -19,7 +22,7 @@ public sealed class AgentRpcClient
             PipeOptions.Asynchronous);
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromMilliseconds(900));
+        timeout.CancelAfter(TimeSpan.FromSeconds(2));
 
         await pipe.ConnectAsync(timeout.Token);
 
@@ -29,7 +32,7 @@ public sealed class AgentRpcClient
         };
         using var reader = new StreamReader(pipe, new UTF8Encoding(false), leaveOpen: true);
 
-        var request = new AgentRpcRequest(command);
+        var request = new AgentRpcRequest(command, incidentId);
         await writer.WriteLineAsync(JsonSerializer.Serialize(request, _jsonOptions));
 
         var line = await reader.ReadLineAsync(timeout.Token);
