@@ -18,3 +18,13 @@ jobs:
         run: dotnet restore .\src\CrashScope.Agent\CrashScope.Agent.csproj
       - name: Build
         run: dotnet build .\src\CrashScope.Agent\CrashScope.Agent.csproj -c Release --no-restore
+      - name: Publish self-contained test build
+        if: github.event_name == 'push'
+        run: dotnet publish .\src\CrashScope.Agent\CrashScope.Agent.csproj -c Release -r win-x64 --self-contained true -o .\dist\win-x64
+      - name: Upload Windows test build
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrashScope-win-x64
+          path: .\dist\win-x64\
+          if-no-files-found: error
