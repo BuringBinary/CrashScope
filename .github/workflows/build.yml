@@ -14,10 +14,14 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Restore
+      - name: Restore Agent
         run: dotnet restore .\src\CrashScope.Agent\CrashScope.Agent.csproj
-      - name: Build
+      - name: Restore Actions
+        run: dotnet restore .\src\CrashScope.Actions\CrashScope.Actions.csproj
+      - name: Build Agent
         run: dotnet build .\src\CrashScope.Agent\CrashScope.Agent.csproj -c Release --no-restore
+      - name: Build Actions
+        run: dotnet build .\src\CrashScope.Actions\CrashScope.Actions.csproj -c Release --no-restore
       - name: Publish self-contained test build
         if: github.event_name == 'push'
         run: dotnet publish .\src\CrashScope.Agent\CrashScope.Agent.csproj -c Release -r win-x64 --self-contained true -o .\dist\win-x64
