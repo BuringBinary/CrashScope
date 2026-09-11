@@ -3,6 +3,7 @@ using CrashScope.Agent.Infrastructure;
 using CrashScope.Agent.Models;
 using CrashScope.Agent.Monitoring;
 using CrashScope.Agent.Platform;
+using CrashScope.Contracts;
 using System.Text.Json;
 
 if (!OperatingSystem.IsWindows())
@@ -53,12 +54,42 @@ File.WriteAllText(
     JsonSerializer.Serialize(hardware.Catalog, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
 var processTracker = new ProcessTracker();
 
+var sensorCatalog = hardware.Catalog
+    .Select(sensor => new SensorCatalogDto(
+        sensor.Id,
+        sensor.HardwareType,
+        sensor.HardwareName,
+        sensor.SensorType,
+        sensor.SensorName,
+        sensor.Identifier))
+    .ToArray();
+
+TelemetryDto? latestTelemetry = null;
 var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {
     e.Cancel = true;
     cancellation.Cancel();
 };
+
+var rpcServer = new AgentRpcServer(
+    statusProvider: () =>
+    {
+        var current = journal.Current;
+        return new AgentStatusDto(
+            current.AgentVersion,
+            current.SessionId,
+            current.StartedAt,
+            current.LastHeartbeatAt,
+            current.Elevated,
+            current.SessionDirectory,
+            Volatile.Read(ref latestTelemetry)?.Timestamp,
+            sensorCatalog.Length);
+    },
+    telemetryProvider: () => Volatile.Read(ref latestTelemetry),
+    sensorCatalogProvider: () => sensorCatalog);
+var rpcTask = rpcServer.RunAsync(cancellation.Token);
+Console.WriteLine($"RPC: \\.\\pipe\\{AgentRpcProtocol.PipeName}");
 
 ForegroundState? previousForeground = null;
 var processPollCounter = 0;
@@ -74,6 +105,11 @@ try
         var foreground = WindowsActivity.CaptureForeground();
         var sensorValues = hardware.CaptureValues();
         telemetryWriter.Write(new TelemetrySnapshot(now, foreground, sensorValues));
+
+        Volatile.Write(ref latestTelemetry, new TelemetryDto(
+            now,
+            new ForegroundDto(foreground.ProcessId, foreground.ProcessName, foreground.IdleSeconds),
+            sensorValues));
 
         if (previousForeground is null ||
             previousForeground.ProcessId != foreground.ProcessId ||
@@ -109,8 +145,18 @@ catch (OperationCanceledException)
 }
 finally
 {
+    cancellation.Cancel();
     timer.Dispose();
     journal.MarkClean();
+
+    try
+    {
+        await rpcTask;
+    }
+    catch (OperationCanceledException)
+    {
+        // Expected during shutdown.
+    }
 }
 
 return 0;
