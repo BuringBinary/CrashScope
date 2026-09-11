@@ -9,6 +9,7 @@ public static class AgentRpcProtocol
     public const string StatusCommand = "status";
     public const string LatestTelemetryCommand = "latest-telemetry";
     public const string SensorCatalogCommand = "sensor-catalog";
+    public const string ListIncidentsCommand = "list-incidents";
 }
 
 public sealed record AgentRpcRequest(string Command);
@@ -18,7 +19,8 @@ public sealed record AgentRpcResponse(
     string? Error = null,
     AgentStatusDto? Status = null,
     TelemetryDto? Telemetry = null,
-    IReadOnlyList<SensorCatalogDto>? SensorCatalog = null);
+    IReadOnlyList<SensorCatalogDto>? SensorCatalog = null,
+    IReadOnlyList<IncidentSummaryDto>? Incidents = null);
 
 public sealed record AgentStatusDto(
     string Version,
@@ -47,6 +49,16 @@ public sealed record SensorCatalogDto(
     string SensorType,
     string SensorName,
     string Identifier);
+
+public sealed record IncidentSummaryDto(
+    string Id,
+    DateTimeOffset? LastHeartbeatAt,
+    string? SessionId,
+    bool KernelPower41,
+    bool UnexpectedShutdown6008,
+    bool WheaEvidence,
+    bool DisplayTdrEvidence,
+    string DirectoryPath);
 
 public sealed record ActionEventDto(
     DateTimeOffset Timestamp,
