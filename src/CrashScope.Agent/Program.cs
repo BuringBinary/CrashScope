@@ -88,7 +88,8 @@ var rpcServer = new AgentRpcServer(
     },
     telemetryProvider: () => Volatile.Read(ref latestTelemetry),
     sensorCatalogProvider: () => sensorCatalog,
-    incidentProvider: () => IncidentCatalog.List(incidentsRoot));
+    incidentProvider: () => IncidentCatalog.List(incidentsRoot),
+    incidentDetailProvider: incidentId => IncidentCatalog.ReadDetail(incidentsRoot, incidentId));
 var rpcTask = rpcServer.RunAsync(cancellation.Token);
 Console.WriteLine($"RPC: \\.\\pipe\\{AgentRpcProtocol.PipeName}");
 
