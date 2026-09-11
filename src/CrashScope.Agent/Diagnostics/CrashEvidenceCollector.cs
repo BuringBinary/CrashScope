@@ -83,10 +83,24 @@ public static class CrashEvidenceCollector
         if (!Directory.Exists(previousSessionDirectory))
             return;
 
+        CopyFileIfExists(Path.Combine(previousSessionDirectory, "sensor-catalog.json"), Path.Combine(incidentDirectory, "sensor-catalog.json"));
         CopyTailFile(Path.Combine(previousSessionDirectory, "telemetry.jsonl"), Path.Combine(incidentDirectory, "telemetry-tail.jsonl"), 300);
         CopyTailFile(Path.Combine(previousSessionDirectory, "foreground-events.jsonl"), Path.Combine(incidentDirectory, "foreground-tail.jsonl"), 200);
         CopyTailFile(Path.Combine(previousSessionDirectory, "process-events.jsonl"), Path.Combine(incidentDirectory, "process-events-tail.jsonl"), 400);
         CopyTailFile(Path.Combine(previousSessionDirectory, "process-snapshots.jsonl"), Path.Combine(incidentDirectory, "process-snapshots-tail.jsonl"), 20);
+    }
+
+    private static void CopyFileIfExists(string source, string destination)
+    {
+        try
+        {
+            if (File.Exists(source))
+                File.Copy(source, destination, overwrite: true);
+        }
+        catch
+        {
+            // Incident creation should continue even if optional metadata is unavailable.
+        }
     }
 
     private static void CopyTailFile(string source, string destination, int lines)

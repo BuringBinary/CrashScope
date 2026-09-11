@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>CrashScope.Actions</AssemblyName>
+    <RootNamespace>CrashScope.Actions</RootNamespace>
+    <Version>0.1.0</Version>
+    <Description>Audited and reversible system/game actions for CrashScope</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CrashScope.Contracts\CrashScope.Contracts.csproj" />
+  </ItemGroup>
+</Project>
