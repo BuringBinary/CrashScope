@@ -11,18 +11,21 @@ public sealed class AgentRpcServer
     private readonly Func<TelemetryDto?> _telemetryProvider;
     private readonly Func<IReadOnlyList<SensorCatalogDto>> _sensorCatalogProvider;
     private readonly Func<IReadOnlyList<IncidentSummaryDto>> _incidentProvider;
+    private readonly Func<string, IncidentDetailDto?> _incidentDetailProvider;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     public AgentRpcServer(
         Func<AgentStatusDto> statusProvider,
         Func<TelemetryDto?> telemetryProvider,
         Func<IReadOnlyList<SensorCatalogDto>> sensorCatalogProvider,
-        Func<IReadOnlyList<IncidentSummaryDto>> incidentProvider)
+        Func<IReadOnlyList<IncidentSummaryDto>> incidentProvider,
+        Func<string, IncidentDetailDto?> incidentDetailProvider)
     {
         _statusProvider = statusProvider;
         _telemetryProvider = telemetryProvider;
         _sensorCatalogProvider = sensorCatalogProvider;
         _incidentProvider = incidentProvider;
+        _incidentDetailProvider = incidentDetailProvider;
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -99,6 +102,13 @@ public sealed class AgentRpcServer
         AgentRpcProtocol.ListIncidentsCommand => new AgentRpcResponse(
             Ok: true,
             Incidents: _incidentProvider()),
+
+        AgentRpcProtocol.IncidentDetailCommand when !string.IsNullOrWhiteSpace(request.IncidentId) =>
+            _incidentDetailProvider(request.IncidentId) is { } detail
+                ? new AgentRpcResponse(Ok: true, IncidentDetail: detail)
+                : Error($"Incident not found: {request.IncidentId}"),
+
+        AgentRpcProtocol.IncidentDetailCommand => Error("incident-detail requires incidentId."),
 
         _ => Error($"Unknown command: {request.Command}")
     };
