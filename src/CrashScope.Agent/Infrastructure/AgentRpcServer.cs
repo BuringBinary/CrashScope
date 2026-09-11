@@ -10,16 +10,19 @@ public sealed class AgentRpcServer
     private readonly Func<AgentStatusDto> _statusProvider;
     private readonly Func<TelemetryDto?> _telemetryProvider;
     private readonly Func<IReadOnlyList<SensorCatalogDto>> _sensorCatalogProvider;
+    private readonly Func<IReadOnlyList<IncidentSummaryDto>> _incidentProvider;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     public AgentRpcServer(
         Func<AgentStatusDto> statusProvider,
         Func<TelemetryDto?> telemetryProvider,
-        Func<IReadOnlyList<SensorCatalogDto>> sensorCatalogProvider)
+        Func<IReadOnlyList<SensorCatalogDto>> sensorCatalogProvider,
+        Func<IReadOnlyList<IncidentSummaryDto>> incidentProvider)
     {
         _statusProvider = statusProvider;
         _telemetryProvider = telemetryProvider;
         _sensorCatalogProvider = sensorCatalogProvider;
+        _incidentProvider = incidentProvider;
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -92,6 +95,10 @@ public sealed class AgentRpcServer
         AgentRpcProtocol.SensorCatalogCommand => new AgentRpcResponse(
             Ok: true,
             SensorCatalog: _sensorCatalogProvider()),
+
+        AgentRpcProtocol.ListIncidentsCommand => new AgentRpcResponse(
+            Ok: true,
+            Incidents: _incidentProvider()),
 
         _ => Error($"Unknown command: {request.Command}")
     };
