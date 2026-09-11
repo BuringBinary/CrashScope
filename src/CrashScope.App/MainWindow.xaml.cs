@@ -14,10 +14,15 @@ public partial class MainWindow : Window
     private readonly AgentRpcClient _client = new();
     private readonly DispatcherTimer _refreshTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly Queue<double> _cpuLoadHistory = new();
+    private readonly Queue<double> _cpuTempHistory = new();
+    private readonly Queue<double> _gpuLoadHistory = new();
+    private readonly Queue<double> _gpuTempHistory = new();
     private IReadOnlyList<SensorCatalogDto>? _catalog;
     private bool _refreshing;
 
     public ObservableCollection<HardwareGroupViewModel> HardwareGroups { get; } = new();
+    public ObservableCollection<IncidentCardViewModel> Incidents { get; } = new();
 
     public MainWindow()
     {
@@ -32,6 +37,7 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         await RefreshAsync();
+        await RefreshIncidentsAsync();
         _refreshTimer.Start();
     }
 
@@ -43,6 +49,23 @@ public partial class MainWindow : Window
     }
 
     private async void OnRefreshTick(object? sender, EventArgs e) => await RefreshAsync();
+
+    private void DashboardNavButton_Click(object sender, RoutedEventArgs e)
+    {
+        DashboardPage.Visibility = Visibility.Visible;
+        IncidentsPage.Visibility = Visibility.Collapsed;
+        SetActiveNavigation(DashboardNavButton, IncidentsNavButton);
+    }
+
+    private async void IncidentsNavButton_Click(object sender, RoutedEventArgs e)
+    {
+        DashboardPage.Visibility = Visibility.Collapsed;
+        IncidentsPage.Visibility = Visibility.Visible;
+        SetActiveNavigation(IncidentsNavButton, DashboardNavButton);
+        await RefreshIncidentsAsync();
+    }
+
+    private async void RefreshIncidentsButton_Click(object sender, RoutedEventArgs e) => await RefreshIncidentsAsync();
 
     private async Task RefreshAsync()
     {
@@ -73,6 +96,7 @@ public partial class MainWindow : Window
             if (telemetryResponse.Telemetry is { } telemetry)
             {
                 SetTelemetry(status, telemetry);
+                UpdateKeyMetrics(telemetry);
                 RenderHardware(telemetry);
             }
             else
@@ -94,6 +118,37 @@ public partial class MainWindow : Window
         finally
         {
             _refreshing = false;
+        }
+    }
+
+    private async Task RefreshIncidentsAsync()
+    {
+        if (_lifetime.IsCancellationRequested)
+            return;
+
+        try
+        {
+            var response = await _client.SendAsync(AgentRpcProtocol.ListIncidentsCommand, _lifetime.Token);
+            if (!response.Ok || response.Incidents is null)
+                throw new IOException(response.Error ?? "CrashScope incident catalog is unavailable.");
+
+            Incidents.Clear();
+            foreach (var incident in response.Incidents)
+                Incidents.Add(ToIncidentViewModel(incident));
+
+            IncidentCountText.Text = Incidents.Count.ToString();
+            LatestIncidentText.Text = Incidents.FirstOrDefault()?.TimeText ?? "—";
+            IncidentRefreshText.Text = DateTime.Now.ToString("HH:mm:ss");
+            IncidentEmptyText.Visibility = Incidents.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            IncidentRefreshText.Text = "Unavailable";
+            IncidentEmptyText.Text = $"Incident catalog unavailable: {Truncate(ex.Message, 120)}";
+            IncidentEmptyText.Visibility = Visibility.Visible;
         }
     }
 
@@ -143,6 +198,85 @@ public partial class MainWindow : Window
             LastSampleDetailText.Text = "Showing last received telemetry";
     }
 
+    private void UpdateKeyMetrics(TelemetryDto telemetry)
+    {
+        var cpuLoad = FindSensorValue(telemetry, sensor =>
+            IsHardware(sensor, "Cpu") && sensor.SensorType == "Load" &&
+            sensor.SensorName.Contains("Total", StringComparison.OrdinalIgnoreCase))
+            ?? FindSensorValue(telemetry, sensor => IsHardware(sensor, "Cpu") && sensor.SensorType == "Load");
+
+        var cpuTemp = FindSensorValue(telemetry, sensor =>
+            IsHardware(sensor, "Cpu") && sensor.SensorType == "Temperature" &&
+            sensor.SensorName.Contains("Package", StringComparison.OrdinalIgnoreCase))
+            ?? FindSensorValue(telemetry, sensor => IsHardware(sensor, "Cpu") && sensor.SensorType == "Temperature");
+
+        var gpuLoad = FindSensorValue(telemetry, sensor =>
+            IsHardware(sensor, "Gpu") && sensor.SensorType == "Load" &&
+            (sensor.SensorName.Contains("Core", StringComparison.OrdinalIgnoreCase) ||
+             sensor.SensorName.Contains("GPU", StringComparison.OrdinalIgnoreCase)))
+            ?? FindSensorValue(telemetry, sensor => IsHardware(sensor, "Gpu") && sensor.SensorType == "Load");
+
+        var gpuTemp = FindSensorValue(telemetry, sensor =>
+            IsHardware(sensor, "Gpu") && sensor.SensorType == "Temperature" &&
+            sensor.SensorName.Contains("Core", StringComparison.OrdinalIgnoreCase))
+            ?? FindSensorValue(telemetry, sensor => IsHardware(sensor, "Gpu") && sensor.SensorType == "Temperature");
+
+        UpdateMetric(cpuLoad, _cpuLoadHistory, CpuLoadValueText, CpuLoadSparkline, 0, 100, value => $"{value:F0} %");
+        UpdateMetric(cpuTemp, _cpuTempHistory, CpuTempValueText, CpuTempSparkline, 20, 110, value => $"{value:F1} °C");
+        UpdateMetric(gpuLoad, _gpuLoadHistory, GpuLoadValueText, GpuLoadSparkline, 0, 100, value => $"{value:F0} %");
+        UpdateMetric(gpuTemp, _gpuTempHistory, GpuTempValueText, GpuTempSparkline, 20, 110, value => $"{value:F1} °C");
+    }
+
+    private float? FindSensorValue(TelemetryDto telemetry, Func<SensorCatalogDto, bool> predicate)
+    {
+        if (_catalog is null)
+            return null;
+
+        foreach (var sensor in _catalog.Where(predicate))
+        {
+            if (sensor.Id >= 0 && sensor.Id < telemetry.SensorValues.Count && telemetry.SensorValues[sensor.Id] is { } value)
+                return value;
+        }
+
+        return null;
+    }
+
+    private static bool IsHardware(SensorCatalogDto sensor, string token) =>
+        sensor.HardwareType.Contains(token, StringComparison.OrdinalIgnoreCase);
+
+    private static void UpdateMetric(
+        float? value,
+        Queue<double> history,
+        System.Windows.Controls.TextBlock valueText,
+        System.Windows.Shapes.Polyline sparkline,
+        double minimum,
+        double maximum,
+        Func<double, string> formatter)
+    {
+        if (value is null)
+        {
+            valueText.Text = "—";
+            return;
+        }
+
+        valueText.Text = formatter(value.Value);
+        history.Enqueue(value.Value);
+        while (history.Count > 60)
+            history.Dequeue();
+
+        var samples = history.ToArray();
+        var points = new PointCollection(samples.Length);
+        var range = Math.Max(1, maximum - minimum);
+        for (var index = 0; index < samples.Length; index++)
+        {
+            var x = samples.Length <= 1 ? 0 : index * 100d / (samples.Length - 1);
+            var normalized = Math.Clamp((samples[index] - minimum) / range, 0, 1);
+            points.Add(new Point(x, 100 - normalized * 100));
+        }
+
+        sparkline.Points = points;
+    }
+
     private void RenderHardware(TelemetryDto telemetry)
     {
         if (_catalog is null)
@@ -188,6 +322,33 @@ public partial class MainWindow : Window
         HardwareGroups.Clear();
         foreach (var group in next)
             HardwareGroups.Add(group);
+    }
+
+    private static IncidentCardViewModel ToIncidentViewModel(IncidentSummaryDto incident)
+    {
+        var evidence = new List<string>();
+        if (incident.KernelPower41) evidence.Add("Kernel-Power 41");
+        if (incident.UnexpectedShutdown6008) evidence.Add("Unexpected shutdown 6008");
+        if (incident.WheaEvidence) evidence.Add("WHEA");
+        if (incident.DisplayTdrEvidence) evidence.Add("Display/TDR");
+
+        return new IncidentCardViewModel
+        {
+            Id = incident.Id,
+            TimeText = incident.LastHeartbeatAt?.ToLocalTime().ToString("yyyy-MM-dd  HH:mm:ss") ?? incident.Id,
+            SessionText = string.IsNullOrWhiteSpace(incident.SessionId) ? "Unknown session" : $"Session {ShortId(incident.SessionId)}",
+            EvidenceText = evidence.Count == 0 ? "No classified Windows evidence in the preliminary summary" : string.Join(" · ", evidence),
+            DirectoryPath = incident.DirectoryPath,
+            EvidenceCount = evidence.Count
+        };
+    }
+
+    private void SetActiveNavigation(System.Windows.Controls.Button active, System.Windows.Controls.Button inactive)
+    {
+        active.Background = (Brush)FindResource("AccentSoftBrush");
+        active.Foreground = (Brush)FindResource("PrimaryText");
+        inactive.Background = Brushes.Transparent;
+        inactive.Foreground = (Brush)FindResource("SecondaryText");
     }
 
     private static string FormatSensorValue(string sensorType, float value) => sensorType switch
