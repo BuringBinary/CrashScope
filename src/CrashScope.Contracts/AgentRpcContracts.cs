@@ -10,9 +10,12 @@ public static class AgentRpcProtocol
     public const string LatestTelemetryCommand = "latest-telemetry";
     public const string SensorCatalogCommand = "sensor-catalog";
     public const string ListIncidentsCommand = "list-incidents";
+    public const string IncidentDetailCommand = "incident-detail";
 }
 
-public sealed record AgentRpcRequest(string Command);
+public sealed record AgentRpcRequest(
+    string Command,
+    string? IncidentId = null);
 
 public sealed record AgentRpcResponse(
     bool Ok,
@@ -20,7 +23,8 @@ public sealed record AgentRpcResponse(
     AgentStatusDto? Status = null,
     TelemetryDto? Telemetry = null,
     IReadOnlyList<SensorCatalogDto>? SensorCatalog = null,
-    IReadOnlyList<IncidentSummaryDto>? Incidents = null);
+    IReadOnlyList<IncidentSummaryDto>? Incidents = null,
+    IncidentDetailDto? IncidentDetail = null);
 
 public sealed record AgentStatusDto(
     string Version,
@@ -59,6 +63,33 @@ public sealed record IncidentSummaryDto(
     bool WheaEvidence,
     bool DisplayTdrEvidence,
     string DirectoryPath);
+
+public sealed record IncidentDetailDto(
+    IncidentSummaryDto Summary,
+    DateTimeOffset? WindowStart,
+    DateTimeOffset? WindowEnd,
+    bool SensorCatalogAvailable,
+    IReadOnlyList<IncidentTimelineEventDto> Timeline,
+    IReadOnlyList<IncidentMetricSeriesDto> Metrics);
+
+public sealed record IncidentTimelineEventDto(
+    DateTimeOffset Timestamp,
+    string Kind,
+    string Title,
+    string Detail,
+    string Severity);
+
+public sealed record IncidentMetricSeriesDto(
+    string Key,
+    string Label,
+    string Unit,
+    double Minimum,
+    double Maximum,
+    IReadOnlyList<IncidentMetricPointDto> Points);
+
+public sealed record IncidentMetricPointDto(
+    DateTimeOffset Timestamp,
+    double Value);
 
 public sealed record ActionEventDto(
     DateTimeOffset Timestamp,
