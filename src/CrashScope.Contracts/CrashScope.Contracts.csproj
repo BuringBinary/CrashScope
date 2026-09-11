@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>CrashScope.Contracts</AssemblyName>
+    <RootNamespace>CrashScope.Contracts</RootNamespace>
+    <Version>0.1.0</Version>
+    <Description>Shared local RPC and event contracts for CrashScope components</Description>
+  </PropertyGroup>
+</Project>
