@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace CrashScope.Agent.Infrastructure;
+namespace CrashScope.Core.Infrastructure;
 
 public sealed class CrashSafeJsonlWriter : IDisposable
 {

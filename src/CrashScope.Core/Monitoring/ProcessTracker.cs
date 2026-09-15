@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using CrashScope.Agent.Models;
+using CrashScope.Core.Models;
 
-namespace CrashScope.Agent.Monitoring;
+namespace CrashScope.Core.Monitoring;
 
 public sealed class ProcessTracker
 {

@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using CrashScope.Agent.Models;
+using CrashScope.Core.Models;
 
-namespace CrashScope.Agent.Platform;
+namespace CrashScope.Core.Platform;
 
 public static class WindowsActivity
 {

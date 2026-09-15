@@ -1,6 +1,6 @@
 # Roadmap
 
-## v0.1 — Flight recorder (current)
+## v0.1 — Flight recorder
 
 - [x] 1 Hz CPU/GPU/RAM telemetry through LibreHardwareMonitor
 - [x] crash-oriented write-through JSONL logging
@@ -15,26 +15,29 @@
 
 ## v0.2 — Correlation
 
-- [ ] exact timeline reconstruction around the last heartbeat
-- [ ] distinguish hard freeze / BSOD / TDR / app crash / power loss
-- [ ] evidence-for / evidence-against scoring
-- [ ] detect GPU load/clock/power state transitions before failure
-- [ ] parse Reliability Monitor / WER / LiveKernelReports metadata
-- [ ] report generator with root-cause ranking and confidence
+- [x] exact timeline reconstruction around the last heartbeat
+- [x] distinguish hard freeze / BSOD / TDR / app crash / power loss
+- [x] evidence-for / evidence-against scoring
+- [x] detect GPU load/clock/power state transitions before failure
+- [x] parse Reliability Monitor / WER / LiveKernelReports metadata
+- [x] report generator with root-cause ranking and confidence
+- [ ] validate on the target AMD machine
 
-## v0.3 — Graphics-stack context
+## v0.3 — Graphics-stack context (current)
 
-- [ ] per-process GPU Engine counters
-- [ ] display topology and virtual-display changes
-- [ ] remote-session connect/disconnect events
-- [ ] sleep/display-off/resume/power-plan transitions
-- [ ] detect common overlays, launchers, remote-desktop and hardware-accelerated apps
-- [ ] AMD/NVIDIA/Intel driver inventory and driver-change timeline
+- [x] per-process GPU Engine counters
+- [x] display topology and virtual-display changes
+- [x] remote-session connect/disconnect events
+- [x] sleep/display-off/resume/power-plan transitions
+- [x] detect common overlays, launchers, remote-desktop and hardware-accelerated apps
+- [x] AMD/NVIDIA/Intel driver inventory and driver-change timeline
+- [ ] validate on the target AMD machine
 
 ## v0.4 — Productization
 
-- [ ] Windows Service collector
-- [ ] lightweight tray UI
-- [ ] configurable retention/ring buffer
-- [ ] incident viewer and charts
-- [ ] one-click diagnostic export with privacy redaction
+- [x] Windows Service collector
+- [x] lightweight tray UI
+- [x] configurable retention/ring buffer
+- [x] incident viewer
+- [x] charts (CPU/GPU/RAM history graphs)
+- [x] one-click diagnostic export with privacy redaction

@@ -1,4 +1,4 @@
-namespace CrashScope.Agent.Models;
+namespace CrashScope.Core.Models;
 
 public sealed record SensorCatalogEntry(
     int Id,
@@ -50,4 +50,49 @@ public sealed record WindowsEventEvidence(
     string? Provider,
     int Id,
     string? Level,
-    string? Message);
+    string? Message,
+    IReadOnlyDictionary<string, string?>? EventData = null);
+
+public sealed record EngineUsage(string EngineType, float UtilizationPercent);
+
+public sealed record ProcessGpuUsage(
+    int ProcessId,
+    string? ProcessName,
+    IReadOnlyList<EngineUsage> Engines);
+
+public sealed record GpuEngineSample(
+    DateTimeOffset Timestamp,
+    IReadOnlyList<ProcessGpuUsage> Processes);
+
+public sealed record DisplayInfo(
+    string DeviceName,
+    string MonitorName,
+    bool IsVirtual,
+    int Width,
+    int Height);
+
+public sealed record DisplayTopologyEvent(
+    DateTimeOffset Timestamp,
+    string Change,
+    IReadOnlyList<DisplayInfo> Before,
+    IReadOnlyList<DisplayInfo> After,
+    string Description);
+
+public sealed record PowerSchemeEvent(
+    DateTimeOffset Timestamp,
+    string Change,
+    string SchemeGuid,
+    string SchemeName,
+    string Description);
+
+public sealed record RemoteSessionEvent(
+    DateTimeOffset Timestamp,
+    bool IsRemote,
+    string Description);
+
+public sealed record DriverInventoryEntry(
+    string AdapterName,
+    string? MatchingDeviceId,
+    string? DriverVersion,
+    DateTimeOffset? DriverDate,
+    string Vendor);

@@ -1,0 +1,80 @@
+<UserControl x:Class="CrashScope.Desktop.Pages.LiveMonitorPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="Live Monitor"
+                       FontSize="24" FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimary}"/>
+            <TextBlock Text="Real-time event stream: foreground changes, processes, GPU engines, display topology"
+                       FontSize="13"
+                       Foreground="{StaticResource TextSecondary}"
+                       Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Filter bar -->
+        <Border Grid.Row="1" Background="{StaticResource CardBg}"
+                CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal">
+                <CheckBox x:Name="FilterTelemetry" Content="Telemetry" IsChecked="True"
+                          Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
+                <CheckBox x:Name="FilterForeground" Content="Foreground" IsChecked="True"
+                          Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
+                <CheckBox x:Name="FilterProcess" Content="Process" IsChecked="True"
+                          Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
+                <CheckBox x:Name="FilterGpuEngine" Content="GPU Engine" IsChecked="True"
+                          Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
+                <CheckBox x:Name="FilterDisplay" Content="Display" IsChecked="True"
+                          Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
+                <CheckBox x:Name="FilterPower" Content="Power" IsChecked="True"
+                          Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
+                <Button Content="&#xE777;  Clear"
+                        FontSize="12" Style="{StaticResource SecondaryButton}"
+                        Height="26" Width="70" Margin="12,0,0,0"
+                        Click="ClearButton_Click"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Event list -->
+        <Border Grid.Row="2" Background="{StaticResource CardBg}"
+                CornerRadius="12" Padding="16">
+            <ListBox x:Name="EventListBox"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Foreground="{StaticResource TextPrimary}"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="#0F0F1A" CornerRadius="6"
+                                Padding="10,6" Margin="0,0,0,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Timestamp}" FontSize="11"
+                                           Foreground="{StaticResource TextSecondary}"
+                                           FontFamily="Consolas"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Category}"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{StaticResource AccentColor}"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Message}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextPrimary}"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Border>
+    </Grid>
+</UserControl>

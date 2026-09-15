@@ -1,8 +1,8 @@
-using CrashScope.Agent.Diagnostics;
-using CrashScope.Agent.Infrastructure;
-using CrashScope.Agent.Models;
-using CrashScope.Agent.Monitoring;
-using CrashScope.Agent.Platform;
+using CrashScope.Core.Diagnostics;
+using CrashScope.Core.Infrastructure;
+using CrashScope.Core.Models;
+using CrashScope.Core.Monitoring;
+using CrashScope.Core.Platform;
 using System.Text.Json;
 
 if (!OperatingSystem.IsWindows())
@@ -31,11 +31,21 @@ if (journal.PreviousState is { CleanShutdown: false } previous)
     var incidentDirectory = Path.Combine(
         incidentsRoot,
         $"{previous.LastHeartbeatAt:yyyyMMdd-HHmmss}-{previous.SessionId[..8]}");
-    CrashEvidenceCollector.CollectForUncleanSession(previous, incidentDirectory);
-    Console.WriteLine($"Detected previous unclean session. Incident saved to: {incidentDirectory}");
+    try
+    {
+        var analysis = CrashEvidenceCollector.CollectForUncleanSession(previous, incidentDirectory);
+        Console.WriteLine($"Detected previous unclean session. Incident saved to: {incidentDirectory}");
+        if (analysis.Hypotheses.FirstOrDefault(h => h.Score > 0) is { } leading)
+            Console.WriteLine($"Preliminary ranking: {leading.Mode} (confidence {leading.Confidence:P0}). Details: summary.md");
+    }
+    catch (Exception ex)
+    {
+        // Incident collection must never prevent the new recording session from starting.
+        Console.WriteLine($"Warning: failed to collect incident evidence: {ex.Message}");
+    }
 }
 
-Console.WriteLine("CrashScope v0.1");
+Console.WriteLine("CrashScope v0.3");
 Console.WriteLine($"Session: {journal.Current.SessionId}");
 Console.WriteLine($"Data: {sessionDirectory}");
 Console.WriteLine($"Elevated: {journal.Current.Elevated}");
@@ -47,11 +57,21 @@ using var telemetryWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirecto
 using var processEventWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "process-events.jsonl"));
 using var processSnapshotWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "process-snapshots.jsonl"));
 using var foregroundWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "foreground-events.jsonl"));
+using var gpuEngineWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "gpu-engines.jsonl"));
+using var displayWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "display-events.jsonl"));
+using var powerWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "power-events.jsonl"));
+using var remoteSessionWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "remote-session-events.jsonl"));
 using var hardware = new HardwareMonitor();
 File.WriteAllText(
     Path.Combine(sessionDirectory, "sensor-catalog.json"),
     JsonSerializer.Serialize(hardware.Catalog, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
+File.WriteAllText(
+    Path.Combine(sessionDirectory, "driver-inventory.json"),
+    JsonSerializer.Serialize(DriverInventory.Capture(), new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
 var processTracker = new ProcessTracker();
+var gpuEngineTracker = new GpuEngineTracker();
+var displayTracker = new DisplayTopologyTracker();
+var powerTracker = new PowerTracker();
 
 var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
@@ -64,6 +84,8 @@ ForegroundState? previousForeground = null;
 var processPollCounter = 0;
 var processSnapshotCounter = 0;
 var heartbeatCounter = 0;
+var displayCounter = 0;
+var powerCounter = 0;
 var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
 
 try
@@ -88,6 +110,30 @@ try
             processPollCounter = 0;
             foreach (var processEvent in processTracker.Poll(now))
                 processEventWriter.Write(processEvent);
+
+            var engineSample = gpuEngineTracker.Capture(now);
+            if (engineSample is not null)
+                gpuEngineWriter.Write(engineSample);
+        }
+
+        if (++displayCounter >= 5)
+        {
+            displayCounter = 0;
+            var displayChange = displayTracker.Poll(now);
+            if (displayChange is not null)
+                displayWriter.Write(displayChange);
+
+            var remoteChange = powerTracker.PollRemoteSession(now);
+            if (remoteChange is not null)
+                remoteSessionWriter.Write(remoteChange);
+        }
+
+        if (++powerCounter >= 10)
+        {
+            powerCounter = 0;
+            var schemeChange = powerTracker.PollScheme(now);
+            if (schemeChange is not null)
+                powerWriter.Write(schemeChange);
         }
 
         if (++processSnapshotCounter >= 30)

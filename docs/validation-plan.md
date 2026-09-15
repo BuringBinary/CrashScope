@@ -27,7 +27,9 @@ If running through `dotnet run`, terminate the corresponding application process
 
 3. Start the agent again.
 
-Expected: the next launch detects the previous unclean session and creates an `incidents/` directory containing telemetry/app tails, event-log evidence, and `summary.md`.
+Expected: the next launch detects the previous unclean session and creates an `incidents/` directory containing telemetry/app tails, event-log evidence, `summary.md`, `timeline.md`, and `analysis.json`.
+
+Because this simulated termination kills only the agent (the system keeps running), the expected v0.2 analysis outcome is: no Kernel-Power 41 / 6008 / kernel dump evidence, all system-death hypotheses score negative, and `summary.md` shows **Unclassified** with an open question explaining that the agent itself may have been terminated. This validates that the scorer does not cry wolf on evidence-free incidents.
 
 ## Test C — target usage sequence
 
@@ -63,6 +65,13 @@ Questions the first real incident must answer:
 4. Which launcher/remote/overlay/browser processes were still alive?
 5. How long had the user been idle?
 6. Did Windows record Display/TDR, WHEA, Kernel-Power 41, 6008, or BugCheck/WER evidence?
+
+In addition to the raw evidence, the v0.2 report should provide:
+
+1. A ranked list of failure hypotheses with evidence-for / evidence-against items and confidence values.
+2. A `timeline.md` reconstruction around the final heartbeat showing GPU transitions, app/process changes, and Windows events in one ordered stream.
+3. GPU load/clock/power transitions detected in the final minutes (sudden steps or gradual trends).
+4. An honest **Unclassified** verdict if the evidence does not discriminate — not a forced conclusion.
 
 ## Go/no-go for v0.2
 
