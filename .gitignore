@@ -8,6 +8,3 @@ dist/
 *.log
 runtime/
 .DS_Store
-build-*.txt
-test-output.txt
-test-results.txt
