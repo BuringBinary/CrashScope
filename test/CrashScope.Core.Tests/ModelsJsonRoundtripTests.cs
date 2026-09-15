@@ -6,7 +6,10 @@ namespace CrashScope.Core.Tests;
 
 public sealed class ModelsJsonRoundtripTests
 {
-    private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
+    private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    };
 
     [Fact]
     public void SessionState_SerializesAndDeserializes()

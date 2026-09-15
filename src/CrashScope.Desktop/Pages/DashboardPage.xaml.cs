@@ -1,3 +1,4 @@
+using CrashScope.Core.Analysis;
 using CrashScope.Core.Models;
 using OxyPlot;
 using OxyPlot.Axes;
@@ -85,6 +86,13 @@ public partial class DashboardPage : UserControl
         GpuChart.Model = _gpuPlotModel;
         GpuClockPowerChart.Model = _gpuClockPowerModel;
         RamChart.Model = _ramPlotModel;
+
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        DashboardHealth.Refresh(this);
     }
 
     private static LineSeries CreateLineSeries(OxyColor color, string title)
@@ -555,5 +563,66 @@ public sealed class GpuTransitionItem
     public string Timestamp { get; set; } = "";
     public string SensorLabel { get; set; } = "";
     public string TransitionDetail { get; set; } = "";
-    public Brush MarkerColor { get; set; } = new SolidColorBrush(Colors.Gray);
+    public System.Windows.Media.Brush MarkerColor { get; set; } = new SolidColorBrush(Colors.Gray);
+}
+
+internal static class DashboardHealth
+{
+    public static void Refresh(DashboardPage page)
+    {
+        var incidents = App.Current.Service.GetIncidents();
+        if (incidents.Count == 0)
+        {
+            page.HealthScoreText.Text = "--";
+            page.HealthMtbfText.Text = "No incidents yet";
+            page.HealthTrendText.Text = "N/A";
+            page.HealthSummaryText.Text = "Run the recorder to capture crash data.";
+            page.HealthTrendArrow.Text = "\uE74C";
+            page.HealthTrendArrow.Foreground = new SolidColorBrush(
+                (Color)ColorConverter.ConvertFromString("#8B8BA0"));
+            page.HealthScoreText.Foreground = new SolidColorBrush(
+                (Color)ColorConverter.ConvertFromString("#8B8BA0"));
+            return;
+        }
+
+        var analyses = incidents.Select(i => i.Analysis).ToList();
+        var report = CrossIncidentAnalyzer.Analyze(analyses);
+
+        if (report.StabilityTrends.Count > 0)
+        {
+            var trend = report.StabilityTrends[0];
+            page.HealthScoreText.Text = trend.StabilityScore.ToString();
+            page.HealthMtbfText.Text = $"MTBF: {trend.MtbfHours:F1}h  ·  {trend.IncidentCount} incidents";
+            page.HealthTrendText.Text = trend.TrendDirection;
+            page.HealthSummaryText.Text = report.Summary;
+
+            page.HealthScoreText.Foreground = trend.StabilityScore switch
+            {
+                >= 80 => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F")),
+                >= 50 => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFD93D")),
+                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"))
+            };
+
+            page.HealthTrendArrow.Text = trend.TrendDirection switch
+            {
+                "Improving" => "\uE74D",
+                "Worsening" => "\uE74E",
+                _ => "\uE74C"
+            };
+            page.HealthTrendArrow.Foreground = trend.TrendDirection switch
+            {
+                "Improving" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F")),
+                "Worsening" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B")),
+                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"))
+            };
+            page.HealthTrendText.Foreground = trend.TrendDirection switch
+            {
+                "Improving" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F")),
+                "Worsening" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B")),
+                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"))
+            };
+        }
+
+        page.HealthCard.Visibility = Visibility.Visible;
+    }
 }

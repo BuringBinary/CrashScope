@@ -209,6 +209,60 @@
                 </Border>
             </Grid>
 
+            <!-- System Health Card -->
+            <Border x:Name="HealthCard" Background="{StaticResource CardBg}"
+                    CornerRadius="12" Padding="20" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="System Health"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimary}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="HealthScoreText" Text="--"
+                                       FontSize="36" FontWeight="Bold"
+                                       Foreground="{StaticResource AccentColor}"/>
+                            <TextBlock Text="/100"
+                                       FontSize="16"
+                                       Foreground="{StaticResource TextSecondary}"
+                                       VerticalAlignment="Bottom" Margin="2,0,0,6"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="HealthMtbfText"
+                                   Text="MTBF: --"
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextSecondary}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Trend: "
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                            <TextBlock x:Name="HealthTrendText"
+                                       Text="--"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="HealthSummaryText"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   Margin="0,2,0,0"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2"
+                               x:Name="HealthTrendArrow"
+                               Text="--"
+                               FontSize="24"
+                               VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
             <!-- GPU Engines -->
             <Border Background="{StaticResource CardBg}"
                     CornerRadius="12" Padding="20" Margin="0,0,0,16"

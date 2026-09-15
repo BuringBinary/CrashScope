@@ -96,3 +96,35 @@ public sealed record DriverInventoryEntry(
     string? DriverVersion,
     DateTimeOffset? DriverDate,
     string Vendor);
+
+public sealed record EtwDxgKrnlEvent(
+    DateTimeOffset Timestamp,
+    int EventId,
+    string EventName,
+    int? ProcessId,
+    string? ProcessName,
+    string? Detail);
+
+public sealed record EtwProviderEvent(
+    string ProviderName,
+    DateTimeOffset Timestamp,
+    int EventId,
+    string EventName,
+    string? Level,
+    int? ProcessId,
+    string? ProcessName,
+    string? Detail);
+
+public sealed record StorageSample(
+    DateTimeOffset Timestamp,
+    IReadOnlyList<DiskMetrics> Disks);
+
+public sealed record DiskMetrics(
+    string Name,
+    string? Model,
+    float? TemperatureCelsius,
+    string? HealthStatus,
+    float? DiskTimePercent,
+    float? AvgReadLatencyMs,
+    float? AvgWriteLatencyMs,
+    float? QueueDepth);

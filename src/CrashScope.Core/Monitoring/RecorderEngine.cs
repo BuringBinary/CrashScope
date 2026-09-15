@@ -18,6 +18,9 @@ public sealed class RecorderEngine : IDisposable
     private GpuEngineTracker? _gpuEngineTracker;
     private DisplayTopologyTracker? _displayTracker;
     private PowerTracker? _powerTracker;
+    private StorageTracker? _storageTracker;
+    private EtwDxgKrnlMonitor? _etwMonitor;
+    private EtwRealTimeMonitor? _etwSystemMonitor;
 
     private CrashSafeJsonlWriter? _telemetryWriter;
     private CrashSafeJsonlWriter? _foregroundWriter;
@@ -27,6 +30,7 @@ public sealed class RecorderEngine : IDisposable
     private CrashSafeJsonlWriter? _displayWriter;
     private CrashSafeJsonlWriter? _powerWriter;
     private CrashSafeJsonlWriter? _remoteSessionWriter;
+    private CrashSafeJsonlWriter? _storageWriter;
 
     private CancellationTokenSource? _cts;
     private Task? _recordingTask;
@@ -37,6 +41,8 @@ public sealed class RecorderEngine : IDisposable
     private int _heartbeatCounter;
     private int _displayCounter;
     private int _powerCounter;
+    private int _storageCounter;
+    private int _etwDrainCounter;
 
     private readonly object _lock = new();
 
@@ -64,6 +70,9 @@ public sealed class RecorderEngine : IDisposable
     public event Action<DisplayTopologyEvent>? DisplayChanged;
     public event Action<PowerSchemeEvent>? PowerSchemeChanged;
     public event Action<RemoteSessionEvent>? RemoteSessionChanged;
+    public event Action<StorageSample>? StorageUpdated;
+    public event Action<EtwDxgKrnlEvent>? EtwEventReceived;
+    public event Action<EtwProviderEvent>? EtwSystemEventReceived;
 
     public void Start()
     {
@@ -91,11 +100,43 @@ public sealed class RecorderEngine : IDisposable
             _displayWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "display-events.jsonl"));
             _powerWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "power-events.jsonl"));
             _remoteSessionWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "remote-session-events.jsonl"));
+            _storageWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "storage.jsonl"));
 
             _processTracker = new ProcessTracker();
             _gpuEngineTracker = new GpuEngineTracker();
             _displayTracker = new DisplayTopologyTracker();
             _powerTracker = new PowerTracker();
+            _storageTracker = new StorageTracker();
+
+            _etwMonitor = new EtwDxgKrnlMonitor();
+            _etwMonitor.EventReceived += e => EtwEventReceived?.Invoke(e);
+            try { _etwMonitor.Start(_sessionDirectory); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW GPU session start failed (admin required): {ex.Message}");
+            }
+
+            var kernelPowerCfg = new ProviderConfig(
+                ProviderGuid: new Guid("331C3B3A-2005-44C2-AC5E-77220C37D6B4"),
+                ProviderName: "Microsoft-Windows-Kernel-Power",
+                OutputFile: "etw-kernel-power.jsonl",
+                IsInteresting: traceEvent =>
+                    traceEvent.TaskName is "SuspendStart" or "SuspendEnd" or "ResumeStart" or "ResumeEnd"
+                    || ((int)traceEvent.ID >= 10 && (int)traceEvent.ID <= 30)
+                    || traceEvent.TaskName.Contains("Thermal", StringComparison.OrdinalIgnoreCase)
+                    || traceEvent.TaskName.Contains("Power", StringComparison.OrdinalIgnoreCase));
+            var wheaCfg = new ProviderConfig(
+                ProviderGuid: new Guid("C26C4F3C-3F66-4E99-8F8A-39405CFED220"),
+                ProviderName: "Microsoft-Windows-WHEA-Logger",
+                OutputFile: "etw-whea.jsonl",
+                IsInteresting: _ => true);
+            _etwSystemMonitor = new EtwRealTimeMonitor(kernelPowerCfg, wheaCfg);
+            _etwSystemMonitor.EventReceived += e => EtwSystemEventReceived?.Invoke(e);
+            try { _etwSystemMonitor.Start(_sessionDirectory); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW system session start failed (admin required): {ex.Message}");
+            }
 
             _previousForeground = null;
             _processPollCounter = 0;
@@ -103,6 +144,8 @@ public sealed class RecorderEngine : IDisposable
             _heartbeatCounter = 0;
             _displayCounter = 0;
             _powerCounter = 0;
+            _storageCounter = 0;
+            _etwDrainCounter = 0;
             SampleCount = 0;
 
             _cts = new CancellationTokenSource();
@@ -185,6 +228,13 @@ public sealed class RecorderEngine : IDisposable
                 _remoteSessionWriter!.Write(remoteChange);
                 RemoteSessionChanged?.Invoke(remoteChange);
             }
+
+            if (_storageTracker is { IsAvailable: true })
+            {
+                var storageSample = _storageTracker.Capture(now);
+                _storageWriter!.Write(storageSample);
+                StorageUpdated?.Invoke(storageSample);
+            }
         }
 
         if (++_powerCounter >= 10)
@@ -210,6 +260,32 @@ public sealed class RecorderEngine : IDisposable
             _journal!.Heartbeat(now);
             StatusChanged?.Invoke();
         }
+
+        if (_etwMonitor is { IsRunning: true } && ++_etwDrainCounter >= 3)
+        {
+            _etwDrainCounter = 0;
+            try
+                {
+                    var etwEvents = _etwMonitor.DrainBuffer();
+                    foreach (var e in etwEvents)
+                        EtwEventReceived?.Invoke(e);
+                }
+                catch { }
+
+                if (_etwSystemMonitor is { IsRunning: true })
+                {
+                    foreach (var file in new[] { "etw-kernel-power.jsonl", "etw-whea.jsonl" })
+                    {
+                        try
+                        {
+                            var sysEvents = _etwSystemMonitor.DrainBuffer(file);
+                            foreach (var e in sysEvents)
+                                EtwSystemEventReceived?.Invoke(e);
+                        }
+                        catch { }
+                    }
+                }
+            }
     }
 
     public void Stop()
@@ -233,6 +309,18 @@ public sealed class RecorderEngine : IDisposable
             _displayWriter?.Dispose();
             _powerWriter?.Dispose();
             _remoteSessionWriter?.Dispose();
+            _storageWriter?.Dispose();
+
+            try { _etwMonitor?.Stop(); } catch { }
+            try { _etwMonitor?.Dispose(); } catch { }
+            _etwMonitor = null;
+
+            try { _etwSystemMonitor?.Stop(); } catch { }
+            try { _etwSystemMonitor?.Dispose(); } catch { }
+            _etwSystemMonitor = null;
+
+            _storageTracker?.Dispose();
+            _storageTracker = null;
 
             _cts?.Dispose();
             _cts = null;

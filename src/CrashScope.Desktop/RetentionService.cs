@@ -16,7 +16,9 @@ public sealed class RetentionService
         _incidentsRoot = Path.Combine(rootDirectory, "incidents");
 
         if (File.Exists(_configPath))
-            Settings = JsonSerializer.Deserialize<RetentionSettings>(File.ReadAllText(_configPath)) ?? new();
+            Settings = JsonSerializer.Deserialize<RetentionSettings>(
+                File.ReadAllText(_configPath),
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? new();
         else
             Settings = new RetentionSettings();
 

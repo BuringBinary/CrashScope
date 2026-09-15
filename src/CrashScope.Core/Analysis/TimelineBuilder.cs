@@ -13,7 +13,10 @@ public static class TimelineBuilder
         IReadOnlyList<WindowsEventEvidence> events,
         IReadOnlyList<ExternalEvidenceFile> external,
         IReadOnlyList<SensorTransition> transitions,
-        GraphicsContext? graphics)
+        GraphicsContext? graphics,
+        IReadOnlyList<EtwDxgKrnlEvent>? etwEvents,
+        IReadOnlyList<EtwProviderEvent>? etwKernelPower,
+        IReadOnlyList<EtwProviderEvent>? etwWhea)
     {
         var entries = new List<(DateTimeOffset Timestamp, string Category, string Description)>();
 
@@ -44,6 +47,36 @@ public static class TimelineBuilder
 
         foreach (var t in transitions)
             entries.Add((t.Timestamp, "GPU", $"{t.SensorName}: {t.FromValue:F1} → {t.ToValue:F1} [{t.Description}]"));
+
+        if (etwEvents is not null)
+        {
+            foreach (var etw in etwEvents)
+            {
+                var detail = etw.Detail is not null ? $" ({TruncateSummary(etw.Detail, 80)})" : "";
+                var proc = etw.ProcessName is not null ? $" [{etw.ProcessName}]" : "";
+                entries.Add((etw.Timestamp, "ETW-GPU", $"{etw.EventName} (ID {etw.EventId}){proc}{detail}"));
+            }
+        }
+
+        if (etwKernelPower is not null)
+        {
+            foreach (var kp in etwKernelPower)
+            {
+                var detail = kp.Detail is not null ? $" ({TruncateSummary(kp.Detail, 80)})" : "";
+                var extra = kp.Level is not null ? $" [{kp.Level}]" : "";
+                entries.Add((kp.Timestamp, "ETW-Power", $"{kp.EventName}{extra}{detail}"));
+            }
+        }
+
+        if (etwWhea is not null)
+        {
+            foreach (var wh in etwWhea)
+            {
+                var detail = wh.Detail is not null ? $" ({TruncateSummary(wh.Detail, 80)})" : "";
+                var extra = wh.Level is not null ? $" [{wh.Level}]" : "";
+                entries.Add((wh.Timestamp, "ETW-WHEA", $"{wh.EventName}{extra}{detail}"));
+            }
+        }
 
         if (graphics is not null)
         {

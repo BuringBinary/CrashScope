@@ -159,7 +159,7 @@ public sealed class DiagnosticExportService
     private static readonly Regex IpAddressRegex = new(
         @"\b(?:\d{1,3}\.){3}\d{1,3}\b", RegexOptions.Compiled);
     private static readonly Regex WindowTitleRegex = new(
-        @"(?<=\-\s)(?!PID\s)(?!CrashScope)([A-Za-z][A-Za-z0-9\s\-\.]{3,60})(?=\s*\()", RegexOptions.Compiled);
+        @"(?<=\-\s)(?!PID\s)(?!CrashScope)([A-Za-z][A-Za-z0-9\s\-\.]{3,60})(?=\s+\()", RegexOptions.Compiled);
 
     public static string RedactContent(string content)
     {

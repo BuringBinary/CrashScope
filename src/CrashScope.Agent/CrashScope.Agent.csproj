@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>CrashScope.Agent</AssemblyName>
     <RootNamespace>CrashScope.Agent</RootNamespace>
-    <Version>0.3.0</Version>
+    <Version>0.6.0</Version>
     <Description>Windows crash and freeze flight recorder</Description>
   </PropertyGroup>
 

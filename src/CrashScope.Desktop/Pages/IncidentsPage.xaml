@@ -7,6 +7,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
@@ -27,6 +29,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <StackPanel>
@@ -52,6 +55,25 @@
                                FontSize="20" FontWeight="Bold"
                                Foreground="{StaticResource AccentColor}"/>
                 </StackPanel>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <Button x:Name="CompareButton"
+                            Content="&#xE8E3;  Compare (2)"
+                            FontFamily="Segoe MDL2 Assets"
+                            Height="34" FontSize="12"
+                            Style="{StaticResource AccentButton}"
+                            Click="CompareButton_Click"
+                            VerticalAlignment="Center"
+                            IsEnabled="False"
+                            Margin="0,0,8,0"/>
+                    <Button x:Name="CrossAnalysisButton"
+                            Content="&#xE9D2;  Analyze All"
+                            FontFamily="Segoe MDL2 Assets"
+                            Height="34" FontSize="12"
+                            Style="{StaticResource AccentButton}"
+                            Click="CrossAnalysisButton_Click"
+                            VerticalAlignment="Center"/>
+                </StackPanel>
             </Grid>
         </Border>
 
@@ -68,6 +90,7 @@
                 <ListBox x:Name="IncidentListBox"
                          Background="Transparent" BorderThickness="0"
                          Foreground="{StaticResource TextPrimary}"
+                         SelectionMode="Extended"
                          SelectionChanged="IncidentListBox_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -176,6 +199,631 @@
                     </Border>
                 </Grid>
             </Border>
+            </Grid>
+        </Border>
+
+        <!-- Cross-Incident Analysis Panel -->
+        <Border Grid.Row="3" Background="{StaticResource CardBg}"
+                CornerRadius="12" Padding="20" Margin="0,12,0,0"
+                x:Name="CrossAnalysisPanel" Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Cross-Incident Analysis"
+                                   FontSize="18" FontWeight="Bold"
+                                   Foreground="{StaticResource AccentColor}"
+                                   VerticalAlignment="Center"/>
+                        <Button x:Name="CloseAnalysisButton"
+                                Content="&#xE711;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="28" Height="28"
+                                FontSize="12"
+                                Background="Transparent"
+                                Foreground="{StaticResource TextSecondary}"
+                                BorderThickness="0"
+                                Click="CloseAnalysisButton_Click"
+                                Margin="12,0,0,0"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Content: Scrollable -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="400">
+                    <StackPanel>
+
+                        <!-- Stability Score -->
+                        <Border Background="#0F0F1A" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel>
+                                    <TextBlock Text="System Health"
+                                               FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="StabilityScoreText"
+                                                   Text="--"
+                                                   FontSize="36" FontWeight="Bold"
+                                                   Foreground="{StaticResource AccentColor}"/>
+                                        <TextBlock Text="/100"
+                                                   FontSize="18"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   VerticalAlignment="Bottom" Margin="4,0,0,8"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="MtbfText"
+                                               Text="MTBF: --"
+                                               FontSize="14"
+                                               Foreground="{StaticResource TextPrimary}"/>
+                                    <TextBlock x:Name="TrendText"
+                                               Text="Trend: --"
+                                               FontSize="14"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,2,0,0"/>
+                                    <TextBlock x:Name="AnalysisSummaryText"
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="2"
+                                           x:Name="TrendArrowText"
+                                           Text="--"
+                                           FontSize="28"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Patterns Section -->
+                        <TextBlock Text="&#xE8F1;  Patterns Found"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimary}"
+                                   Margin="0,0,0,8"/>
+                        <ItemsControl x:Name="PatternsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#0F0F1A" CornerRadius="6"
+                                            Padding="10" Margin="0,0,0,4">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextPrimary}"
+                                                       TextWrapping="Wrap"/>
+                                            <Border Grid.Column="1"
+                                                    Background="{StaticResource AccentColor}"
+                                                    CornerRadius="4" Padding="6,2"
+                                                    Margin="8,0,0,0"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding OccurrenceDisplay}"
+                                                           FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="White"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Drivers Section -->
+                        <TextBlock Text="&#xE7C5;  Drivers"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimary}"
+                                   Margin="0,16,0,8"/>
+                        <ItemsControl x:Name="DriversList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#0F0F1A" CornerRadius="6"
+                                            Padding="10" Margin="0,0,0,4">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding DriverDisplay}"
+                                                           FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextPrimary}"/>
+                                                <TextBlock Text="{Binding FailuresDisplay}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextSecondary}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding RateDisplay}"
+                                                       FontSize="12" FontWeight="Bold"
+                                                       Foreground="{StaticResource GpuColor}"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Recommendations Section -->
+                        <TextBlock Text="&#xEA4B;  Recommendations"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimary}"
+                                   Margin="0,16,0,8"/>
+                        <ItemsControl x:Name="RecommendationsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#0F0F1A" CornerRadius="6"
+                                            Padding="12" Margin="0,0,0,4">
+                                        <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border CornerRadius="4" Padding="6,2"
+                                                        Background="{Binding PriorityBackground}"
+                                                        VerticalAlignment="Center"
+                                                        Margin="0,0,10,0">
+                                                    <TextBlock Text="{Binding PriorityLabel}"
+                                                               FontSize="11" FontWeight="Bold"
+                                                               Foreground="White"/>
+                                                </Border>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding Title}"
+                                                           FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextPrimary}"
+                                                           TextWrapping="Wrap"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="11"
+                                                       Foreground="{StaticResource TextSecondary}"
+                                                       Margin="0,4,0,0"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Incident Comparison Panel -->
+        <Border Grid.Row="4" Background="{StaticResource CardBg}"
+                CornerRadius="12" Padding="20" Margin="0,12,0,0"
+                x:Name="ComparisonPanel" Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Incident Comparison"
+                                   FontSize="18" FontWeight="Bold"
+                                   Foreground="{StaticResource AccentColor}"
+                                   VerticalAlignment="Center"/>
+                        <Button x:Name="CloseComparisonButton"
+                                Content="&#xE711;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="28" Height="28"
+                                FontSize="12"
+                                Background="Transparent"
+                                Foreground="{StaticResource TextSecondary}"
+                                BorderThickness="0"
+                                Click="CloseComparisonButton_Click"
+                                Margin="12,0,0,0"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:Name="ComparisonSubtitle"
+                               Text="Select exactly 2 incidents and click Compare"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondary}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <!-- Content -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="450">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Incident -->
+                        <StackPanel Grid.Column="0">
+                            <Border Background="#0F0F1A" CornerRadius="8" Padding="14" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock x:Name="LeftHeader"
+                                               FontSize="14" FontWeight="Bold"
+                                               Foreground="{StaticResource TextPrimary}"
+                                               Margin="0,0,0,12"/>
+
+                                    <!-- Basic Info -->
+                                    <TextBlock Text="BASIC INFO" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,0,0,6"/>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Mode:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftMode"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Confidence:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftConfidence"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+
+                                    <!-- GPU State -->
+                                    <TextBlock Text="GPU STATE" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Final Load:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftGpuLoad"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource GpuColor}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Transitions:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftGpuTransitions"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+
+                                    <!-- ETW -->
+                                    <TextBlock Text="ETW EVENTS" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="GPU (TDR):" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftEtwGpu"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Power:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftEtwPower"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="WHEA:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftEtwWhea"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource DangerColor}"/>
+                                    </Grid>
+
+                                    <!-- Display -->
+                                    <TextBlock Text="DISPLAY" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Monitors:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftMonitors"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Virtual:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="LeftVirtualDisplay"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource WarningColor}"/>
+                                    </Grid>
+
+                                    <!-- Drivers -->
+                                    <TextBlock Text="DRIVERS" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <ItemsControl x:Name="LeftDrivers">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Margin="0,0,0,2"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Processes -->
+                                    <TextBlock Text="GRAPHICS APPS" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <ItemsControl x:Name="LeftApps">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Margin="0,0,0,2"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Hypotheses -->
+                                    <TextBlock Text="HYPOTHESES" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <ItemsControl x:Name="LeftHypotheses">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Margin="0,0,0,2"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Divider -->
+                        <Border Grid.Column="1"
+                                Background="{StaticResource CardBg}"
+                                Width="2" Margin="4,0"/>
+
+                        <!-- Right Incident -->
+                        <StackPanel Grid.Column="2">
+                            <Border Background="#0F0F1A" CornerRadius="8" Padding="14" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock x:Name="RightHeader"
+                                               FontSize="14" FontWeight="Bold"
+                                               Foreground="{StaticResource TextPrimary}"
+                                               Margin="0,0,0,12"/>
+
+                                    <!-- Basic Info -->
+                                    <TextBlock Text="BASIC INFO" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,0,0,6"/>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Mode:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightMode"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Confidence:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightConfidence"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+
+                                    <!-- GPU State -->
+                                    <TextBlock Text="GPU STATE" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Final Load:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightGpuLoad"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource GpuColor}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Transitions:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightGpuTransitions"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+
+                                    <!-- ETW -->
+                                    <TextBlock Text="ETW EVENTS" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="GPU (TDR):" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightEtwGpu"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Power:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightEtwPower"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="WHEA:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightEtwWhea"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource DangerColor}"/>
+                                    </Grid>
+
+                                    <!-- Display -->
+                                    <TextBlock Text="DISPLAY" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Monitors:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightMonitors"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextPrimary}"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Virtual:" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Width="70"/>
+                                        <TextBlock Grid.Column="1" x:Name="RightVirtualDisplay"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource WarningColor}"/>
+                                    </Grid>
+
+                                    <!-- Drivers -->
+                                    <TextBlock Text="DRIVERS" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <ItemsControl x:Name="RightDrivers">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Margin="0,0,0,2"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Processes -->
+                                    <TextBlock Text="GRAPHICS APPS" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <ItemsControl x:Name="RightApps">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Margin="0,0,0,2"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Hypotheses -->
+                                    <TextBlock Text="HYPOTHESES" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource TextSecondary}"
+                                               Margin="0,8,0,6"/>
+                                    <ItemsControl x:Name="RightHypotheses">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Margin="0,0,0,2"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
             </Grid>
         </Border>
     </Grid>

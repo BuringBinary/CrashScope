@@ -45,7 +45,7 @@ if (journal.PreviousState is { CleanShutdown: false } previous)
     }
 }
 
-Console.WriteLine("CrashScope v0.3");
+Console.WriteLine("CrashScope v0.8");
 Console.WriteLine($"Session: {journal.Current.SessionId}");
 Console.WriteLine($"Data: {sessionDirectory}");
 Console.WriteLine($"Elevated: {journal.Current.Elevated}");
@@ -61,6 +61,7 @@ using var gpuEngineWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirecto
 using var displayWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "display-events.jsonl"));
 using var powerWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "power-events.jsonl"));
 using var remoteSessionWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "remote-session-events.jsonl"));
+using var storageWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "storage.jsonl"));
 using var hardware = new HardwareMonitor();
 File.WriteAllText(
     Path.Combine(sessionDirectory, "sensor-catalog.json"),
@@ -72,6 +73,7 @@ var processTracker = new ProcessTracker();
 var gpuEngineTracker = new GpuEngineTracker();
 var displayTracker = new DisplayTopologyTracker();
 var powerTracker = new PowerTracker();
+using var storageTracker = new StorageTracker();
 
 var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
@@ -126,6 +128,12 @@ try
             var remoteChange = powerTracker.PollRemoteSession(now);
             if (remoteChange is not null)
                 remoteSessionWriter.Write(remoteChange);
+
+            if (storageTracker.IsAvailable)
+            {
+                var storageSample = storageTracker.Capture(now);
+                storageWriter.Write(storageSample);
+            }
         }
 
         if (++powerCounter >= 10)

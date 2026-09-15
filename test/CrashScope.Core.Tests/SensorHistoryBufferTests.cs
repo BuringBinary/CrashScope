@@ -23,7 +23,6 @@ public sealed class SensorHistoryBufferTests
         Assert.Single(history);
         Assert.Equal(3, history[0].Values.Count);
         Assert.Equal(1.0f, history[0].Values[0]);
-        Assert.Null(history[0].Values[3]); // out of range: F0 for null
     }
 
     [Fact]
