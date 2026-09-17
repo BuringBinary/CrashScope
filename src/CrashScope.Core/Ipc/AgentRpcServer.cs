@@ -2,6 +2,7 @@ using System.IO.Pipes;
 using System.Text.Json;
 using System.Threading.Channels;
 using CrashScope.Contracts;
+using CrashScope.Core.Analysis;
 using CrashScope.Core.Monitoring;
 
 namespace CrashScope.Core.Ipc;
@@ -20,6 +21,7 @@ public sealed class AgentRpcServer : IDisposable
     private const int MaxConcurrentClients = 4;
 
     private readonly RecorderEngine _engine;
+    private readonly string? _incidentsRoot;
     private readonly string _endpointPath;
     private readonly object _gate = new();
     private readonly Dictionary<int, ClientConnection> _clients = new();
@@ -30,9 +32,10 @@ public sealed class AgentRpcServer : IDisposable
 
     public string PipeName { get; }
 
-    public AgentRpcServer(RecorderEngine engine, string stateDirectory, string? pipeNameOverride = null)
+    public AgentRpcServer(RecorderEngine engine, string stateDirectory, string? pipeNameOverride = null, string? incidentsRoot = null)
     {
         _engine = engine;
+        _incidentsRoot = incidentsRoot;
         PipeName = pipeNameOverride ?? $"{RpcProtocol.PipeNamePrefix}{Environment.ProcessId}";
         Directory.CreateDirectory(stateDirectory);
         _endpointPath = Path.Combine(stateDirectory, "rpc-endpoint.json");
@@ -258,6 +261,37 @@ public sealed class AgentRpcServer : IDisposable
                     .ConfigureAwait(false);
                 break;
 
+            case RpcMessages.GetIncidents:
+                var incidents = ListIncidents();
+                await client.SendAsync(Response(RpcMessages.IncidentList, envelope.Id, incidents), client.Token)
+                    .ConfigureAwait(false);
+                break;
+
+            case RpcMessages.GetIncidentDetail:
+                var detailRequest = RpcFraming.DeserializePayload<IncidentDetailRequest>(envelope);
+                if (detailRequest is null ||
+                    string.IsNullOrWhiteSpace(detailRequest.Id) ||
+                    Path.GetFileName(detailRequest.Id) != detailRequest.Id ||
+                    detailRequest.Id.Contains("..", StringComparison.Ordinal))
+                {
+                    await SendErrorAsync(client, "bad-incident-id",
+                        "The request must carry an incident id (a directory name, never a path).", envelope.Id)
+                        .ConfigureAwait(false);
+                    break;
+                }
+
+                var detail = ReadIncidentDetail(detailRequest.Id);
+                if (detail is null)
+                {
+                    await SendErrorAsync(client, "incident-not-found",
+                        $"No incident directory named '{detailRequest.Id}'.", envelope.Id).ConfigureAwait(false);
+                    break;
+                }
+
+                await client.SendAsync(Response(RpcMessages.IncidentDetail, envelope.Id, detail), client.Token)
+                    .ConfigureAwait(false);
+                break;
+
             default:
                 await SendErrorAsync(client, "unknown-type", $"No verb named '{envelope.Type}'.", envelope.Id)
                     .ConfigureAwait(false);
@@ -315,6 +349,30 @@ public sealed class AgentRpcServer : IDisposable
             session is null ? 0 : (DateTimeOffset.Now - session.StartedAt).TotalSeconds,
             VersionText(),
             _engine.PrimaryGpuHardwareName);
+    }
+
+    private IncidentListPayload ListIncidents()
+    {
+        if (string.IsNullOrWhiteSpace(_incidentsRoot) || !Directory.Exists(_incidentsRoot))
+            return new IncidentListPayload([]);
+
+        var entries = IncidentCatalog.List(_incidentsRoot)
+            .Select(e => new IncidentSummaryDto(e.Id, e.Timestamp, e.LeadingMode, e.Confidence, e.HypothesisCount, e.HasSummary, e.HasTimeline))
+            .ToList();
+        return new IncidentListPayload(entries);
+    }
+
+    private IncidentDetailPayload? ReadIncidentDetail(string id)
+    {
+        if (string.IsNullOrWhiteSpace(_incidentsRoot))
+            return null;
+        if (!Directory.Exists(Path.Combine(_incidentsRoot, id)))
+            return null;
+
+        return new IncidentDetailPayload(
+            id,
+            IncidentCatalog.ReadSummary(_incidentsRoot, id),
+            IncidentCatalog.ReadTimeline(_incidentsRoot, id));
     }
 
     private static RpcEnvelope Response(string type, string? requestId, object payload) =>

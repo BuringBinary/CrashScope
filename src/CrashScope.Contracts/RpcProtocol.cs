@@ -36,6 +36,10 @@ public static class RpcMessages
     public const string Telemetry = "telemetry";
     public const string StartRecording = "start-recording";
     public const string StopRecording = "stop-recording";
+    public const string GetIncidents = "get-incidents";
+    public const string IncidentList = "incidents";
+    public const string GetIncidentDetail = "get-incident-detail";
+    public const string IncidentDetail = "incident-detail";
     public const string Ok = "ok";
     public const string Error = "error";
     public const string StatusChanged = "status-changed";
@@ -92,6 +96,21 @@ public sealed record TelemetryPayload(DateTimeOffset Timestamp, IReadOnlyList<fl
 public sealed record OkPayload(string? Message = null);
 
 public sealed record ErrorPayload(string Code, string Message, string? ForId = null);
+
+public sealed record IncidentSummaryDto(
+    string Id,
+    DateTimeOffset Timestamp,
+    string LeadingMode,
+    double Confidence,
+    int HypothesisCount,
+    bool HasSummary,
+    bool HasTimeline);
+
+public sealed record IncidentListPayload(IReadOnlyList<IncidentSummaryDto> Incidents);
+
+public sealed record IncidentDetailRequest(string Id);
+
+public sealed record IncidentDetailPayload(string Id, string? Summary, string? Timeline);
 
 /// <summary>Raised client-side when the server answers a request with an error envelope.</summary>
 public sealed class RpcException(string code, string message, string? forId = null)

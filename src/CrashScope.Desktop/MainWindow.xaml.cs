@@ -193,6 +193,7 @@ public partial class MainWindow : Window
             "Dashboard" => new DashboardPage(),
             "LiveMonitor" => new LiveMonitorPage(),
             "AgentMonitor" => new AgentMonitorPage(),
+            "AgentIncidents" => new AgentIncidentsPage(),
             "Incidents" => new IncidentsPage(),
             "Timeline" => new TimelinePage(),
             "Settings" => new SettingsPage(),

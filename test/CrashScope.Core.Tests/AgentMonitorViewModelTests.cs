@@ -83,6 +83,45 @@ public sealed class AgentMonitorViewModelTests : IDisposable
         Assert.Contains("not running", vm.ConnectionError);
     }
 
+    [Fact]
+    public async Task LoadIncidents_OverLiveServer()
+    {
+        var incidentsRoot = SeedIncidentBundle();
+        var stateDir = Path.Combine(_root, "state");
+        var engine = new RecorderEngine(
+            Path.Combine(_root, "session"), stateDir, Path.Combine(_root, "incidents"));
+        var server = new AgentRpcServer(
+            engine, stateDir, "crashscope-rpc-test-" + Guid.NewGuid().ToString("N")[..8], incidentsRoot);
+        using var _e = engine;
+        using var _s = server;
+        server.Start();
+
+        var vm = new AgentMonitorViewModel();
+        Assert.True(await vm.ConnectAsync(stateDir), vm.ConnectionError);
+
+        await vm.LoadIncidentsAsync();
+        var incident = Assert.Single(vm.Incidents);
+        Assert.Equal("20260917-120000-abc12345", incident.Id);
+        Assert.Null(vm.IncidentDetailText);
+
+        await vm.LoadIncidentDetailAsync(incident.Id);
+        Assert.Contains("Seeded bundle", vm.IncidentDetailText);
+    }
+
+    private string SeedIncidentBundle()
+    {
+        var root = Path.Combine(_root, "incidents");
+        Directory.CreateDirectory(root);
+        var dir = Path.Combine(root, "20260917-120000-abc12345");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "analysis.json"),
+            "{\"previousSession\":{\"sessionId\":\"abc12345\",\"startedAt\":\"2026-09-17T11:00:00+08:00\",\"lastHeartbeatAt\":\"2026-09-17T12:00:00+08:00\"}," +
+            "\"hypotheses\":[{\"mode\":\"Tdr\",\"score\":3,\"confidence\":0.7,\"evidence\":[]}]}");
+        File.WriteAllText(Path.Combine(dir, "summary.md"), "# CrashScope Incident Summary\n\nSeeded bundle for tests.");
+        File.WriteAllText(Path.Combine(dir, "timeline.md"), "# CrashScope Incident Timeline\n\n| Time | Category | Description |");
+        return root;
+    }
+
     private static async Task<bool> WaitForAsync(Func<Task<bool>> condition, int timeoutMs = 20000)
     {
         var deadline = Environment.TickCount64 + timeoutMs;

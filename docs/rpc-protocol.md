@@ -46,6 +46,8 @@ success the server replies `welcome`:
 | `get-latest-telemetry` | `telemetry` | `{ timestamp, values: [float or null] }` - `values` is empty before the first sample |
 | `start-recording` | `ok` / `error` | - |
 | `stop-recording` | `ok` / `error` | - |
+| `get-incidents` | `incidents` | `{ incidents: [{ id, timestamp, leadingMode, confidence, hypothesisCount, hasSummary, hasTimeline }] }`, newest first |
+| `get-incident-detail` | `incident-detail` | request `{ id }` (a directory name, never a path); response `{ id, summary, timeline }` with the markdown texts (either may be null) |
 
 Unknown verbs get `error` with code `unknown-type`; requests always get exactly
 one response with the same `id`.
@@ -60,7 +62,7 @@ one response with the same `id`.
 ## Error codes
 
 `handshake-required`, `protocol-version`, `already-handshaken`, `unknown-type`,
-`start-failed`, `stop-failed`.
+`start-failed`, `stop-failed`, `bad-incident-id`, `incident-not-found`.
 
 ## Implementation
 

@@ -46,6 +46,7 @@ public sealed class AgentMonitorViewModel : IDisposable
     public event Action? StateChanged;
 
     public ObservableCollection<SensorRow> Rows { get; } = [];
+    public ObservableCollection<Contracts.IncidentSummaryDto> Incidents { get; } = [];
 
     public bool IsConnected { get; private set; }
     public bool Recording { get; private set; }
@@ -55,6 +56,7 @@ public sealed class AgentMonitorViewModel : IDisposable
     public string? PrimaryGpu { get; private set; }
     public string? AgentVersion { get; private set; }
     public string? ConnectionError { get; private set; }
+    public string? IncidentDetailText { get; private set; }
     public DateTimeOffset? LastUpdateAt { get; private set; }
     public string PipeName { get; private set; } = string.Empty;
 
@@ -135,6 +137,37 @@ public sealed class AgentMonitorViewModel : IDisposable
     {
         var client = _client ?? throw new InvalidOperationException("Not connected.");
         await client.SendRequestAsync(RpcMessages.StopRecording, ct: ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Reloads the incident list from the connected agent and clears the detail pane.</summary>
+    public async Task LoadIncidentsAsync(CancellationToken ct = default)
+    {
+        var client = _client ?? throw new InvalidOperationException("Not connected.");
+        var payload = Deserialize<IncidentListPayload>(
+            await client.SendRequestAsync(RpcMessages.GetIncidents, ct: ct).ConfigureAwait(false));
+        Incidents.Clear();
+        if (payload is not null)
+        {
+            foreach (var incident in payload.Incidents)
+                Incidents.Add(incident);
+        }
+
+        IncidentDetailText = null;
+        RaiseStateChanged();
+    }
+
+    public async Task LoadIncidentDetailAsync(string id, CancellationToken ct = default)
+    {
+        var client = _client ?? throw new InvalidOperationException("Not connected.");
+        var payload = Deserialize<IncidentDetailPayload>(
+            await client.SendRequestAsync(RpcMessages.GetIncidentDetail, new IncidentDetailRequest(id), ct: ct)
+                .ConfigureAwait(false));
+        IncidentDetailText = payload is null
+            ? null
+            : string.Join(
+                Environment.NewLine + Environment.NewLine,
+                new[] { payload.Summary, payload.Timeline }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        RaiseStateChanged();
     }
 
     public void Disconnect() => DisposeClient();

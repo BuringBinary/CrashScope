@@ -101,7 +101,7 @@ Console.WriteLine("Press Ctrl+C to stop cleanly.");
 AgentRpcServer? rpc = null;
 if (rpcEnabled)
 {
-    rpc = new AgentRpcServer(engine, stateDirectory, pipeNameOverride);
+    rpc = new AgentRpcServer(engine, stateDirectory, pipeNameOverride, incidentsRoot);
     rpc.Start();
     Console.WriteLine($"RPC: named pipe '{rpc.PipeName}' (endpoint: {Path.Combine(stateDirectory, "rpc-endpoint.json")})");
 }
