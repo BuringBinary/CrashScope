@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>CrashScope.Contracts</AssemblyName>
+    <RootNamespace>CrashScope.Contracts</RootNamespace>
+    <Version>0.9.0</Version>
+    <Description>Wire contracts between the CrashScope agent and its local UI clients (JSON over named pipes)</Description>
+  </PropertyGroup>
+</Project>

@@ -1,4 +1,5 @@
 using CrashScope.Core.Monitoring;
+using CrashScope.Core.Ipc;
 
 // CrashScope CLI agent.
 //
@@ -15,10 +16,16 @@ if (!OperatingSystem.IsWindows())
 }
 
 string? dataRootOverride = null;
+var rpcEnabled = true;
+string? pipeNameOverride = null;
 foreach (var arg in args)
 {
     if (arg.StartsWith("--data-root=", StringComparison.OrdinalIgnoreCase))
         dataRootOverride = arg["--data-root=".Length..];
+    else if (arg.StartsWith("--pipe-name=", StringComparison.OrdinalIgnoreCase))
+        pipeNameOverride = arg["--pipe-name=".Length..];
+    else if (arg is "--no-rpc")
+        rpcEnabled = false;
     else if (arg is "-h" or "--help")
     {
         PrintUsage();
@@ -81,6 +88,17 @@ if (session?.Elevated == false)
     Console.WriteLine("Warning: running without Administrator privileges; the ETW kernel sessions " +
                       "(GPU / power / WHEA) and some event-log details will be unavailable.");
 Console.WriteLine("Press Ctrl+C to stop cleanly.");
+// The RPC surface is the agent's observation/control plane for the UI shell
+// (docs/rpc-protocol.md): status, sensor catalog, live telemetry, start/stop.
+// It is read-mostly and never drives the recording path itself; --no-rpc
+// restores the pure-recorder posture for validation runs.
+AgentRpcServer? rpc = null;
+if (rpcEnabled)
+{
+    rpc = new AgentRpcServer(engine, stateDirectory, pipeNameOverride);
+    rpc.Start();
+    Console.WriteLine($"RPC: named pipe '{rpc.PipeName}' (endpoint: {Path.Combine(stateDirectory, "rpc-endpoint.json")})");
+}
 
 try
 {
@@ -93,6 +111,7 @@ catch (OperationCanceledException)
 }
 
 engine.Stop();
+rpc?.Stop(); // close the control plane after the recorder: a UI sees status flip, then a clean disconnect
 Console.WriteLine($"Stopped cleanly. Samples recorded: {engine.SampleCount}");
 return 0;
 
@@ -100,10 +119,12 @@ static void PrintUsage()
 {
     Console.WriteLine("CrashScope agent - Windows flight recorder for crashes, freezes and GPU failures.");
     Console.WriteLine();
-    Console.WriteLine("Usage: CrashScope.Agent [--data-root=<path>]");
+    Console.WriteLine("Usage: CrashScope.Agent [--data-root=<path>] [--no-rpc] [--pipe-name=<name>]");
     Console.WriteLine();
     Console.WriteLine("  --data-root=<path>  Record under <path> instead of %LOCALAPPDATA%\\CrashScope.");
     Console.WriteLine("                      Use the Service root (%ProgramData%\\CrashScope) to share data.");
+    Console.WriteLine("  --no-rpc            Disable the local RPC control plane (headless recorder).");
+    Console.WriteLine("  --pipe-name=<name>  Serve RPC on <name> instead of the default PID-suffixed pipe.");
     Console.WriteLine("  -h, --help          Show this help.");
     Console.WriteLine();
     Console.WriteLine("Run elevated (Administrator) to capture the ETW kernel sessions.");

@@ -22,6 +22,7 @@ jobs:
       # job was widened). Build every project, then run the test suite.
       - name: Restore
         run: |
+          dotnet restore .\src\CrashScope.Contracts\CrashScope.Contracts.csproj
           dotnet restore .\src\CrashScope.Core\CrashScope.Core.csproj
           dotnet restore .\src\CrashScope.Agent\CrashScope.Agent.csproj
           dotnet restore .\src\CrashScope.Service\CrashScope.Service.csproj
@@ -30,6 +31,7 @@ jobs:
 
       - name: Build (all projects)
         run: |
+          dotnet build .\src\CrashScope.Contracts\CrashScope.Contracts.csproj  -c Release --no-restore
           dotnet build .\src\CrashScope.Core\CrashScope.Core.csproj       -c Release --no-restore
           dotnet build .\src\CrashScope.Agent\CrashScope.Agent.csproj      -c Release --no-restore
           dotnet build .\src\CrashScope.Service\CrashScope.Service.csproj  -c Release --no-restore
