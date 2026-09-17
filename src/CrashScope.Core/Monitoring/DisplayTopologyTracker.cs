@@ -26,6 +26,13 @@ public sealed class DisplayTopologyTracker
     public DisplayTopologyEvent? Poll(DateTimeOffset now)
     {
         var current = Enumerate();
+
+        // A failed enumeration - or a session that suddenly reports no monitors,
+        // which never happens on a live desktop - must not be mistaken for
+        // "all displays removed".
+        if (current is null || (current.Count == 0 && _topology is not null))
+            return null;
+
         var previous = _topology;
         _topology = current;
 
@@ -38,7 +45,7 @@ public sealed class DisplayTopologyTracker
         return new DisplayTopologyEvent(now, "changed", previous, current, Describe(previous, current));
     }
 
-    private static bool SameTopology(IReadOnlyList<DisplayInfo> before, IReadOnlyList<DisplayInfo> after)
+    internal static bool SameTopology(IReadOnlyList<DisplayInfo> before, IReadOnlyList<DisplayInfo> after)
     {
         if (before.Count != after.Count)
             return false;
@@ -51,7 +58,7 @@ public sealed class DisplayTopologyTracker
                 && pair.First.Height == pair.Second.Height);
     }
 
-    private static string Describe(IReadOnlyList<DisplayInfo>? before, IReadOnlyList<DisplayInfo> after)
+    internal static string Describe(IReadOnlyList<DisplayInfo>? before, IReadOnlyList<DisplayInfo> after)
     {
         var builder = new StringBuilder();
         if (before is null)
@@ -89,10 +96,10 @@ public sealed class DisplayTopologyTracker
         return $"'{display.MonitorName}' on {display.DeviceName} ({display.Width}x{display.Height}){suffix}";
     }
 
-    private static bool IsVirtualDisplay(string monitorName)
+    internal static bool IsVirtualDisplay(string monitorName)
         => VirtualDisplayMarkers.Any(marker => monitorName.Contains(marker, StringComparison.OrdinalIgnoreCase));
 
-    private List<DisplayInfo> Enumerate()
+    private List<DisplayInfo>? Enumerate()
     {
         var result = new List<DisplayInfo>();
         _enumerationTarget = result;
@@ -102,7 +109,8 @@ public sealed class DisplayTopologyTracker
         }
         catch
         {
-            // Display enumeration failed this round: report the empty topology change-free.
+            // Display enumeration failed this round: keep the previous topology.
+            return null;
         }
         return result;
     }
@@ -111,7 +119,10 @@ public sealed class DisplayTopologyTracker
     {
         var target = _enumerationTarget;
 
-        var info = new MONITORINFOEX();
+        var info = new MONITORINFOEX
+        {
+            cbSize = Marshal.SizeOf<MONITORINFOEX>()
+        };
         if (GetMonitorInfo(hMonitor, ref info))
         {
             var deviceName = info.szDevice;

@@ -5,6 +5,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object Security.Principal.WindowsPrincipal($identity)
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Error 'This script must be run as Administrator (the CrashScope service records privileged ETW and event-log data). Right-click the script and choose "Run as administrator".'
+    exit 1
+}
+
 if (-not $ServicePath) {
     $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
     $ServicePath = Join-Path $repo 'src\CrashScope.Service\bin\Release\net8.0-windows\publish\CrashScope.Service.exe'

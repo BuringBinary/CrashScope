@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text.Json;
 
-namespace CrashScope.Desktop;
+namespace CrashScope.Core.Infrastructure;
 
 public sealed class RetentionService
 {

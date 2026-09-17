@@ -22,13 +22,16 @@ public static class IncidentAnalyzer
         var etwKernelPower = ReadJsonLines<EtwProviderEvent>(Path.Combine(incidentDirectory, "etw-kernel-power-tail.jsonl"));
         var etwWhea = ReadJsonLines<EtwProviderEvent>(Path.Combine(incidentDirectory, "etw-whea-tail.jsonl"));
         var storageEvents = ReadJsonLines<StorageSample>(Path.Combine(incidentDirectory, "storage-tail.jsonl"));
+        var gpuMemoryEvents = ReadJsonLines<GpuMemorySample>(Path.Combine(incidentDirectory, "gpu-memory-tail.jsonl"));
+        var memoryPressureEvents = ReadJsonLines<MemoryPressureSample>(Path.Combine(incidentDirectory, "memory-pressure-tail.jsonl"));
+        var dwmStateEvents = ReadJsonLines<DwmStateEvent>(Path.Combine(incidentDirectory, "dwm-state-tail.jsonl"));
 
         var transitions = GpuTransitionDetector.Detect(catalog ?? [], telemetry);
         var facts = BuildFacts(previous, catalog, telemetry);
         var graphics = GraphicsContextBuilder.Build(incidentDirectory, events, processEvents, processSnapshots);
-        var evaluation = HypothesisEvaluator.Evaluate(events, external, transitions, facts, graphics, etwEvents, etwKernelPower, etwWhea, storageEvents);
+        var evaluation = HypothesisEvaluator.Evaluate(events, external, transitions, facts, graphics, etwEvents, etwKernelPower, etwWhea, storageEvents, gpuMemoryEvents, memoryPressureEvents, dwmStateEvents);
         var timeline = TimelineBuilder.Build(
-            previous, catalog, telemetry, foreground, processEvents, events, external, transitions, graphics, etwEvents, etwKernelPower, etwWhea);
+            previous, catalog, telemetry, foreground, processEvents, events, external, transitions, graphics, etwEvents, etwKernelPower, etwWhea, gpuMemoryEvents, memoryPressureEvents, dwmStateEvents);
 
         var analysis = new IncidentAnalysis(
             previous,

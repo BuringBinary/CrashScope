@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CrashScope.Core.Infrastructure;
+using CrashScope.Desktop.Services;
 using UserControl = System.Windows.Controls.UserControl;
 using Brush = System.Windows.Media.Brush;
 using Clipboard = System.Windows.Clipboard;
@@ -14,6 +16,8 @@ public partial class SettingsPage : UserControl
 {
     private readonly AppService _service;
     private readonly RetentionService _retention;
+    private readonly LocalizationService _localization;
+    private readonly ThemeService _theme;
     private bool _initialized;
     private DispatcherTimer? _statusTimer;
 
@@ -22,6 +26,8 @@ public partial class SettingsPage : UserControl
         InitializeComponent();
         _service = App.Current.Service;
         _retention = new RetentionService(_service.RootDirectory);
+        _localization = App.Current.Localization;
+        _theme = App.Current.Theme;
 
         Loaded += OnLoaded;
     }
@@ -41,7 +47,56 @@ public partial class SettingsPage : UserControl
         if (_service.IsElevated)
             ElevationText.Foreground = FindResource("GpuColor") as Brush;
 
+        PopulateLanguageComboBox();
+        PopulateThemeComboBox();
+
         UpdateUsage();
+    }
+
+    private void PopulateLanguageComboBox()
+    {
+        LanguageComboBox.Items.Clear();
+        foreach (var code in _localization.AvailableLocales)
+        {
+            LanguageComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = _localization.GetLocaleDisplayName(code),
+                Tag = code,
+                IsSelected = code == _localization.CurrentLocale
+            });
+        }
+    }
+
+    private void PopulateThemeComboBox()
+    {
+        ThemeComboBox.Items.Clear();
+        foreach (var theme in _theme.AvailableThemes)
+        {
+            ThemeComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = theme,
+                Tag = theme,
+                IsSelected = theme == _theme.CurrentTheme
+            });
+        }
+    }
+
+    private void LanguageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_initialized) return;
+        if (LanguageComboBox.SelectedItem is ComboBoxItem item && item.Tag is string code)
+        {
+            _localization.SetLocale(code);
+        }
+    }
+
+    private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_initialized) return;
+        if (ThemeComboBox.SelectedItem is ComboBoxItem item && item.Tag is string theme)
+        {
+            _theme.SetTheme(theme);
+        }
     }
 
     private void UpdateUsage()

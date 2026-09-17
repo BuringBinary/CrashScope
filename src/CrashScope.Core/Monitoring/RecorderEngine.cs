@@ -2,6 +2,7 @@ using CrashScope.Core.Diagnostics;
 using CrashScope.Core.Infrastructure;
 using CrashScope.Core.Models;
 using CrashScope.Core.Platform;
+using CrashScope.Core.Analysis;
 using System.Text.Json;
 
 namespace CrashScope.Core.Monitoring;
@@ -19,6 +20,9 @@ public sealed class RecorderEngine : IDisposable
     private DisplayTopologyTracker? _displayTracker;
     private PowerTracker? _powerTracker;
     private StorageTracker? _storageTracker;
+    private GpuMemoryTracker? _gpuMemoryTracker;
+    private MemoryPressureTracker? _memoryPressureTracker;
+    private DwmStateTracker? _dwmTracker;
     private EtwDxgKrnlMonitor? _etwMonitor;
     private EtwRealTimeMonitor? _etwSystemMonitor;
 
@@ -31,6 +35,9 @@ public sealed class RecorderEngine : IDisposable
     private CrashSafeJsonlWriter? _powerWriter;
     private CrashSafeJsonlWriter? _remoteSessionWriter;
     private CrashSafeJsonlWriter? _storageWriter;
+    private CrashSafeJsonlWriter? _gpuMemoryWriter;
+    private CrashSafeJsonlWriter? _memoryPressureWriter;
+    private CrashSafeJsonlWriter? _dwmStateWriter;
 
     private CancellationTokenSource? _cts;
     private Task? _recordingTask;
@@ -41,8 +48,16 @@ public sealed class RecorderEngine : IDisposable
     private int _heartbeatCounter;
     private int _displayCounter;
     private int _powerCounter;
-    private int _storageCounter;
     private int _etwDrainCounter;
+    private int _retentionCounter;
+
+    /// <summary>
+    /// Set by Stop() before anything is disposed so an in-flight Tick() bails out instead
+    /// of writing through disposed writers or dereferencing nulled trackers.
+    /// </summary>
+    private volatile bool _stopping;
+
+    private const int RetentionIntervalSeconds = 86400;
 
     private readonly object _lock = new();
 
@@ -62,6 +77,13 @@ public sealed class RecorderEngine : IDisposable
     public int SampleCount { get; private set; }
     public IReadOnlyList<SensorCatalogEntry> SensorCatalog => _hardware?.Catalog ?? Array.Empty<SensorCatalogEntry>();
 
+    /// <summary>
+    /// The GPU adapter that reported GPU facts come from, or null when no GPU sensors exist.
+    /// Exposed so hosts can surface it: on a hybrid machine the iGPU is enumerated first and
+    /// silently reporting its load instead of the discrete card misleads the reader.
+    /// </summary>
+    public string? PrimaryGpuHardwareName => SensorIndices.PrimaryGpuHardwareName(SensorCatalog);
+
     public event Action? StatusChanged;
     public event Action<IReadOnlyList<float?>>? SensorUpdated;
     public event Action<ForegroundEvent>? ForegroundChanged;
@@ -71,6 +93,9 @@ public sealed class RecorderEngine : IDisposable
     public event Action<PowerSchemeEvent>? PowerSchemeChanged;
     public event Action<RemoteSessionEvent>? RemoteSessionChanged;
     public event Action<StorageSample>? StorageUpdated;
+    public event Action<GpuMemorySample>? GpuMemoryUpdated;
+    public event Action<MemoryPressureSample>? MemoryPressureUpdated;
+    public event Action<DwmStateEvent>? DwmStateChanged;
     public event Action<EtwDxgKrnlEvent>? EtwEventReceived;
     public event Action<EtwProviderEvent>? EtwSystemEventReceived;
 
@@ -101,12 +126,18 @@ public sealed class RecorderEngine : IDisposable
             _powerWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "power-events.jsonl"));
             _remoteSessionWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "remote-session-events.jsonl"));
             _storageWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "storage.jsonl"));
+            _gpuMemoryWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "gpu-memory.jsonl"));
+            _memoryPressureWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "memory-pressure.jsonl"));
+            _dwmStateWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "dwm-state.jsonl"));
 
             _processTracker = new ProcessTracker();
             _gpuEngineTracker = new GpuEngineTracker();
             _displayTracker = new DisplayTopologyTracker();
             _powerTracker = new PowerTracker();
             _storageTracker = new StorageTracker();
+            _gpuMemoryTracker = new GpuMemoryTracker();
+            _memoryPressureTracker = new MemoryPressureTracker();
+            _dwmTracker = new DwmStateTracker();
 
             _etwMonitor = new EtwDxgKrnlMonitor();
             _etwMonitor.EventReceived += e => EtwEventReceived?.Invoke(e);
@@ -144,8 +175,9 @@ public sealed class RecorderEngine : IDisposable
             _heartbeatCounter = 0;
             _displayCounter = 0;
             _powerCounter = 0;
-            _storageCounter = 0;
             _etwDrainCounter = 0;
+            _retentionCounter = 0;
+            _stopping = false;
             SampleCount = 0;
 
             _cts = new CancellationTokenSource();
@@ -165,6 +197,14 @@ public sealed class RecorderEngine : IDisposable
                     }
                 }
                 catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    // A single failed tick (a tracker throwing, a writer already disposed
+                    // during shutdown) must not fault the recording task: an unobserved
+                    // fault leaks the thread and silently ends the recording session.
+                    try { System.Diagnostics.Trace.WriteLine($"[CrashScope] recording loop stopped: {ex}"); }
+                    catch { }
+                }
                 finally
                 {
                     timer.Dispose();
@@ -175,6 +215,9 @@ public sealed class RecorderEngine : IDisposable
 
     private void Tick(CancellationToken token)
     {
+        if (_stopping)
+            return;
+
         token.ThrowIfCancellationRequested();
         var now = DateTimeOffset.Now;
 
@@ -235,6 +278,29 @@ public sealed class RecorderEngine : IDisposable
                 _storageWriter!.Write(storageSample);
                 StorageUpdated?.Invoke(storageSample);
             }
+
+            if (_gpuMemoryTracker is { IsAvailable: true })
+            {
+                var gpuMemSample = _gpuMemoryTracker.Capture(now);
+                if (gpuMemSample is not null)
+                {
+                    _gpuMemoryWriter!.Write(gpuMemSample);
+                    GpuMemoryUpdated?.Invoke(gpuMemSample);
+                }
+            }
+
+            {
+                var memPressure = _memoryPressureTracker!.Capture(now);
+                _memoryPressureWriter!.Write(memPressure);
+                MemoryPressureUpdated?.Invoke(memPressure);
+            }
+
+            var dwmChange = _dwmTracker!.Poll(now);
+            if (dwmChange is not null)
+            {
+                _dwmStateWriter!.Write(dwmChange);
+                DwmStateChanged?.Invoke(dwmChange);
+            }
         }
 
         if (++_powerCounter >= 10)
@@ -259,6 +325,12 @@ public sealed class RecorderEngine : IDisposable
             _heartbeatCounter = 0;
             _journal!.Heartbeat(now);
             StatusChanged?.Invoke();
+        }
+
+        if (++_retentionCounter >= RetentionIntervalSeconds)
+        {
+            _retentionCounter = 0;
+            EnforceRetention();
         }
 
         if (_etwMonitor is { IsRunning: true } && ++_etwDrainCounter >= 3)
@@ -294,6 +366,7 @@ public sealed class RecorderEngine : IDisposable
         {
             if (!IsRecording) return;
 
+            _stopping = true;
             _cts?.Cancel();
 
             try { _recordingTask?.Wait(TimeSpan.FromSeconds(3)); }
@@ -310,6 +383,9 @@ public sealed class RecorderEngine : IDisposable
             _powerWriter?.Dispose();
             _remoteSessionWriter?.Dispose();
             _storageWriter?.Dispose();
+            _gpuMemoryWriter?.Dispose();
+            _memoryPressureWriter?.Dispose();
+            _dwmStateWriter?.Dispose();
 
             try { _etwMonitor?.Stop(); } catch { }
             try { _etwMonitor?.Dispose(); } catch { }
@@ -321,6 +397,8 @@ public sealed class RecorderEngine : IDisposable
 
             _storageTracker?.Dispose();
             _storageTracker = null;
+            _gpuMemoryTracker?.Dispose();
+            _gpuMemoryTracker = null;
 
             _cts?.Dispose();
             _cts = null;
@@ -352,5 +430,35 @@ public sealed class RecorderEngine : IDisposable
     public void Dispose()
     {
         Stop();
+    }
+
+    /// <summary>
+    /// Bounds sessions/ and incidents/ growth for unattended deployments. Retention used to
+    /// run only when the Desktop app started or the user opened Settings, so a Service-only
+    /// or Agent-only host grew without limit.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not called from Start(): the live session directory must never be a
+    /// deletion candidate, and the previous session's incident is collected right after
+    /// Start() by the host, so evicting at startup could race that analysis.
+    /// </remarks>
+    private void EnforceRetention()
+    {
+        try
+        {
+            var root = Directory.GetParent(_stateDirectory)?.FullName;
+            if (string.IsNullOrEmpty(root))
+                return;
+
+            var (sessions, incidents, bytes) = new RetentionService(root).Enforce();
+            if (sessions > 0 || incidents > 0)
+                System.Diagnostics.Trace.WriteLine(
+                    $"[CrashScope] retention: removed {sessions} session(s), {incidents} incident(s), freed {bytes / (1024 * 1024)} MB");
+        }
+        catch (Exception ex)
+        {
+            try { System.Diagnostics.Trace.WriteLine($"[CrashScope] retention failed: {ex.Message}"); }
+            catch { }
+        }
     }
 }

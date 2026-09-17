@@ -1,3 +1,4 @@
+using CrashScope.Core.Models;
 using CrashScope.Desktop;
 using Xunit;
 
@@ -5,55 +6,100 @@ namespace CrashScope.Core.Tests;
 
 public sealed class DiagnosticExportRedactionTests
 {
-    [Theory]
-    [InlineData(@"C:\Users\JohnDoe\AppData\Local\test", "[USERPROFILE]\\AppData\\Local\\test")]
-    [InlineData(@"Found at C:\Users\admin123\Documents", "Found at [USERPROFILE]\\Documents")]
-    [InlineData("No user path here", "No user path here")]
-    [InlineData("", "")]
-    [InlineData(null, null)]
-    public void RedactContent_MasksUserProfilePaths(string input, string expected)
-    {
-        var result = DiagnosticExportService.RedactContent(input);
-        Assert.Equal(expected, result);
-    }
+    private static readonly DateTimeOffset Now = new(2025, 9, 1, 12, 0, 0, TimeSpan.Zero);
 
-    [Theory]
-    [InlineData("Server at 192.168.1.100 responded", "Server at [IP_ADDRESS] responded")]
-    [InlineData("10.0.0.1 and 172.16.0.5", "[IP_ADDRESS] and [IP_ADDRESS]")]
-    [InlineData("No IPs here", "No IPs here")]
-    public void RedactContent_MasksIpAddresses(string input, string expected)
-    {
-        var result = DiagnosticExportService.RedactContent(input);
-        Assert.Equal(expected, result);
-    }
+    private static IncidentAnalysis AnalysisWithApp(string processName) => new(
+        new SessionState("session", Now, Now, false, "dir", true, "0.9.0"),
+        null, 0, 0, null,
+        [], [], [], [],
+        new GraphicsContext(
+            [new GraphicsAppPresence(processName, GraphicsAppCategory.RemoteControl, Now, Now, true)],
+            [], [], [], [], [], [], null));
 
-    [Theory]
-    [InlineData(@"- mysecretapp.exe (1234)", @"- [WINDOW_TITLE] (1234)")]
-    [InlineData(@"- Microsoft Visual Studio - Admin (5678)", @"- [WINDOW_TITLE] (5678)")]
-    public void RedactContent_MasksWindowTitles(string input, string expected)
+    [Fact]
+    public void Redact_MasksGraphicsAppProcessNames_WithConsistentToken()
     {
-        var result = DiagnosticExportService.RedactContent(input);
-        Assert.Equal(expected, result);
+        var redactor = new ExportRedactor("/nonexistent", AnalysisWithApp("toodesk"));
+        var result = redactor.Redact("Foreground: toodesk (PID 1234) then start: toodesk (PID 1234)");
+
+        Assert.Equal("Foreground: [PROCESS_1] (PID 1234) then start: [PROCESS_1] (PID 1234)", result);
     }
 
     [Fact]
-    public void RedactContent_CombinedPatterns_AllRedacted()
+    public void Redact_CollectsProcessNamesFromJsonlTails()
     {
-        var input = @"Logged from C:\Users\TestUser\Desktop on machine 192.168.1.50";
-        var result = DiagnosticExportService.RedactContent(input);
+        var dir = Directory.CreateTempSubdirectory("csredact");
+        try
+        {
+            File.WriteAllText(Path.Combine(dir.FullName, "process-events-tail.jsonl"),
+                """{"processName":"gameprocess","processName":"toodesk"}""");
+            var redactor = new ExportRedactor(dir.FullName, AnalysisWithApp("toodesk"));
+            var result = redactor.Redact("start: gameprocess (PID 9)");
 
-        Assert.DoesNotContain("Users\\TestUser", result);
-        Assert.Contains("[USERPROFILE]", result);
-        Assert.DoesNotContain("192.168.1.50", result);
-        Assert.Contains("[IP_ADDRESS]", result);
+            Assert.DoesNotContain("gameprocess", result);
+            Assert.Contains("[PROCESS_", result);
+        }
+        finally
+        {
+            Directory.Delete(dir.FullName, recursive: true);
+        }
     }
 
     [Fact]
-    public void RedactContent_NonRedactableContent_Unchanged()
+    public void Redact_LongestNameWins_OverSubstring()
     {
-        var input = "CPU temperature: 75°C\nGPU load: 90%\nMemory: 8.2 GB / 16 GB";
-        var result = DiagnosticExportService.RedactContent(input);
+        var dir = Directory.CreateTempSubdirectory("csredact");
+        try
+        {
+            File.WriteAllText(Path.Combine(dir.FullName, "x.jsonl"),
+                """{"processName":"steam"}""");
+            var redactor = new ExportRedactor(dir.FullName, AnalysisWithApp("steamwebhelper"));
+            var result = redactor.Redact("steamwebhelper and steam");
+
+            Assert.DoesNotContain("steamwebhelper", result);
+            Assert.Contains("[PROCESS_", result);
+        }
+        finally
+        {
+            Directory.Delete(dir.FullName, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Redact_MasksUserProfilePaths_WithUsernameToken()
+    {
+        var redactor = new ExportRedactor("/nonexistent", AnalysisWithApp("qq"));
+        var result = redactor.Redact(@"C:\Users\JohnDoe\AppData\Local\test");
+
+        Assert.Equal(@"[USERPROFILE]\[USERNAME]\AppData\Local\test", result);
+    }
+
+    [Fact]
+    public void Redact_MasksIpAddresses()
+    {
+        var redactor = new ExportRedactor("/nonexistent", AnalysisWithApp("qq"));
+        var result = redactor.Redact("10.0.0.1 and 172.16.0.5");
+
+        Assert.Equal("[IP_ADDRESS] and [IP_ADDRESS]", result);
+    }
+
+    [Fact]
+    public void Redact_MasksHostname()
+    {
+        var redactor = new ExportRedactor("/nonexistent", AnalysisWithApp("qq"));
+        var result = redactor.Redact($"machine {Environment.MachineName} reported");
+
+        Assert.Equal("machine [HOSTNAME] reported", result);
+    }
+
+    [Fact]
+    public void Redact_NonRedactableContent_Unchanged()
+    {
+        var redactor = new ExportRedactor("/nonexistent", AnalysisWithApp("someuniquetoken123"));
+        var input = "CPU temperature: 75C\nGPU load: 90%\nMemory: 8.2 GB / 16 GB";
+        var result = redactor.Redact(input);
 
         Assert.Equal(input, result);
     }
 }
+

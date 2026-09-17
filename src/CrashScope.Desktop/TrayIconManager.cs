@@ -117,7 +117,14 @@ public sealed class TrayIconManager : IDisposable
     private void OnExit(object? sender, EventArgs e)
     {
         _service.StopRecording();
-        Application.Current.Shutdown();
+
+        // Go through the window so MainWindow.OnClosing runs its real-close path
+        // (tray icon disposed, service disposed once). Application.Shutdown() alone was
+        // swallowed by OnClosing's hide-to-tray branch and left the tray icon behind.
+        if (_window is MainWindow mainWindow)
+            mainWindow.RequestExit();
+        else
+            Application.Current.Shutdown();
     }
 
     public void Dispose()

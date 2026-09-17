@@ -11,18 +11,31 @@ public sealed class EtwDxgKrnlMonitor : IDisposable
 {
     private static readonly Guid DxgKrnlProviderGuid = new("802EC45A-1E99-4B83-9920-87C98277BA9D");
 
+    /// <summary>
+    /// Cap on the in-memory hand-off queue. Events are written to etw-gpu.jsonl on the
+    /// processing thread, so the file is the durable record; this queue only feeds the
+    /// recorder tick and the UI. Without a cap a stalled tick - disk saturation is exactly
+    /// the crash scenario - grows the queue without bound and the flight recorder eats
+    /// memory when it is needed most. Oldest events are dropped first.
+    /// </summary>
+    private const int MaxBufferedEvents = 5000;
+
     private readonly ConcurrentQueue<EtwDxgKrnlEvent> _buffer = new();
     private CrashSafeJsonlWriter? _writer;
     private TraceEventSession? _session;
     private Task? _processingTask;
     private CancellationTokenSource? _cts;
     private volatile bool _disposed;
+    private int _droppedEvents;
 
     public event Action<EtwDxgKrnlEvent>? EventReceived;
 
     public bool IsRunning { get; private set; }
 
     public int BufferedEventCount => _buffer.Count;
+
+    /// <summary>Events dropped from the in-memory queue because it hit its cap.</summary>
+    public int DroppedEventCount => Volatile.Read(ref _droppedEvents);
 
     public void Start(string sessionDirectory)
     {
@@ -32,7 +45,9 @@ public sealed class EtwDxgKrnlMonitor : IDisposable
         _writer = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "etw-gpu.jsonl"));
         _cts = new CancellationTokenSource();
 
-        _session = CreateSession();
+        // Unique per recorder instance so concurrent hosts (service + desktop)
+        // never dispose each other's live ETW sessions.
+        _session = CreateSession($"CrashScope-GpuKernel-{Environment.ProcessId}-{Path.GetFileName(sessionDirectory)}");
         _session.Source.Dynamic.All += OnEvent;
 
         IsRunning = true;
@@ -111,17 +126,22 @@ public sealed class EtwDxgKrnlMonitor : IDisposable
             traceEvent.ProcessName,
             detail);
 
-        _buffer.Enqueue(etwEvent);
+        Enqueue(etwEvent);
 
         try { _writer?.Write(etwEvent); } catch { }
 
         try { EventReceived?.Invoke(etwEvent); } catch { }
     }
 
-    private static TraceEventSession CreateSession()
+    private void Enqueue(EtwDxgKrnlEvent etwEvent)
     {
-        var sessionName = "CrashScope-GpuKernel";
+        _buffer.Enqueue(etwEvent);
+        while (_buffer.Count > MaxBufferedEvents && _buffer.TryDequeue(out _))
+            Interlocked.Increment(ref _droppedEvents);
+    }
 
+    private static TraceEventSession CreateSession(string sessionName)
+    {
         try { TraceEventSession.GetActiveSession(sessionName)?.Dispose(); } catch { }
 
         var session = new TraceEventSession(sessionName, null) { StopOnDispose = true };
@@ -132,6 +152,17 @@ public sealed class EtwDxgKrnlMonitor : IDisposable
     private static bool IsInteresting(string taskName, int eventId)
     {
         if (string.IsNullOrEmpty(taskName))
+            // Numeric event ids captured when TraceEvent cannot resolve a task
+            // name. Names below were resolved against the Microsoft-Windows-
+            // DxgKrnl provider manifest on this OS build (wevtutil gp
+            // Microsoft-Windows-DxgKrnl /ge:true /gm:true, probed 2026-09-17):
+            //   1   HighPagingLevel         2   ExcessiveMemoryTransfer
+            //   3   (no task, level 0)      250 NodeMetadata
+            //   253 RuntimePowerManagement (message: PowerPStateComponent)
+            //   400 GpuPartitioning         497 SetBaseDesktopDuration
+            //   500 CancelPresentAtFlips
+            // Ids 4-10, 600, 700 and 800 are absent from this build's manifest
+            // and stay whitelisted for other dxgkrnl builds where they exist.
             return eventId switch
             {
                 >= 1 and <= 10 => true,

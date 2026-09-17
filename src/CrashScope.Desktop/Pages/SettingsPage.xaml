@@ -13,6 +13,48 @@
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,0,0,24"/>
 
+            <!-- Appearance -->
+            <Border Background="{StaticResource CardBg}"
+                    CornerRadius="12" Padding="24" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Appearance"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimary}"
+                               Margin="0,0,0,4"/>
+                    <TextBlock Text="Customize language and visual theme"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondary}"
+                               Margin="0,0,0,16"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Language -->
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Language"
+                                       FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                       Margin="0,0,0,6"/>
+                            <ComboBox x:Name="LanguageComboBox"
+                                      Width="200"
+                                      SelectionChanged="LanguageComboBox_SelectionChanged"/>
+                        </StackPanel>
+
+                        <!-- Theme -->
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                            <TextBlock Text="Theme"
+                                       FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                       Margin="0,0,0,6"/>
+                            <ComboBox x:Name="ThemeComboBox"
+                                      Width="200"
+                                      SelectionChanged="ThemeComboBox_SelectionChanged"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <!-- Retention -->
             <Border Background="{StaticResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">

@@ -128,3 +128,26 @@ public sealed record DiskMetrics(
     float? AvgReadLatencyMs,
     float? AvgWriteLatencyMs,
     float? QueueDepth);
+
+public sealed record ProcessGpuMemory(
+    int ProcessId,
+    string? ProcessName,
+    long DedicatedBytes,
+    long SharedBytes);
+
+public sealed record GpuMemorySample(
+    DateTimeOffset Timestamp,
+    IReadOnlyList<ProcessGpuMemory> Processes);
+
+public sealed record MemoryPressureSample(
+    DateTimeOffset Timestamp,
+    long CommitBytes,
+    long CommitLimitBytes,
+    long AvailableBytes,
+    float CommittedPercent);
+
+public sealed record DwmStateEvent(
+    DateTimeOffset Timestamp,
+    bool IsHardwareRendering,
+    bool IsCompositionEnabled,
+    string Description);

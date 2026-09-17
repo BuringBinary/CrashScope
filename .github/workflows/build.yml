@@ -2,25 +2,55 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/local-desktop-work]
   pull_request:
-    branches: [main]
+    branches: [main, feature/local-desktop-work]
 
 jobs:
   build-windows:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
+      # CI used to build only the Agent and never compiled Desktop / Service / Tests, so a
+      # broken WPF or Service project could sit on main undetected (both were red when this
+      # job was widened). Build every project, then run the test suite.
       - name: Restore
-        run: dotnet restore .\src\CrashScope.Agent\CrashScope.Agent.csproj
-      - name: Build
-        run: dotnet build .\src\CrashScope.Agent\CrashScope.Agent.csproj -c Release --no-restore
-      - name: Publish self-contained test build
+        run: |
+          dotnet restore .\src\CrashScope.Core\CrashScope.Core.csproj
+          dotnet restore .\src\CrashScope.Agent\CrashScope.Agent.csproj
+          dotnet restore .\src\CrashScope.Service\CrashScope.Service.csproj
+          dotnet restore .\src\CrashScope.Desktop\CrashScope.Desktop.csproj
+          dotnet restore .\test\CrashScope.Core.Tests\CrashScope.Core.Tests.csproj
+
+      - name: Build (all projects)
+        run: |
+          dotnet build .\src\CrashScope.Core\CrashScope.Core.csproj       -c Release --no-restore
+          dotnet build .\src\CrashScope.Agent\CrashScope.Agent.csproj      -c Release --no-restore
+          dotnet build .\src\CrashScope.Service\CrashScope.Service.csproj  -c Release --no-restore
+          dotnet build .\src\CrashScope.Desktop\CrashScope.Desktop.csproj  -c Release --no-restore
+          dotnet build .\test\CrashScope.Core.Tests\CrashScope.Core.Tests.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test .\test\CrashScope.Core.Tests\CrashScope.Core.Tests.csproj -c Release --no-build --logger "trx;LogFileName=CrashScope-Core-Tests.trx" --results-directory .\TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows
+          path: .\TestResults\
+          if-no-files-found: warn
+
+      - name: Publish self-contained agent (win-x64)
         if: github.event_name == 'push'
         run: dotnet publish .\src\CrashScope.Agent\CrashScope.Agent.csproj -c Release -r win-x64 --self-contained true -o .\dist\win-x64
+
       - name: Upload Windows test build
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v4

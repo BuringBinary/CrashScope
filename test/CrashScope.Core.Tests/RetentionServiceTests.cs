@@ -1,4 +1,4 @@
-using CrashScope.Desktop;
+using CrashScope.Core.Infrastructure;
 using Xunit;
 
 namespace CrashScope.Core.Tests;

@@ -1,9 +1,12 @@
-using CrashScope.Core.Diagnostics;
-using CrashScope.Core.Infrastructure;
-using CrashScope.Core.Models;
 using CrashScope.Core.Monitoring;
-using CrashScope.Core.Platform;
-using System.Text.Json;
+
+// CrashScope CLI agent.
+//
+// This used to run its own inline 1 Hz capture loop, which duplicated RecorderEngine and
+// silently omitted the three real-time ETW sessions (DxgKrnl / Kernel-Power / WHEA). A field
+// deployment via the CLI agent therefore missed every piece of kernel-level evidence - exactly
+// the evidence the project exists to capture. The agent is now a thin host over RecorderEngine,
+// so CLI, Service and Desktop share one recording path.
 
 if (!OperatingSystem.IsWindows())
 {
@@ -11,9 +14,26 @@ if (!OperatingSystem.IsWindows())
     return 2;
 }
 
-var root = Path.Combine(
-    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-    "CrashScope");
+string? dataRootOverride = null;
+foreach (var arg in args)
+{
+    if (arg.StartsWith("--data-root=", StringComparison.OrdinalIgnoreCase))
+        dataRootOverride = arg["--data-root=".Length..];
+    else if (arg is "-h" or "--help")
+    {
+        PrintUsage();
+        return 0;
+    }
+}
+
+// Default is per-user local app data, not %ProgramData%: the recommended field deployment is a
+// scheduled task running in the user session (RunLevel Highest), which keeps foreground-window
+// and idle-time fidelity. A per-user root stays writable even when the agent is started without
+// elevation. Pass --data-root to share a root with the Service.
+var root = string.IsNullOrWhiteSpace(dataRootOverride)
+    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CrashScope")
+    : Path.GetFullPath(dataRootOverride);
+
 var stateDirectory = Path.Combine(root, "state");
 var sessionsRoot = Path.Combine(root, "sessions");
 var incidentsRoot = Path.Combine(root, "incidents");
@@ -22,149 +42,69 @@ Directory.CreateDirectory(sessionsRoot);
 Directory.CreateDirectory(incidentsRoot);
 
 var sessionDirectory = Path.Combine(sessionsRoot, DateTime.Now.ToString("yyyyMMdd-HHmmss"));
-Directory.CreateDirectory(sessionDirectory);
 
-var journal = new SessionJournal(stateDirectory, sessionDirectory);
+using var engine = new RecorderEngine(sessionDirectory, stateDirectory, incidentsRoot);
+using var shutdown = new CancellationTokenSource();
 
-if (journal.PreviousState is { CleanShutdown: false } previous)
-{
-    var incidentDirectory = Path.Combine(
-        incidentsRoot,
-        $"{previous.LastHeartbeatAt:yyyyMMdd-HHmmss}-{previous.SessionId[..8]}");
-    try
-    {
-        var analysis = CrashEvidenceCollector.CollectForUncleanSession(previous, incidentDirectory);
-        Console.WriteLine($"Detected previous unclean session. Incident saved to: {incidentDirectory}");
-        if (analysis.Hypotheses.FirstOrDefault(h => h.Score > 0) is { } leading)
-            Console.WriteLine($"Preliminary ranking: {leading.Mode} (confidence {leading.Confidence:P0}). Details: summary.md");
-    }
-    catch (Exception ex)
-    {
-        // Incident collection must never prevent the new recording session from starting.
-        Console.WriteLine($"Warning: failed to collect incident evidence: {ex.Message}");
-    }
-}
-
-Console.WriteLine("CrashScope v0.8");
-Console.WriteLine($"Session: {journal.Current.SessionId}");
-Console.WriteLine($"Data: {sessionDirectory}");
-Console.WriteLine($"Elevated: {journal.Current.Elevated}");
-if (!journal.Current.Elevated)
-    Console.WriteLine("Warning: running without Administrator privileges; some sensors/event details may be unavailable.");
-Console.WriteLine("Press Ctrl+C to stop cleanly.");
-
-using var telemetryWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "telemetry.jsonl"));
-using var processEventWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "process-events.jsonl"));
-using var processSnapshotWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "process-snapshots.jsonl"));
-using var foregroundWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "foreground-events.jsonl"));
-using var gpuEngineWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "gpu-engines.jsonl"));
-using var displayWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "display-events.jsonl"));
-using var powerWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "power-events.jsonl"));
-using var remoteSessionWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "remote-session-events.jsonl"));
-using var storageWriter = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "storage.jsonl"));
-using var hardware = new HardwareMonitor();
-File.WriteAllText(
-    Path.Combine(sessionDirectory, "sensor-catalog.json"),
-    JsonSerializer.Serialize(hardware.Catalog, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
-File.WriteAllText(
-    Path.Combine(sessionDirectory, "driver-inventory.json"),
-    JsonSerializer.Serialize(DriverInventory.Capture(), new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
-var processTracker = new ProcessTracker();
-var gpuEngineTracker = new GpuEngineTracker();
-var displayTracker = new DisplayTopologyTracker();
-var powerTracker = new PowerTracker();
-using var storageTracker = new StorageTracker();
-
-var cancellation = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {
+    // Take over shutdown: letting the process be killed here would leave the session journal
+    // marked unclean and fabricate an incident on the next start.
     e.Cancel = true;
-    cancellation.Cancel();
+    shutdown.Cancel();
 };
 
-ForegroundState? previousForeground = null;
-var processPollCounter = 0;
-var processSnapshotCounter = 0;
-var heartbeatCounter = 0;
-var displayCounter = 0;
-var powerCounter = 0;
-var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+// Also covers closing the console window and `taskkill` without /F.
+AppDomain.CurrentDomain.ProcessExit += (_, _) => engine.Stop();
+
+var version = typeof(RecorderEngine).Assembly.GetName().Version?.ToString(3) ?? "0.9.0";
+Console.WriteLine($"CrashScope v{version}");
+Console.WriteLine($"Data root: {root}");
+
+var previousIncident = engine.CheckPreviousUncleanSession();
+if (previousIncident is not null)
+{
+    Console.WriteLine("Detected previous unclean session; incident evidence collected.");
+    var leading = previousIncident.Hypotheses.FirstOrDefault(h => h.Score > 0);
+    Console.WriteLine($"Preliminary ranking: {leading?.Mode.ToString() ?? "Unclassified"} " +
+                      $"(confidence {leading?.Confidence ?? 0:P0}). Details: summary.md");
+}
+
+engine.Start();
+
+var session = engine.CurrentSession;
+Console.WriteLine($"Session: {session?.SessionId}");
+Console.WriteLine($"Session directory: {sessionDirectory}");
+Console.WriteLine($"Elevated: {session?.Elevated}");
+Console.WriteLine($"GPU adapter for reported facts: {engine.PrimaryGpuHardwareName ?? "(no GPU sensors)"}");
+if (session?.Elevated == false)
+    Console.WriteLine("Warning: running without Administrator privileges; the ETW kernel sessions " +
+                      "(GPU / power / WHEA) and some event-log details will be unavailable.");
+Console.WriteLine("Press Ctrl+C to stop cleanly.");
 
 try
 {
-    while (await timer.WaitForNextTickAsync(cancellation.Token))
-    {
-        var now = DateTimeOffset.Now;
-        var foreground = WindowsActivity.CaptureForeground();
-        var sensorValues = hardware.CaptureValues();
-        telemetryWriter.Write(new TelemetrySnapshot(now, foreground, sensorValues));
-
-        if (previousForeground is null ||
-            previousForeground.ProcessId != foreground.ProcessId ||
-            !string.Equals(previousForeground.ProcessName, foreground.ProcessName, StringComparison.OrdinalIgnoreCase))
-        {
-            foregroundWriter.Write(new ForegroundEvent(now, foreground.ProcessId, foreground.ProcessName, foreground.IdleSeconds));
-            previousForeground = foreground;
-        }
-
-        if (++processPollCounter >= 2)
-        {
-            processPollCounter = 0;
-            foreach (var processEvent in processTracker.Poll(now))
-                processEventWriter.Write(processEvent);
-
-            var engineSample = gpuEngineTracker.Capture(now);
-            if (engineSample is not null)
-                gpuEngineWriter.Write(engineSample);
-        }
-
-        if (++displayCounter >= 5)
-        {
-            displayCounter = 0;
-            var displayChange = displayTracker.Poll(now);
-            if (displayChange is not null)
-                displayWriter.Write(displayChange);
-
-            var remoteChange = powerTracker.PollRemoteSession(now);
-            if (remoteChange is not null)
-                remoteSessionWriter.Write(remoteChange);
-
-            if (storageTracker.IsAvailable)
-            {
-                var storageSample = storageTracker.Capture(now);
-                storageWriter.Write(storageSample);
-            }
-        }
-
-        if (++powerCounter >= 10)
-        {
-            powerCounter = 0;
-            var schemeChange = powerTracker.PollScheme(now);
-            if (schemeChange is not null)
-                powerWriter.Write(schemeChange);
-        }
-
-        if (++processSnapshotCounter >= 30)
-        {
-            processSnapshotCounter = 0;
-            processSnapshotWriter.Write(processTracker.CaptureSnapshot(now));
-        }
-
-        if (++heartbeatCounter >= 5)
-        {
-            heartbeatCounter = 0;
-            journal.Heartbeat(now);
-        }
-    }
+    // RecorderEngine drives its own 1 Hz loop; the agent only has to stay alive.
+    await Task.Delay(Timeout.Infinite, shutdown.Token);
 }
 catch (OperationCanceledException)
 {
     // Expected on Ctrl+C.
 }
-finally
-{
-    timer.Dispose();
-    journal.MarkClean();
-}
 
+engine.Stop();
+Console.WriteLine($"Stopped cleanly. Samples recorded: {engine.SampleCount}");
 return 0;
+
+static void PrintUsage()
+{
+    Console.WriteLine("CrashScope agent - Windows flight recorder for crashes, freezes and GPU failures.");
+    Console.WriteLine();
+    Console.WriteLine("Usage: CrashScope.Agent [--data-root=<path>]");
+    Console.WriteLine();
+    Console.WriteLine("  --data-root=<path>  Record under <path> instead of %LOCALAPPDATA%\\CrashScope.");
+    Console.WriteLine("                      Use the Service root (%ProgramData%\\CrashScope) to share data.");
+    Console.WriteLine("  -h, --help          Show this help.");
+    Console.WriteLine();
+    Console.WriteLine("Run elevated (Administrator) to capture the ETW kernel sessions.");
+}

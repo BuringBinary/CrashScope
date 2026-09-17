@@ -1,0 +1,243 @@
+{
+  "meta": {
+    "name": "简体中文",
+    "code": "zh-CN"
+  },
+  "app": {
+    "title": "CrashScope",
+    "subtitle": "Windows 飞行记录器",
+    "version": "v0.9.0-dev"
+  },
+  "nav": {
+    "recorder": "录制器",
+    "dashboard": "仪表盘",
+    "liveMonitor": "实时监控",
+    "incidents": "事件",
+    "timeline": "时间线",
+    "settings": "设置"
+  },
+  "titlebar": {
+    "recorderActive": "录制器: 运行中",
+    "recorderStopped": "录制器: 已停止"
+  },
+  "recorder": {
+    "title": "录制器状态",
+    "subtitle": "控制和监控飞行记录器",
+    "status": {
+      "stopped": "已停止",
+      "running": "运行中",
+      "starting": "启动中...",
+      "stopping": "停止中..."
+    },
+    "cards": {
+      "session": "会话",
+      "uptime": "运行时间",
+      "samples": "采样数"
+    },
+    "sessionDetails": "会话详情",
+    "dataDirectory": "数据目录",
+    "elevated": "管理员权限",
+    "previousSession": "上次会话",
+    "agentVersion": "Agent 版本",
+    "writeThroughput": "写入吞吐量",
+    "throughputLabels": {
+      "telemetry": "遥测",
+      "foreground": "前台进程",
+      "gpuEngines": "GPU 引擎",
+      "processes": "进程",
+      "snapshot": "快照"
+    },
+    "buttons": {
+      "startRecording": "开始录制",
+      "stopRecording": "停止录制",
+      "openDataFolder": "打开数据目录"
+    }
+  },
+  "dashboard": {
+    "title": "硬件仪表盘",
+    "subtitle": "实时 CPU、GPU 和内存遥测数据",
+    "cpu": {
+      "label": "CPU",
+      "detecting": "检测中...",
+      "load": "% 负载",
+      "temp": "温度",
+      "clock": "频率"
+    },
+    "gpu": {
+      "label": "GPU",
+      "detecting": "检测中...",
+      "load": "% 负载",
+      "temp": "温度",
+      "clock": "频率",
+      "vram": "显存",
+      "power": "功耗"
+    },
+    "ram": {
+      "label": "内存",
+      "used": "GB 已用",
+      "available": "可用",
+      "usage": "使用率"
+    },
+    "systemHealth": {
+      "title": "系统健康",
+      "mtbf": "平均无故障时间",
+      "trend": "趋势",
+      "improving": "改善中",
+      "declining": "恶化中",
+      "stable": "稳定"
+    },
+    "gpuEngines": {
+      "title": "GPU 引擎"
+    },
+    "gpuTransitions": {
+      "title": "GPU 状态转换",
+      "subtitle": "实时检测 GPU 负载、频率和功耗变化",
+      "clear": "清除"
+    },
+    "historyCharts": {
+      "title": "历史曲线",
+      "cpuLoad": "CPU 负载 %",
+      "gpuLoad": "GPU 负载 %",
+      "gpuClockPower": "GPU 频率 (MHz) / 功耗 (W)",
+      "ramUsage": "内存用量 (GB)"
+    },
+    "sensorDetails": {
+      "title": "传感器详情"
+    }
+  },
+  "liveMonitor": {
+    "title": "实时监控",
+    "subtitle": "实时事件流：前台切换、进程、GPU 引擎、显示拓扑",
+    "filters": {
+      "telemetry": "遥测",
+      "foreground": "前台",
+      "process": "进程",
+      "gpuEngine": "GPU 引擎",
+      "display": "显示",
+      "power": "电源",
+      "clear": "清除"
+    }
+  },
+  "incidents": {
+    "title": "事件",
+    "subtitle": "飞行记录器检测到的历史崩溃事件",
+    "summary": {
+      "totalIncidents": "总事件数",
+      "lastIncident": "最近事件",
+      "topCause": "主要原因"
+    },
+    "buttons": {
+      "compare": "对比 (2)",
+      "analyzeAll": "分析全部"
+    },
+    "detail": {
+      "selectIncident": "选择一个事件",
+      "hypotheses": "假设",
+      "openQuestions": "待确认问题"
+    },
+    "export": {
+      "redactData": "脱敏个人数据",
+      "exportZip": "导出诊断 ZIP"
+    },
+    "crossAnalysis": {
+      "title": "跨事件分析",
+      "systemHealth": "系统健康",
+      "patternsFound": "发现的模式",
+      "drivers": "驱动",
+      "recommendations": "建议"
+    },
+    "comparison": {
+      "title": "事件对比",
+      "subtitle": "选择恰好 2 个事件并点击对比",
+      "basicInfo": "基本信息",
+      "mode": "模式",
+      "confidence": "置信度",
+      "gpuState": "GPU 状态",
+      "finalLoad": "最终负载",
+      "transitions": "状态转换",
+      "etwEvents": "ETW 事件",
+      "gpuTdr": "GPU (TDR)",
+      "power": "电源",
+      "whea": "WHEA",
+      "display": "显示",
+      "monitors": "显示器",
+      "virtual": "虚拟",
+      "drivers": "驱动",
+      "graphicsApps": "图形应用",
+      "hypotheses": "假设"
+    }
+  },
+  "timeline": {
+    "title": "时间线",
+    "subtitle": "崩溃重建时间线：遥测、进程、GPU 转换、Windows 事件",
+    "legend": {
+      "telemetry": "遥测",
+      "gpuTransition": "GPU 转换",
+      "appProcess": "应用/进程",
+      "windowsEvent": "Windows 事件",
+      "crashPoint": "崩溃点"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "配置录制、数据保留和隐私选项",
+    "appearance": {
+      "title": "外观",
+      "language": "语言",
+      "theme": "主题",
+      "themeDark": "深色",
+      "themeLight": "浅色"
+    },
+    "dataRetention": {
+      "title": "数据保留",
+      "subtitle": "控制会话和事件数据的保留时长",
+      "maxRetentionDays": "最大保留天数",
+      "maxTotalSize": "最大总容量",
+      "daysUnit": "天",
+      "daysUnitMax": "天 (最大)",
+      "currentUsage": "当前使用量"
+    },
+    "privacy": {
+      "title": "隐私",
+      "subtitle": "CrashScope 有意不采集命令行、窗口标题、截图或网络数据",
+      "redactByDefault": "导出时默认脱敏个人数据",
+      "redactDesc": "导出的 ZIP 文件中，进程名、窗口标题、用户名和文件路径将被匿名化"
+    },
+    "recording": {
+      "title": "录制",
+      "telemetry": "遥测",
+      "processes": "进程",
+      "gpuEngines": "GPU 引擎",
+      "display": "显示",
+      "snapshot": "快照"
+    },
+    "about": {
+      "title": "关于",
+      "version": "版本",
+      "dataDir": "数据目录",
+      "runtime": ".NET 运行时",
+      "elevation": "权限级别",
+      "copyPath": "复制路径",
+      "administrator": "管理员",
+      "standardUser": "标准用户"
+    },
+    "buttons": {
+      "saveSettings": "保存设置",
+      "settingsSaved": "设置已保存",
+      "pathCopied": "路径已复制到剪贴板"
+    }
+  },
+  "common": {
+    "calculating": "计算中...",
+    "unknown": "未知",
+    "notAvailable": "--"
+  },
+  "statusbar": {
+    "loaded": "已加载",
+    "data": "数据",
+    "quota": "配额",
+    "cleaned": "已清理",
+    "sessions": "个会话",
+    "incidents": "个事件"
+  }
+}

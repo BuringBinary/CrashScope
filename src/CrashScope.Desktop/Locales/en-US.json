@@ -1,0 +1,243 @@
+{
+  "meta": {
+    "name": "English",
+    "code": "en-US"
+  },
+  "app": {
+    "title": "CrashScope",
+    "subtitle": "Windows Flight Recorder",
+    "version": "v0.9.0-dev"
+  },
+  "nav": {
+    "recorder": "Recorder",
+    "dashboard": "Dashboard",
+    "liveMonitor": "Live Monitor",
+    "incidents": "Incidents",
+    "timeline": "Timeline",
+    "settings": "Settings"
+  },
+  "titlebar": {
+    "recorderActive": "Recorder: Active",
+    "recorderStopped": "Recorder: Stopped"
+  },
+  "recorder": {
+    "title": "Recorder Status",
+    "subtitle": "Control and monitor the flight recorder agent",
+    "status": {
+      "stopped": "STOPPED",
+      "running": "RUNNING",
+      "starting": "Starting...",
+      "stopping": "Stopping..."
+    },
+    "cards": {
+      "session": "Session",
+      "uptime": "Uptime",
+      "samples": "Samples"
+    },
+    "sessionDetails": "Session Details",
+    "dataDirectory": "Data Directory",
+    "elevated": "Elevated",
+    "previousSession": "Previous Session",
+    "agentVersion": "Agent Version",
+    "writeThroughput": "Write Throughput",
+    "throughputLabels": {
+      "telemetry": "Telemetry",
+      "foreground": "Foreground",
+      "gpuEngines": "GPU Engines",
+      "processes": "Processes",
+      "snapshot": "Snapshot"
+    },
+    "buttons": {
+      "startRecording": "Start Recording",
+      "stopRecording": "Stop Recording",
+      "openDataFolder": "Open Data Folder"
+    }
+  },
+  "dashboard": {
+    "title": "Hardware Dashboard",
+    "subtitle": "Real-time CPU, GPU and memory telemetry with GPU state transition detection",
+    "cpu": {
+      "label": "CPU",
+      "detecting": "Detecting...",
+      "load": "% Load",
+      "temp": "Temp",
+      "clock": "Clock"
+    },
+    "gpu": {
+      "label": "GPU",
+      "detecting": "Detecting...",
+      "load": "% Load",
+      "temp": "Temp",
+      "clock": "Clock",
+      "vram": "VRAM",
+      "power": "Power"
+    },
+    "ram": {
+      "label": "RAM",
+      "used": "GB Used",
+      "available": "Available",
+      "usage": "Usage"
+    },
+    "systemHealth": {
+      "title": "System Health",
+      "mtbf": "MTBF",
+      "trend": "Trend",
+      "improving": "Improving",
+      "declining": "Declining",
+      "stable": "Stable"
+    },
+    "gpuEngines": {
+      "title": "GPU Engines"
+    },
+    "gpuTransitions": {
+      "title": "GPU State Transitions",
+      "subtitle": "Real-time detection of GPU load, clock, and power changes",
+      "clear": "Clear"
+    },
+    "historyCharts": {
+      "title": "History Charts",
+      "cpuLoad": "CPU Load %",
+      "gpuLoad": "GPU Load %",
+      "gpuClockPower": "GPU Clock (MHz) / Power (W)",
+      "ramUsage": "RAM Usage (GB)"
+    },
+    "sensorDetails": {
+      "title": "Sensor Details"
+    }
+  },
+  "liveMonitor": {
+    "title": "Live Monitor",
+    "subtitle": "Real-time event stream: foreground changes, processes, GPU engines, display topology",
+    "filters": {
+      "telemetry": "Telemetry",
+      "foreground": "Foreground",
+      "process": "Process",
+      "gpuEngine": "GPU Engine",
+      "display": "Display",
+      "power": "Power",
+      "clear": "Clear"
+    }
+  },
+  "incidents": {
+    "title": "Incidents",
+    "subtitle": "Past crash incidents detected by the flight recorder",
+    "summary": {
+      "totalIncidents": "Total Incidents",
+      "lastIncident": "Last Incident",
+      "topCause": "Top Cause"
+    },
+    "buttons": {
+      "compare": "Compare (2)",
+      "analyzeAll": "Analyze All"
+    },
+    "detail": {
+      "selectIncident": "Select an incident",
+      "hypotheses": "Hypotheses",
+      "openQuestions": "Open Questions"
+    },
+    "export": {
+      "redactData": "Redact personal data",
+      "exportZip": "Export Diagnostic ZIP"
+    },
+    "crossAnalysis": {
+      "title": "Cross-Incident Analysis",
+      "systemHealth": "System Health",
+      "patternsFound": "Patterns Found",
+      "drivers": "Drivers",
+      "recommendations": "Recommendations"
+    },
+    "comparison": {
+      "title": "Incident Comparison",
+      "subtitle": "Select exactly 2 incidents and click Compare",
+      "basicInfo": "BASIC INFO",
+      "mode": "Mode",
+      "confidence": "Confidence",
+      "gpuState": "GPU STATE",
+      "finalLoad": "Final Load",
+      "transitions": "Transitions",
+      "etwEvents": "ETW EVENTS",
+      "gpuTdr": "GPU (TDR)",
+      "power": "Power",
+      "whea": "WHEA",
+      "display": "DISPLAY",
+      "monitors": "Monitors",
+      "virtual": "Virtual",
+      "drivers": "DRIVERS",
+      "graphicsApps": "GRAPHICS APPS",
+      "hypotheses": "HYPOTHESES"
+    }
+  },
+  "timeline": {
+    "title": "Timeline",
+    "subtitle": "Crash reconstruction timeline: telemetry, processes, GPU transitions, Windows events",
+    "legend": {
+      "telemetry": "Telemetry",
+      "gpuTransition": "GPU Transition",
+      "appProcess": "App/Process",
+      "windowsEvent": "Windows Event",
+      "crashPoint": "Crash Point"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure recording, retention, and privacy",
+    "appearance": {
+      "title": "Appearance",
+      "language": "Language",
+      "theme": "Theme",
+      "themeDark": "Dark",
+      "themeLight": "Light"
+    },
+    "dataRetention": {
+      "title": "Data Retention",
+      "subtitle": "Control how long session and incident data is kept",
+      "maxRetentionDays": "Max retention days",
+      "maxTotalSize": "Max total size",
+      "daysUnit": "days",
+      "daysUnitMax": "days (max)",
+      "currentUsage": "Current usage"
+    },
+    "privacy": {
+      "title": "Privacy",
+      "subtitle": "CrashScope intentionally avoids collecting command lines, window titles, screenshots, or network data",
+      "redactByDefault": "Redact personal data by default on export",
+      "redactDesc": "Process names, window titles, user names, and file paths are anonymized in exported ZIP files"
+    },
+    "recording": {
+      "title": "Recording",
+      "telemetry": "Telemetry",
+      "processes": "Processes",
+      "gpuEngines": "GPU Engines",
+      "display": "Display",
+      "snapshot": "Snapshot"
+    },
+    "about": {
+      "title": "About",
+      "version": "Version",
+      "dataDir": "Data directory",
+      "runtime": ".NET Runtime",
+      "elevation": "Elevation",
+      "copyPath": "Copy path",
+      "administrator": "Administrator",
+      "standardUser": "Standard user"
+    },
+    "buttons": {
+      "saveSettings": "Save Settings",
+      "settingsSaved": "Settings saved successfully.",
+      "pathCopied": "Path copied to clipboard."
+    }
+  },
+  "common": {
+    "calculating": "Calculating...",
+    "unknown": "Unknown",
+    "notAvailable": "--"
+  },
+  "statusbar": {
+    "loaded": "loaded",
+    "data": "Data",
+    "quota": "quota",
+    "cleaned": "Cleaned",
+    "sessions": "sessions",
+    "incidents": "incidents"
+  }
+}

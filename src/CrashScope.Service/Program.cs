@@ -10,15 +10,15 @@ builder.Services.AddWindowsService(options =>
 
 builder.Services.AddHostedService<SessionRecorderWorker>();
 
-builder.Logging.AddEventLog(settings =>
-{
-    settings.SourceName = "CrashScope";
-    settings.LogName = "Application";
-});
-
 if (OperatingSystem.IsWindows())
 {
-    builder.Logging.AddEventLog();
+    // Single EventLog sink: previously registered twice, so every message was
+    // written to the Application log under two providers.
+    builder.Logging.AddEventLog(settings =>
+    {
+        settings.SourceName = "CrashScope";
+        settings.LogName = "Application";
+    });
 }
 
 var host = builder.Build();

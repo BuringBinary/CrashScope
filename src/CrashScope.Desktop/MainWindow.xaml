@@ -21,8 +21,8 @@
     <Border CornerRadius="12" ClipToBounds="True">
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#0F0F1A" Offset="0"/>
-                <GradientStop Color="#1A1B2E" Offset="1"/>
+                <GradientStop Color="{StaticResource WindowGradientStartColor}" Offset="0"/>
+                <GradientStop Color="{StaticResource WindowGradientEndColor}" Offset="1"/>
             </LinearGradientBrush>
         </Border.Background>
         <Grid>
@@ -33,7 +33,7 @@
             </Grid.RowDefinitions>
 
             <!-- Title bar -->
-            <Grid Grid.Row="0" Background="#1A1B2E" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid Grid.Row="0" Background="{StaticResource SidebarBg}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="220"/>
                     <ColumnDefinition Width="*"/>
@@ -157,7 +157,7 @@
             </Grid>
 
             <!-- Status bar -->
-            <Border Grid.Row="2" Background="#1A1B2E" Padding="12,0">
+            <Border Grid.Row="2" Background="{StaticResource SidebarBg}" Padding="12,0">
                 <Grid>
                     <TextBlock x:Name="StatusBarText"
                                Text="Ready"

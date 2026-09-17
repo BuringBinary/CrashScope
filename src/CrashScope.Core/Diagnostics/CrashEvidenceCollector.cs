@@ -167,6 +167,9 @@ public static class CrashEvidenceCollector
         CopyTailFile(Path.Combine(previousSessionDirectory, "power-events.jsonl"), Path.Combine(incidentDirectory, "power-events-tail.jsonl"), 50);
         CopyTailFile(Path.Combine(previousSessionDirectory, "remote-session-events.jsonl"), Path.Combine(incidentDirectory, "remote-session-events-tail.jsonl"), 50);
         CopyTailFile(Path.Combine(previousSessionDirectory, "storage.jsonl"), Path.Combine(incidentDirectory, "storage-tail.jsonl"), 60);
+        CopyTailFile(Path.Combine(previousSessionDirectory, "gpu-memory.jsonl"), Path.Combine(incidentDirectory, "gpu-memory-tail.jsonl"), 60);
+        CopyTailFile(Path.Combine(previousSessionDirectory, "memory-pressure.jsonl"), Path.Combine(incidentDirectory, "memory-pressure-tail.jsonl"), 60);
+        CopyTailFile(Path.Combine(previousSessionDirectory, "dwm-state.jsonl"), Path.Combine(incidentDirectory, "dwm-state-tail.jsonl"), 50);
         CopyTailFile(Path.Combine(previousSessionDirectory, "etw-gpu.jsonl"), Path.Combine(incidentDirectory, "etw-gpu-tail.jsonl"), 500);
         CopyTailFile(Path.Combine(previousSessionDirectory, "etw-kernel-power.jsonl"), Path.Combine(incidentDirectory, "etw-kernel-power-tail.jsonl"), 500);
         CopyTailFile(Path.Combine(previousSessionDirectory, "etw-whea.jsonl"), Path.Combine(incidentDirectory, "etw-whea-tail.jsonl"), 500);

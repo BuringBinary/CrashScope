@@ -241,4 +241,246 @@ public sealed class HypothesisEvaluatorEtwTests
 
         Assert.NotEmpty(result.Hypotheses);
     }
+
+    // ───── v0.9 GPU VRAM ─────
+
+    [Fact]
+    public void VramExhaustion_Over10GB_GetsStrongEvidence()
+    {
+        var gpuMemoryEvents = new GpuMemorySample[]
+        {
+            new(Now.AddSeconds(-30),
+            [
+                new ProcessGpuMemory(1234, "game.exe", 11L * 1024 * 1024 * 1024, 512L * 1024 * 1024),
+                new ProcessGpuMemory(5678, "chrome.exe", 1L * 1024 * 1024 * 1024, 256L * 1024 * 1024)
+            ])
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, gpuMemoryEvents, null, null);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var vramEvidence = freeze.Evidence.FirstOrDefault(e =>
+            e.Description.Contains("VRAM exhaustion") && e.Supports);
+        Assert.NotNull(vramEvidence);
+        Assert.Equal(3, vramEvidence.Weight);
+    }
+
+    [Fact]
+    public void VramHigh_Over7GB_GetsModerateEvidence()
+    {
+        var gpuMemoryEvents = new GpuMemorySample[]
+        {
+            new(Now.AddSeconds(-30),
+            [
+                new ProcessGpuMemory(1234, "game.exe", 8L * 1024 * 1024 * 1024, 512L * 1024 * 1024)
+            ])
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, gpuMemoryEvents, null, null);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var vramEvidence = freeze.Evidence.FirstOrDefault(e =>
+            e.Description.Contains("approaching VRAM limit") && e.Supports);
+        Assert.NotNull(vramEvidence);
+        Assert.Equal(2, vramEvidence.Weight);
+    }
+
+    [Fact]
+    public void VramTotalMemory_Over12GB_GetsEvidence()
+    {
+        var gpuMemoryEvents = new GpuMemorySample[]
+        {
+            new(Now.AddSeconds(-30),
+            [
+                new ProcessGpuMemory(1234, "game.exe", 2L * 1024 * 1024 * 1024, 11L * 1024 * 1024 * 1024)
+            ])
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, gpuMemoryEvents, null, null);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var vramEvidence = freeze.Evidence.FirstOrDefault(e =>
+            e.Description.Contains("shared memory spillover") && e.Supports);
+        Assert.NotNull(vramEvidence);
+        Assert.Equal(2, vramEvidence.Weight);
+    }
+
+    [Fact]
+    public void VramUnder4GB_NoVramEvidence()
+    {
+        var gpuMemoryEvents = new GpuMemorySample[]
+        {
+            new(Now.AddSeconds(-30),
+            [
+                new ProcessGpuMemory(1234, "game.exe", 2L * 1024 * 1024 * 1024, 256L * 1024 * 1024)
+            ])
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, gpuMemoryEvents, null, null);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var vramEvidence = freeze.Evidence.Where(e =>
+            e.Description.Contains("VRAM", StringComparison.OrdinalIgnoreCase)).ToList();
+        Assert.Empty(vramEvidence);
+    }
+
+    // ───── v0.9 Memory Pressure ─────
+
+    [Fact]
+    public void MemoryCommit_Over95Percent_GetsStrongEvidence()
+    {
+        var memoryPressureEvents = new MemoryPressureSample[]
+        {
+            new(Now.AddSeconds(-10), 30L * 1024 * 1024 * 1024, 32L * 1024 * 1024 * 1024, 512L * 1024 * 1024, 96f)
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, null, memoryPressureEvents, null);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var memEvidence = freeze.Evidence.FirstOrDefault(e =>
+            e.Description.Contains("approaching commit limit") && e.Supports);
+        Assert.NotNull(memEvidence);
+        Assert.Equal(3, memEvidence.Weight);
+    }
+
+    [Fact]
+    public void MemoryCommit_Over90Percent_GetsModerateEvidence()
+    {
+        var memoryPressureEvents = new MemoryPressureSample[]
+        {
+            new(Now.AddSeconds(-10), 29L * 1024 * 1024 * 1024, 32L * 1024 * 1024 * 1024, 2L * 1024 * 1024 * 1024, 92f)
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, null, memoryPressureEvents, null);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var memEvidence = freeze.Evidence.FirstOrDefault(e =>
+            e.Description.Contains("commit charge was high") && e.Supports);
+        Assert.NotNull(memEvidence);
+        Assert.Equal(2, memEvidence.Weight);
+    }
+
+    [Fact]
+    public void AvailableMemory_Below256MB_GetsStrongEvidence()
+    {
+        var memoryPressureEvents = new MemoryPressureSample[]
+        {
+            new(Now.AddSeconds(-10), 30L * 1024 * 1024 * 1024, 32L * 1024 * 1024 * 1024, 200L * 1024 * 1024, 60f)
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, null, memoryPressureEvents, null);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var memEvidence = freeze.Evidence.FirstOrDefault(e =>
+            e.Description.Contains("critically low available RAM") && e.Supports);
+        Assert.NotNull(memEvidence);
+        Assert.Equal(3, memEvidence.Weight);
+    }
+
+    [Fact]
+    public void MemoryPressure_Normal_NoEvidence()
+    {
+        var memoryPressureEvents = new MemoryPressureSample[]
+        {
+            new(Now.AddSeconds(-10), 20L * 1024 * 1024 * 1024, 32L * 1024 * 1024 * 1024, 8L * 1024 * 1024 * 1024, 62f)
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, null, memoryPressureEvents, null);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var memEvidence = freeze.Evidence.Where(e =>
+            e.Description.Contains("memory", StringComparison.OrdinalIgnoreCase) ||
+            e.Description.Contains("commit", StringComparison.OrdinalIgnoreCase) ||
+            e.Description.Contains("RAM", StringComparison.OrdinalIgnoreCase)).ToList();
+        Assert.Empty(memEvidence);
+    }
+
+    // ───── v0.9 DWM State ─────
+
+    [Fact]
+    public void DwmSoftwareFallback_GetsStrongEvidence()
+    {
+        var dwmStateEvents = new DwmStateEvent[]
+        {
+            new(Now.AddSeconds(-20), false, false, "GPU hardware acceleration lost")
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, null, null, dwmStateEvents);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var dwmEvidence = freeze.Evidence.FirstOrDefault(e =>
+            e.Description.Contains("DWM fell back to software rendering") && e.Supports);
+        Assert.NotNull(dwmEvidence);
+        Assert.Equal(3, dwmEvidence.Weight);
+    }
+
+    [Fact]
+    public void DwmNormal_NoFallbackEvidence()
+    {
+        var dwmStateEvents = new DwmStateEvent[]
+        {
+            new(Now.AddSeconds(-20), true, true, "Hardware rendering active")
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, null, null, dwmStateEvents);
+
+        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
+        Assert.NotNull(freeze);
+        var dwmEvidence = freeze.Evidence.Where(e =>
+            e.Description.Contains("DWM", StringComparison.OrdinalIgnoreCase)).ToList();
+        Assert.Empty(dwmEvidence);
+    }
+
+    // ───── v0.9 Open Questions ─────
+
+    [Fact]
+    public void VramExhaustion_GeneratesOpenQuestion()
+    {
+        var gpuMemoryEvents = new GpuMemorySample[]
+        {
+            new(Now.AddSeconds(-30),
+            [
+                new ProcessGpuMemory(1234, "game.exe", 11L * 1024 * 1024 * 1024, 512L * 1024 * 1024),
+                new ProcessGpuMemory(5678, "chrome.exe", 1L * 1024 * 1024 * 1024, 256L * 1024 * 1024)
+            ])
+        };
+
+        var result = HypothesisEvaluator.Evaluate(
+            [], [], [], DefaultFacts, GraphicsContext.Empty,
+            null, null, null, null, gpuMemoryEvents, null, null);
+
+        var vramQuestion = result.OpenQuestions.FirstOrDefault(q =>
+            q.Contains("VRAM", StringComparison.OrdinalIgnoreCase) ||
+            q.Contains("GPU memory", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(vramQuestion);
+    }
 }

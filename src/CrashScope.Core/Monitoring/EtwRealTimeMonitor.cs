@@ -8,6 +8,12 @@ namespace CrashScope.Core.Monitoring;
 
 public sealed class EtwRealTimeMonitor : IDisposable
 {
+    /// <summary>
+    /// Per-provider cap on the in-memory hand-off queue; the JSONL file is the durable
+    /// record. See EtwDxgKrnlMonitor.MaxBufferedEvents for why this must be bounded.
+    /// </summary>
+    private const int MaxBufferedEventsPerProvider = 5000;
+
     private readonly List<ProviderConfig> _providers;
     private readonly Dictionary<string, CrashSafeJsonlWriter?> _writers = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ConcurrentQueue<EtwProviderEvent>> _buffers = new(StringComparer.OrdinalIgnoreCase);
@@ -17,8 +23,12 @@ public sealed class EtwRealTimeMonitor : IDisposable
     private CancellationTokenSource? _cts;
 
     private volatile bool _disposed;
+    private int _droppedEvents;
 
     public bool IsRunning { get; private set; }
+
+    /// <summary>Events dropped from the in-memory queues because a provider hit its cap.</summary>
+    public int DroppedEventCount => Volatile.Read(ref _droppedEvents);
 
     public event Action<EtwProviderEvent>? EventReceived;
 
@@ -43,7 +53,9 @@ public sealed class EtwRealTimeMonitor : IDisposable
         }
 
         _cts = new CancellationTokenSource();
-        _session = CreateSession();
+        // Unique per recorder instance so concurrent hosts (service + desktop)
+        // never dispose each other's live ETW sessions.
+        _session = CreateSession($"CrashScope-SystemRealtime-{Environment.ProcessId}-{Path.GetFileName(sessionDirectory)}");
         _session.Source.Dynamic.All += OnEvent;
 
         IsRunning = true;
@@ -150,15 +162,17 @@ public sealed class EtwRealTimeMonitor : IDisposable
             try { writer.Write(etwEvent); } catch { }
         }
         if (_buffers.TryGetValue(cfg.OutputFile, out var buffer))
+        {
             buffer.Enqueue(etwEvent);
+            while (buffer.Count > MaxBufferedEventsPerProvider && buffer.TryDequeue(out _))
+                Interlocked.Increment(ref _droppedEvents);
+        }
 
         try { EventReceived?.Invoke(etwEvent); } catch { }
     }
 
-    private TraceEventSession CreateSession()
+    private TraceEventSession CreateSession(string sessionName)
     {
-        var sessionName = "CrashScope-SystemRealtime";
-
         try { TraceEventSession.GetActiveSession(sessionName)?.Dispose(); } catch { }
 
         var session = new TraceEventSession(sessionName, null) { StopOnDispose = true };

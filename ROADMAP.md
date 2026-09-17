@@ -133,3 +133,60 @@ v0.1-v0.6 解决了"抓什么数据"和"单次如何分析"。v0.7 解决"多次
 - [x] `BuildOpenQuestions` 新增存储相关诊断问题
 - [x] ROADMAP 更新
 - [ ] validate on the target AMD machine
+
+## v0.9 — GPU VRAM & Memory Pressure & DWM State (current)
+
+v0.1-v0.8 解决了"抓什么数据"和"如何分析单次/多次崩溃"。v0.9 补充三个 GPU 崩溃场景中高价值的遥测维度：
+VRAM 耗尽、系统内存压力、DWM 渲染回退——这些都是 AMD 显卡掉驱动的常见前置条件或关键信号。
+
+### GPU VRAM per-process tracking
+
+- [x] `GpuMemoryTracker` 采集器：每 5 秒采集 per-process GPU 专显 + 共享内存
+- [x] 使用 `GPU Process Memory` 性能计数器（Dedicated Usage / Shared Usage）
+- [x] 进程名缓存（避免每次都通过 PID 查找）
+- [x] `ProcessGpuMemory` + `GpuMemorySample` 数据模型（Records.cs）
+- [x] JSONL 输出 `gpu-memory.jsonl`
+- [x] `RecorderEngine` + Agent `Program.cs` 集成
+- [x] `CrashEvidenceCollector` 复制 `gpu-memory-tail.jsonl`
+- [x] `IncidentAnalyzer` 读取 gpu memory events
+- [x] `HypothesisEvaluator` 新增 VRAM 证据维度：
+  - 专显 > 10 GB → VRAM 耗尽（常见 TDR 触发原因）
+  - 专显 > 7 GB → VRAM 偏高空闲
+  - 总 GPU 内存 > 12 GB → 共享内存溢出
+- [x] `TimelineBuilder` 新增 GPU-VRAM 类别
+- [x] `BuildOpenQuestions` 新增 VRAM 诊断问题
+- [ ] validate on the target AMD machine
+
+### System Memory Pressure tracking
+
+- [x] `MemoryPressureTracker` 采集器：每 5 秒采集 Commit/可用物理内存
+- [x] 使用 `GlobalMemoryStatusEx` kernel32 API
+- [x] `MemoryPressureSample` 数据模型（Records.cs）
+- [x] JSONL 输出 `memory-pressure.jsonl`
+- [x] `RecorderEngine` + Agent `Program.cs` 集成
+- [x] `CrashEvidenceCollector` 复制 `memory-pressure-tail.jsonl`
+- [x] `IncidentAnalyzer` 读取 memory pressure events
+- [x] `HypothesisEvaluator` 新增内存压力证据维度：
+  - Commit >= 95% → 严重内存压力（可能导致驱动分配失败）
+  - Commit >= 90% → 高内存压力
+  - 可用物理内存 < 256 MB → 严重不足
+  - 可用物理内存 < 512 MB → 偏低
+  - 遥测延迟 > 30s + 内存压力 → 录制器本身可能被内存耗尽影响
+- [x] `TimelineBuilder` 新增 Memory 类别（仅在压力阈值时显示）
+- [x] `BuildOpenQuestions` 新增内存压力诊断问题
+- [ ] validate on the target AMD machine
+
+### DWM Composition State tracking
+
+- [x] `DwmStateTracker` 采集器：检测 DWM 硬件/软件渲染状态变化
+- [x] 使用 `DwmIsCompositionEnabled` API
+- [x] `DwmStateEvent` 数据模型（Records.cs）
+- [x] JSONL 输出 `dwm-state.jsonl`
+- [x] `RecorderEngine` + Agent `Program.cs` 集成
+- [x] `CrashEvidenceCollector` 复制 `dwm-state-tail.jsonl`
+- [x] `IncidentAnalyzer` 读取 dwm state events
+- [x] `HypothesisEvaluator` 新增 DWM 证据维度：
+  - DWM 回退到软件渲染 → 高权重证据（GPU 硬件加速丢失）
+- [x] `TimelineBuilder` 新增 DWM 类别
+- [x] `BuildOpenQuestions` 新增 DWM 诊断问题
+- [ ] validate on the target AMD machine

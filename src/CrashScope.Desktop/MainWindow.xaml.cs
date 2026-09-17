@@ -3,9 +3,12 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using CrashScope.Desktop.Pages;
+using CrashScope.Core.Infrastructure;
+using CrashScope.Desktop.Services;
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using RadioButton = System.Windows.Controls.RadioButton;
+using SessionEndingCancelEventArgs = System.Windows.SessionEndingCancelEventArgs;
 using UserControl = System.Windows.Controls.UserControl;
 
 namespace CrashScope.Desktop;
@@ -15,7 +18,9 @@ public partial class MainWindow : Window
     private readonly AppService _service;
     private readonly TrayIconManager _tray;
     private readonly RetentionService _retention;
+    private readonly LocalizationService _localization;
     private bool _forceClose;
+    private UserControl? _currentPage;
 
     public MainWindow()
     {
@@ -24,12 +29,37 @@ public partial class MainWindow : Window
         _service = App.Current.Service;
         _retention = new RetentionService(_service.RootDirectory);
         _tray = new TrayIconManager(this, _service);
+        _localization = App.Current.Localization;
+        _localization.LocaleChanged += OnLocaleChanged;
 
         _service.StatusChanged += OnRecordingStatusChanged;
 
         NavigateTo("Recorder");
         EnforceRetentionOnStartup();
         CheckPreviousSessionOnStartup();
+    }
+
+    private void OnLocaleChanged()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            RefreshWindowLocale();
+            (_currentPage as IRefreshableLocale)?.RefreshLocale();
+        });
+    }
+
+    private void RefreshWindowLocale()
+    {
+        if (_service.IsRecording)
+        {
+            StatusText.Text = _localization.T("recorder.status.running");
+            StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F"));
+        }
+        else
+        {
+            StatusText.Text = _localization.T("recorder.status.stopped");
+            StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"));
+        }
     }
 
     private void EnforceRetentionOnStartup()
@@ -132,6 +162,22 @@ public partial class MainWindow : Window
         base.OnClosing(e);
     }
 
+    /// <summary>
+    /// Closes the window for real instead of hiding it to the tray, so the tray icon is
+    /// removed and the recorder is released exactly once.
+    /// </summary>
+    /// <remarks>
+    /// _forceClose was never assigned, so OnClosing always cancelled and hid: the tray
+    /// "Exit" item left a ghost tray icon behind and App.OnExit disposed the service a
+    /// second time. Alt+F4 and the title-bar close button still minimise to the tray,
+    /// which is the intended behaviour.
+    /// </remarks>
+    public void RequestExit()
+    {
+        _forceClose = true;
+        Close();
+    }
+
     private void NavButton_Checked(object sender, RoutedEventArgs e)
     {
         if (sender is RadioButton radio && radio.Tag is string page)
@@ -151,6 +197,7 @@ public partial class MainWindow : Window
             "Settings" => new SettingsPage(),
             _ => new RecorderStatusPage()
         };
+        _currentPage = content;
         ContentArea.Children.Add(content);
         StatusBarText.Text = $"{page} loaded";
     }

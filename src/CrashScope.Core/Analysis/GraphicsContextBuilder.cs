@@ -80,7 +80,12 @@ internal static class GraphicsContextBuilder
                 : (category.Value, current.FirstSeen ?? seen, current.LastSeen, current.InFinalSnapshot);
         }
 
-        // A stop event after the final snapshot means the app was running at the end.
+        // Process snapshots run every 30 s, so the last snapshot can predate the
+        // final process events. Refine the snapshot-based answer with the event
+        // stream: a "start" event at or after the last snapshot proves the app
+        // was still running at the end even when the snapshot missed it. A
+        // trailing "stop" keeps the snapshot answer - at this granularity that
+        // is the honest limit.
         var finalSnapshotTime = processSnapshots.Count > 0 ? processSnapshots[^1].Timestamp : DateTimeOffset.MinValue;
         var lastEventByProcess = processEvents
             .GroupBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)

@@ -150,4 +150,77 @@ public sealed class ModelsJsonRoundtripTests
             Assert.Equal(mode, roundtrip);
         }
     }
+
+    // ───── v0.9 GPU VRAM & Memory Pressure & DWM roundtrip ─────
+
+    [Fact]
+    public void ProcessGpuMemory_SerializationRoundtrip()
+    {
+        var proc = new ProcessGpuMemory(1234, "game.exe", 8L * 1024 * 1024 * 1024, 512L * 1024 * 1024);
+        var json = JsonSerializer.Serialize(proc, _json);
+        var roundtrip = JsonSerializer.Deserialize<ProcessGpuMemory>(json, _json);
+
+        Assert.NotNull(roundtrip);
+        Assert.Equal(1234, roundtrip.ProcessId);
+        Assert.Equal("game.exe", roundtrip.ProcessName);
+        Assert.Equal(8L * 1024 * 1024 * 1024, roundtrip.DedicatedBytes);
+        Assert.Equal(512L * 1024 * 1024, roundtrip.SharedBytes);
+    }
+
+    [Fact]
+    public void GpuMemorySample_SerializationRoundtrip()
+    {
+        var sample = new GpuMemorySample(
+            new DateTimeOffset(2025, 9, 1, 12, 0, 0, TimeSpan.Zero),
+            [
+                new ProcessGpuMemory(1234, "game.exe", 8L * 1024 * 1024 * 1024, 512L * 1024 * 1024),
+                new ProcessGpuMemory(5678, "chrome.exe", 1L * 1024 * 1024 * 1024, 256L * 1024 * 1024)
+            ]);
+
+        var json = JsonSerializer.Serialize(sample, _json);
+        var roundtrip = JsonSerializer.Deserialize<GpuMemorySample>(json, _json);
+
+        Assert.NotNull(roundtrip);
+        Assert.Equal(2, roundtrip.Processes.Count);
+        Assert.Equal(1234, roundtrip.Processes[0].ProcessId);
+        Assert.Equal("chrome.exe", roundtrip.Processes[1].ProcessName);
+    }
+
+    [Fact]
+    public void MemoryPressureSample_SerializationRoundtrip()
+    {
+        var sample = new MemoryPressureSample(
+            new DateTimeOffset(2025, 9, 1, 12, 0, 0, TimeSpan.Zero),
+            30L * 1024 * 1024 * 1024,
+            32L * 1024 * 1024 * 1024,
+            2L * 1024 * 1024 * 1024,
+            93.75f);
+
+        var json = JsonSerializer.Serialize(sample, _json);
+        var roundtrip = JsonSerializer.Deserialize<MemoryPressureSample>(json, _json);
+
+        Assert.NotNull(roundtrip);
+        Assert.Equal(30L * 1024 * 1024 * 1024, roundtrip.CommitBytes);
+        Assert.Equal(32L * 1024 * 1024 * 1024, roundtrip.CommitLimitBytes);
+        Assert.Equal(2L * 1024 * 1024 * 1024, roundtrip.AvailableBytes);
+        Assert.Equal(93.75f, roundtrip.CommittedPercent, precision: 4);
+    }
+
+    [Fact]
+    public void DwmStateEvent_SerializationRoundtrip()
+    {
+        var evt = new DwmStateEvent(
+            new DateTimeOffset(2025, 9, 1, 12, 0, 0, TimeSpan.Zero),
+            false,
+            false,
+            "GPU hardware acceleration lost");
+
+        var json = JsonSerializer.Serialize(evt, _json);
+        var roundtrip = JsonSerializer.Deserialize<DwmStateEvent>(json, _json);
+
+        Assert.NotNull(roundtrip);
+        Assert.False(roundtrip.IsHardwareRendering);
+        Assert.False(roundtrip.IsCompositionEnabled);
+        Assert.Equal("GPU hardware acceleration lost", roundtrip.Description);
+    }
 }

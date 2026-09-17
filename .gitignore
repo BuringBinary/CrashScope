@@ -8,3 +8,21 @@ dist/
 *.log
 runtime/
 .DS_Store
+
+# Build / test artifacts
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+coverage*.xml
+artifacts/
+
+# Legacy packages.config-style restore output; builds restore from the machine NuGet cache.
+packages/
+
+# Ad-hoc local build/test captures - keep them out of the repo root
+build-*.txt
+build_*.txt
+test-*.txt
+test_*.txt
+all_output.txt

@@ -3,14 +3,11 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace CrashScope.Desktop;
 
 public sealed class DiagnosticExportService
 {
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
-
     public async Task<string> ExportAsync(
         IncidentInfo incident,
         string outputDirectory,
@@ -20,14 +17,19 @@ public sealed class DiagnosticExportService
         var incidentName = SanitizeFileName(incident.DirectoryName);
         var zipPath = Path.Combine(outputDirectory, $"CrashScope-{incidentName}.zip");
 
+        // One redactor per export keeps [PROCESS_n] tokens stable across every entry.
+        _redactor = redactPersonalData
+            ? new ExportRedactor(incident.FullPath, incident.Analysis)
+            : ExportRedactor.Passthrough;
+
         await Task.Run(() =>
         {
             using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
 
-            AddIncidentFiles(zip, incident.FullPath, redactPersonalData);
+            AddIncidentFiles(zip, incident.FullPath);
             progress?.Report(40);
 
-            AddSummary(zip, incident, redactPersonalData);
+            AddSummary(zip, incident);
             progress?.Report(70);
 
             AddRedactionLog(zip, redactPersonalData);
@@ -37,7 +39,9 @@ public sealed class DiagnosticExportService
         return zipPath;
     }
 
-    private void AddIncidentFiles(ZipArchive zip, string incidentPath, bool redact)
+    private ExportRedactor _redactor = ExportRedactor.Passthrough;
+
+    private void AddIncidentFiles(ZipArchive zip, string incidentPath)
     {
         if (!Directory.Exists(incidentPath)) return;
 
@@ -46,26 +50,30 @@ public sealed class DiagnosticExportService
             var relativePath = Path.GetRelativePath(incidentPath, filePath);
             var entry = zip.CreateEntry($"incident/{relativePath}", CompressionLevel.Optimal);
 
-            using var input = File.OpenRead(filePath);
             using var output = entry.Open();
 
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
-            if (redact && (ext == ".json" || ext == ".jsonl" || ext == ".md" || ext == ".txt" || ext == ".csv"))
+            if (RedactableTextExtensions.Contains(ext))
             {
                 var content = ReadAllText(filePath);
-                content = RedactContent(content);
+                content = _redactor.Redact(content);
                 using var writer = new StreamWriter(output, Encoding.UTF8, leaveOpen: true);
                 writer.Write(content);
             }
             else
             {
+                using var input = File.OpenRead(filePath);
                 input.CopyTo(output);
             }
         }
     }
 
-    private void AddSummary(ZipArchive zip, IncidentInfo incident, bool redact)
+    private static readonly HashSet<string> RedactableTextExtensions =
+        [".json", ".jsonl", ".md", ".txt", ".csv"];
+
+    private void AddSummary(ZipArchive zip, IncidentInfo incident)
     {
+        var redact = _redactor != ExportRedactor.Passthrough;
         var sb = new StringBuilder();
         sb.AppendLine("=== CrashScope Diagnostic Export ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
@@ -77,8 +85,8 @@ public sealed class DiagnosticExportService
         if (redact)
         {
             sb.AppendLine("[PRIVACY NOTE: This export has been redacted. ");
-            sb.AppendLine("Process names, window titles, user names, ");
-            sb.AppendLine("and file paths have been anonymized.]");
+            sb.AppendLine("Process names, user profile paths, user names, ");
+            sb.AppendLine("IP addresses, and the machine name have been anonymized.]");
             sb.AppendLine();
         }
 
@@ -89,7 +97,7 @@ public sealed class DiagnosticExportService
             foreach (var evidence in h.Evidence)
             {
                 var prefix = evidence.Supports ? "+" : "-";
-                var desc = redact ? RedactContent(evidence.Description) : evidence.Description;
+                var desc = _redactor.Redact(evidence.Description);
                 sb.AppendLine($"    {prefix} [{evidence.Weight}] {desc}");
             }
         }
@@ -98,7 +106,7 @@ public sealed class DiagnosticExportService
         sb.AppendLine("--- Timeline ---");
         foreach (var tl in incident.Analysis.Timeline)
         {
-            var desc = redact ? RedactContent(tl.Description) : tl.Description;
+            var desc = _redactor.Redact(tl.Description);
             sb.AppendLine($"  {tl.Timestamp:HH:mm:ss} [{tl.Category}] {desc}");
         }
         sb.AppendLine();
@@ -144,32 +152,15 @@ public sealed class DiagnosticExportService
         writer.WriteLine("===================================");
         writer.WriteLine();
         writer.WriteLine("The following patterns have been anonymized in this export:");
-        writer.WriteLine("  - Windows user profile paths → [USERPROFILE]");
-        writer.WriteLine("  - Usernames in paths → [USERNAME]");
-        writer.WriteLine("  - Process names → [PROCESS_N] (consistent per process)");
-        writer.WriteLine("  - Window titles → [WINDOW_TITLE]");
-        writer.WriteLine("  - IP addresses → [IP_ADDRESS]");
-        writer.WriteLine("  - Machine names → [HOSTNAME]");
+        writer.WriteLine("  - Windows user profile paths -> [USERPROFILE]\\[USERNAME]");
+        writer.WriteLine("  - Process names -> [PROCESS_N] (consistent per process across the whole export)");
+        writer.WriteLine("  - IPv4 addresses -> [IP_ADDRESS]");
+        writer.WriteLine("  - Machine name -> [HOSTNAME]");
+        writer.WriteLine();
+        writer.WriteLine("Not redacted, because never recorded in the first place:");
+        writer.WriteLine("  - Window titles, command lines, file contents, typed text");
         writer.WriteLine();
         writer.WriteLine("To export without redaction, uncheck 'Redact personal data' in the export dialog.");
-    }
-
-    private static readonly Regex UserProfileRegex = new(
-        @"C:\\Users\\[^\\]+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex IpAddressRegex = new(
-        @"\b(?:\d{1,3}\.){3}\d{1,3}\b", RegexOptions.Compiled);
-    private static readonly Regex WindowTitleRegex = new(
-        @"(?<=\-\s)(?!PID\s)(?!CrashScope)([A-Za-z][A-Za-z0-9\s\-\.]{3,60})(?=\s+\()", RegexOptions.Compiled);
-
-    public static string RedactContent(string content)
-    {
-        if (string.IsNullOrEmpty(content)) return content;
-
-        content = UserProfileRegex.Replace(content, "[USERPROFILE]");
-        content = IpAddressRegex.Replace(content, "[IP_ADDRESS]");
-        content = WindowTitleRegex.Replace(content, "[WINDOW_TITLE]");
-
-        return content;
     }
 
     private static string SanitizeFileName(string name)

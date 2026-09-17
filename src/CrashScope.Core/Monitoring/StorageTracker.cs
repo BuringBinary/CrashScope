@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Management;
+using System.Text.RegularExpressions;
 using LibreHardwareMonitor.Hardware;
 using CrashScope.Core.Models;
 
@@ -8,12 +10,20 @@ public sealed class StorageTracker : IDisposable
 {
     private static readonly string[] PerfCategories = ["PhysicalDisk", "LogicalDisk"];
 
+    // LHM storage hardware names look like "ST1000DM010-2EP102 (Disk 0)" or "Disk 0".
+    private static readonly Regex DiskIndexRegex = new(@"^Disk (?<bare>\d+)|\(Disk (?<num>\d+)\)", RegexOptions.Compiled);
+
+    // PhysicalDisk instance names look like "0", "0 C: D:", "1".
+    private static readonly Regex InstanceIndexRegex = new(@"^(?<idx>\d+)", RegexOptions.Compiled);
+
     private readonly Computer _storageComputer;
+    private readonly UpdateVisitor _visitor = new();
     private readonly List<PerformanceCounter> _diskTimeCounters = new();
     private readonly List<PerformanceCounter> _readLatencyCounters = new();
     private readonly List<PerformanceCounter> _writeLatencyCounters = new();
     private readonly List<PerformanceCounter> _queueDepthCounters = new();
-    private readonly List<(string Instance, string? Model)> _diskInstances = new();
+    private readonly List<int?> _diskInstanceIndexes = new();
+    private readonly Dictionary<int, string?> _modelsByDiskIndex = new();
 
     private bool _perfCountersAvailable;
 
@@ -45,6 +55,7 @@ public sealed class StorageTracker : IDisposable
         }
 
         InitializePerfCounters();
+        LoadDiskModels();
     }
 
     private void InitializePerfCounters()
@@ -74,23 +85,31 @@ public sealed class StorageTracker : IDisposable
                 if (string.Equals(instance, "_Total", StringComparison.OrdinalIgnoreCase))
                     continue;
 
+                PerformanceCounter? time = null, read = null, write = null, queue = null;
                 try
                 {
-                    _diskTimeCounters.Add(new PerformanceCounter(category, "% Disk Time", instance, true));
-                    _readLatencyCounters.Add(new PerformanceCounter(category, "Avg. Disk sec/Read", instance, true));
-                    _writeLatencyCounters.Add(new PerformanceCounter(category, "Avg. Disk sec/Write", instance, true));
-                    _queueDepthCounters.Add(new PerformanceCounter(category, "Current Disk Queue Length", instance, true));
-                    _diskInstances.Add((instance, null));
+                    time = new PerformanceCounter(category, "% Disk Time", instance, true);
+                    read = new PerformanceCounter(category, "Avg. Disk sec/Read", instance, true);
+                    write = new PerformanceCounter(category, "Avg. Disk sec/Write", instance, true);
+                    queue = new PerformanceCounter(category, "Current Disk Queue Length", instance, true);
                 }
                 catch
                 {
-                    // Skip instances that don't support these counters.
+                    // Skip instances that do not support these counters.
+                    time?.Dispose(); read?.Dispose(); write?.Dispose(); queue?.Dispose();
+                    continue;
                 }
+
+                _diskTimeCounters.Add(time);
+                _readLatencyCounters.Add(read);
+                _writeLatencyCounters.Add(write);
+                _queueDepthCounters.Add(queue);
+                _diskInstanceIndexes.Add(ExtractInstanceIndex(instance));
             }
 
-            _perfCountersAvailable = _diskInstances.Count > 0;
+            _perfCountersAvailable = _diskInstanceIndexes.Count > 0;
 
-            // Prime the counters with a first read (they need 2 samples for averaged counters).
+            // Prime the counters with a first read (averaged counters need 2 samples).
             if (_perfCountersAvailable)
             {
                 foreach (var c in _diskTimeCounters) try { c.NextValue(); } catch { }
@@ -105,12 +124,63 @@ public sealed class StorageTracker : IDisposable
         }
     }
 
+    // WMI round trips are expensive (100-500 ms); disk models do not change during
+    // a session, so resolve them exactly once instead of per capture.
+    private void LoadDiskModels()
+    {
+        try
+        {
+            using var searcher = new ManagementObjectSearcher("SELECT Index, Model FROM Win32_DiskDrive");
+            foreach (ManagementObject disk in searcher.Get())
+            {
+                var rawIndex = disk["Index"]?.ToString();
+                if (!int.TryParse(rawIndex, out var index))
+                    continue;
+
+                var model = disk["Model"]?.ToString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(model))
+                    _modelsByDiskIndex[index] = model;
+            }
+        }
+        catch
+        {
+            // Best effort: disk model labels stay null.
+        }
+    }
+
     public StorageSample Capture(DateTimeOffset now)
     {
         if (!IsAvailable)
             return new StorageSample(now, Array.Empty<DiskMetrics>());
 
-        _storageComputer.Accept(new UpdateVisitor());
+        _storageComputer.Accept(_visitor);
+
+        // Consume each performance counter exactly once per capture. Re-reading a
+        // ratio counter within the same interval returns ~0, so values are read
+        // first and then attributed (or aggregated) without touching the counters
+        // again.
+        var metricsByIndex = new Dictionary<int, (float? Time, float? ReadMs, float? WriteMs, float? Queue)>();
+        float? aggTime = null, aggReadMs = null, aggWriteMs = null, aggQueue = null;
+
+        if (_perfCountersAvailable)
+        {
+            for (var i = 0; i < _diskInstanceIndexes.Count; i++)
+            {
+                var time = ReadCounter(_diskTimeCounters, i);
+                var readMs = ReadCounterMs(_readLatencyCounters, i);
+                var writeMs = ReadCounterMs(_writeLatencyCounters, i);
+                var queue = ReadCounter(_queueDepthCounters, i);
+
+                if (_diskInstanceIndexes[i] is int diskIndex && !metricsByIndex.ContainsKey(diskIndex))
+                    metricsByIndex[diskIndex] = (time, readMs, writeMs, queue);
+
+                aggTime = Max(aggTime, time);
+                aggReadMs = Max(aggReadMs, readMs);
+                aggWriteMs = Max(aggWriteMs, writeMs);
+                if (queue.HasValue)
+                    aggQueue = (aggQueue ?? 0) + queue;
+            }
+        }
 
         var diskMetrics = new List<DiskMetrics>();
         var storageHardware = _storageComputer.Hardware
@@ -131,41 +201,16 @@ public sealed class StorageTracker : IDisposable
             }
 
             var name = hw.Name;
-            var model = FindDiskModel(name);
+            var diskIndex = ExtractDiskIndex(name);
+            var model = diskIndex.HasValue && _modelsByDiskIndex.TryGetValue(diskIndex.Value, out var m)
+                ? m
+                : null;
 
-            float? diskTime = null;
-            float? readLatency = null;
-            float? writeLatency = null;
-            float? queueDepth = null;
-
-            if (_perfCountersAvailable)
-            {
-                for (var i = 0; i < _diskInstances.Count; i++)
-                {
-                    var instanceName = _diskInstances[i].Instance;
-                    var diskIndex = ExtractDiskIndex(instanceName);
-                    var hwIndex = ExtractDiskIndex(name);
-
-                    if (diskIndex.HasValue && hwIndex.HasValue && diskIndex == hwIndex
-                        || name.Contains(instanceName, StringComparison.OrdinalIgnoreCase)
-                        || instanceName.Contains(name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        diskTime = ReadCounter(_diskTimeCounters, i);
-                        readLatency = ReadCounterMs(_readLatencyCounters, i);
-                        writeLatency = ReadCounterMs(_writeLatencyCounters, i);
-                        queueDepth = ReadCounter(_queueDepthCounters, i);
-                        break;
-                    }
-                }
-
-                if (!diskTime.HasValue)
-                {
-                    diskTime = AggregateMax(_diskTimeCounters);
-                    readLatency = AggregateMaxMs(_readLatencyCounters);
-                    writeLatency = AggregateMaxMs(_writeLatencyCounters);
-                    queueDepth = AggregateSum(_queueDepthCounters);
-                }
-            }
+            float? diskTime, readLatency, writeLatency, queueDepth;
+            if (diskIndex.HasValue && metricsByIndex.TryGetValue(diskIndex.Value, out var perDisk))
+                (diskTime, readLatency, writeLatency, queueDepth) = perDisk;
+            else
+                (diskTime, readLatency, writeLatency, queueDepth) = (aggTime, aggReadMs, aggWriteMs, aggQueue);
 
             diskMetrics.Add(new DiskMetrics(
                 name,
@@ -181,36 +226,24 @@ public sealed class StorageTracker : IDisposable
         return new StorageSample(now, diskMetrics);
     }
 
-    private static string? FindDiskModel(string name)
-    {
-        try
-        {
-            using var searcher = new System.Management.ManagementObjectSearcher(
-                "SELECT Name, Model FROM Win32_DiskDrive");
-            foreach (System.Management.ManagementObject disk in searcher.Get())
-            {
-                var wmiName = disk["Name"]?.ToString();
-                if (wmiName is not null && name.Contains(
-                    Path.GetFileName(wmiName.TrimEnd('\\')) ?? wmiName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    return disk["Model"]?.ToString()?.Trim();
-                }
-            }
-        }
-        catch
-        {
-        }
-        return null;
-    }
-
     private static int? ExtractDiskIndex(string name)
     {
-        // PhysicalDisk names are like "0 C: D:" or "0"
-        // LibreHardwareMonitor names are like "ST1000DM010-2EP102 (Disk 0)"
-        var digits = new string(name.Where(char.IsDigit).ToArray());
-        return int.TryParse(digits, out var index) ? index : null;
+        var match = DiskIndexRegex.Match(name);
+        if (!match.Success)
+            return null;
+
+        var group = match.Groups["num"].Success ? match.Groups["num"] : match.Groups["bare"];
+        return group.Success ? int.Parse(group.Value) : null;
     }
+
+    private static int? ExtractInstanceIndex(string instance)
+    {
+        var match = InstanceIndexRegex.Match(instance);
+        return match.Success ? int.Parse(match.Groups["idx"].Value) : null;
+    }
+
+    private static float? Max(float? a, float? b)
+        => a is null ? b : b is null ? a : Math.Max(a.Value, b.Value);
 
     private static float? ReadCounter(List<PerformanceCounter> counters, int index)
     {
@@ -224,39 +257,6 @@ public sealed class StorageTracker : IDisposable
         if (index >= counters.Count) return null;
         try { return counters[index].NextValue() * 1000f; }
         catch { return null; }
-    }
-
-    private static float? AggregateMax(List<PerformanceCounter> counters)
-    {
-        float? max = null;
-        foreach (var c in counters)
-        {
-            try { var v = c.NextValue(); if (!max.HasValue || v > max) max = v; }
-            catch { }
-        }
-        return max;
-    }
-
-    private static float? AggregateMaxMs(List<PerformanceCounter> counters)
-    {
-        float? max = null;
-        foreach (var c in counters)
-        {
-            try { var v = c.NextValue() * 1000f; if (!max.HasValue || v > max) max = v; }
-            catch { }
-        }
-        return max;
-    }
-
-    private static float? AggregateSum(List<PerformanceCounter> counters)
-    {
-        float? sum = null;
-        foreach (var c in counters)
-        {
-            try { var v = c.NextValue(); sum = (sum ?? 0) + v; }
-            catch { }
-        }
-        return sum;
     }
 
     public void Dispose()
@@ -283,3 +283,4 @@ public sealed class StorageTracker : IDisposable
         public void VisitSensor(ISensor sensor) { }
     }
 }
+

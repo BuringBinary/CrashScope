@@ -6,7 +6,7 @@ Windows PC 崩溃"黑匣子"：持续保存死机前的硬件遥测、前台 App
 
 它首先解决一个很具体的问题：**当 AMD 显卡掉驱动或整机硬锁死、只能强制重启时，Windows 往往只留下 Kernel-Power 41，而真正的现场已经消失。**
 
-## 当前 v0.8 能做什么
+## 当前 v0.9 能做什么
 
 ### 飞行记录器（持续采集）
 
@@ -25,7 +25,10 @@ Windows PC 崩溃"黑匣子"：持续保存死机前的硬件遥测、前台 App
 每 5 秒
   ├─ 检测显示拓扑变化（显示器增删 / 分辨率 / 虚拟显示器驱动接入）
   ├─ 检测远程会话状态（RDP 接管 / 远程登录）
-  └─ 采集存储 / IO 遥测（NVMe/SSD 温度 / SMART 健康 / 磁盘 IO 延迟 / 队列深度）
+  ├─ 采集存储 / IO 遥测（NVMe/SSD 温度 / SMART 健康 / 磁盘 IO 延迟 / 队列深度）
+  ├─ 采集 per-process GPU VRAM（专显 + 共享内存，v0.9）
+  ├─ 采集系统内存压力（Commit 百分比 / 可用物理内存，v0.9）
+  └─ 检测 DWM 合成状态（硬件渲染 → 软件渲染回退，v0.9）
 
 每 10 秒
   └─ 检测电源计划切换（平衡 / 高性能 / 节能 / 卓越性能）
@@ -55,6 +58,9 @@ Windows PC 崩溃"黑匣子"：持续保存死机前的硬件遥测、前台 App
   ├─ 扫描 WER 报告 / LiveKernelReports / Minidump
   ├─ 重建死机前统一时间线（timeline.md，含 ETW 事件）
   ├─ 检测 GPU load / clock / power 状态转换
+  ├─ 检测 GPU VRAM 压力（专显耗尽 / 共享内存溢出，v0.9）
+  ├─ 检测系统内存压力（Commit 超限 / 可用物理内存不足，v0.9）
+  ├─ 检测 DWM 回退到软件渲染（v0.9）
   ├─ 构建图形栈上下文（图形应用在场 / 虚拟显示器 / 驱动版本 / 最后 GPU 使用者）
   └─ 生成根因排序与置信度（summary.md / analysis.json）
 ```
@@ -93,6 +99,16 @@ Windows PC 崩溃"黑匣子"：持续保存死机前的硬件遥测、前台 App
 - **推荐引擎**：基于累积证据的可操作建议——"建议回退驱动到 24.5.1，因为升级后发生 5 次 TDR"
 - **Health Dashboard 卡片**：桌面主页显示稳定性评分 + 趋势箭头 + 最近 incident 摘要
 - **Incident 对比视图**：并排对比两次崩溃的差异和共同点
+
+### GPU VRAM & 内存压力 & DWM 状态追踪（v0.9）
+
+v0.9 补充了三个 GPU 崩溃场景中高价值的遥测维度：
+
+- **Per-process GPU VRAM**：每个进程的专显 + 共享内存使用量，检测 VRAM 耗尽或泄漏——这是 TDR/超时最常见的触发原因之一
+- **系统内存压力**：Commit 百分比 + 可用物理内存，检测是否因内存耗尽导致驱动分配失败
+- **DWM 合成状态**：检测 DWM 是否从硬件渲染回退到软件渲染——这是 GPU 驱动挂起的强烈信号
+
+所有证据纳入假设评分，在 analysis.json / summary.md / timeline.md 中体现。
 
 ### 6 类假设评分（v0.2）
 
@@ -161,11 +177,32 @@ dotnet run --project .\src\CrashScope.Desktop\CrashScope.Desktop.csproj
 长期常驻部署：
 
 ```powershell
-.\scripts\publish.ps1
-.\scripts\install-service.ps1        # 安装为 Windows Service
-# 或
-.\scripts\install-startup-task.ps1   # 安装为计划任务
+.\scripts\publish.ps1                                    # 发布 self-contained win-x64 到 dist\win-x64（无需预装 .NET 运行时）
+.\scripts\install-startup-task.ps1 `
+    -ExecutablePath "$PWD\dist\win-x64\CrashScope.Agent.exe"
 ```
+
+### 两种部署模式的取舍
+
+| | 计划任务（**推荐**） | Windows Service |
+|---|---|---|
+| 脚本 | `install-startup-task.ps1 -ExecutablePath <exe>` | `install-service.ps1`（需管理员） |
+| 触发 | 登录时，`RunLevel Highest` | 开机自动，LocalSystem |
+| 会话 | **用户会话** | **Session 0** |
+| 数据根 | `%LOCALAPPDATA%\CrashScope`（可用 `--data-root=` 覆盖） | `%ProgramData%\CrashScope` |
+| 卸载 | `uninstall-startup-task.ps1` | `uninstall-service.ps1` |
+
+**Session 0 的代价**：服务进程运行在没有交互桌面的 Session 0，`GetForegroundWindow` 取不到
+用户的前台窗口，`LASTINPUTINFO` 也反映不了真实空闲时间。也就是说 Service 模式会丢失"死机前用户
+在看哪个 App、已经离开多久"这一类证据——而这正是本项目最关心的现场。除非你需要无人登录也能录
+制，否则用计划任务。
+
+**不要同时启用两种模式**：两者会各自录制并写同一个 `state\last-session.json`，互相覆盖对方的
+会话状态，从而在下次启动时产生错误的 incident 判定。
+
+Agent 现在与 Desktop / Service 共用同一条录制路径（`RecorderEngine`），因此命令行部署同样会启动
+三个 ETW 实时会话（DxgKrnl / Kernel-Power / WHEA）。ETW 内核会话需要管理员权限；未提权时会优雅
+降级，只记录用户态遥测。
 
 ## 数据文件结构
 
@@ -183,9 +220,12 @@ dotnet run --project .\src\CrashScope.Desktop\CrashScope.Desktop.csproj
 │  ├─ display-events.jsonl
 │  ├─ power-events.jsonl
 │  ├─ remote-session-events.jsonl
-  ├─ storage.jsonl               ← v0.8 Storage / IO telemetry
-  ├─ etw-gpu.jsonl              ← v0.5 ETW DXGKRNL
-│  ├─ etw-power.jsonl            ← v0.6 ETW Kernel-Power
+│  ├─ storage.jsonl               ← v0.8 Storage / IO telemetry
+│  ├─ gpu-memory.jsonl            ← v0.9 per-process GPU VRAM
+│  ├─ memory-pressure.jsonl       ← v0.9 system memory pressure
+│  ├─ dwm-state.jsonl             ← v0.9 DWM composition state
+│  ├─ etw-gpu.jsonl              ← v0.5 ETW DXGKRNL
+│  ├─ etw-kernel-power.jsonl     ← v0.6 ETW Kernel-Power
 │  └─ etw-whea.jsonl             ← v0.6 ETW WHEA
 └─ incidents\<timestamp-session>\
    ├─ previous-session.json
@@ -198,8 +238,11 @@ dotnet run --project .\src\CrashScope.Desktop\CrashScope.Desktop.csproj
    ├─ power-events-tail.jsonl
    ├─ remote-session-events-tail.jsonl
    ├─ storage-tail.jsonl          ← v0.8
+   ├─ gpu-memory-tail.jsonl      ← v0.9
+   ├─ memory-pressure-tail.jsonl ← v0.9
+   ├─ dwm-state-tail.jsonl       ← v0.9
    ├─ etw-gpu-tail.jsonl
-   ├─ etw-power-tail.jsonl
+   ├─ etw-kernel-power-tail.jsonl
    ├─ etw-whea-tail.jsonl
    ├─ sensor-catalog.json
    ├─ driver-inventory.json
@@ -229,8 +272,8 @@ v0.7 所有代码功能已经完成，但 **还缺最关键的一步：在真机
 9. 显示驱动版本是什么？故障窗口内是否刚发生过驱动安装 / 更新？
 10. 多次崩溃之间是否存在共同模式？（v0.7 跨 incident 分析）
 
-如果这些信息仍不足，再决定 v0.8 要增加哪些更深层的监控项，而不是盲目堆数据。
+如果这些信息仍不足，再决定 v0.10 要增加哪些更深层的监控项，而不是盲目堆数据。
 
 ## Status
 
-**v0.8 — Storage / IO Telemetry（代码完成，待 AMD 真机验证）**
+**v0.9 — GPU VRAM & Memory Pressure & DWM State（代码完成，待 AMD 真机验证）**

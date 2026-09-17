@@ -1,4 +1,5 @@
 using CrashScope.Core.Models;
+using System.Globalization;
 
 namespace CrashScope.Core.Analysis;
 
@@ -14,16 +15,19 @@ public static class TimelineBuilder
         IReadOnlyList<ExternalEvidenceFile> external,
         IReadOnlyList<SensorTransition> transitions,
         GraphicsContext? graphics,
-        IReadOnlyList<EtwDxgKrnlEvent>? etwEvents,
-        IReadOnlyList<EtwProviderEvent>? etwKernelPower,
-        IReadOnlyList<EtwProviderEvent>? etwWhea)
+        IReadOnlyList<EtwDxgKrnlEvent>? etwEvents = null,
+        IReadOnlyList<EtwProviderEvent>? etwKernelPower = null,
+        IReadOnlyList<EtwProviderEvent>? etwWhea = null,
+        IReadOnlyList<GpuMemorySample>? gpuMemoryEvents = null,
+        IReadOnlyList<MemoryPressureSample>? memoryPressureEvents = null,
+        IReadOnlyList<DwmStateEvent>? dwmStateEvents = null)
     {
         var entries = new List<(DateTimeOffset Timestamp, string Category, string Description)>();
 
         AddSessionBoundaries(entries, previous);
 
         foreach (var snapshot in telemetry)
-            AddTelemetryEntry(entries, snapshot);
+            AddTelemetryEntry(entries, snapshot, catalog);
 
         foreach (var fg in foreground)
             entries.Add((fg.Timestamp, "Foreground", $"Foreground: {fg.ProcessName ?? "(idle)"} (PID {fg.ProcessId?.ToString() ?? "n/a"})"));
@@ -104,6 +108,50 @@ public static class TimelineBuilder
             }
         }
 
+        if (gpuMemoryEvents is not null)
+        {
+            foreach (var gm in gpuMemoryEvents)
+            {
+                var top = gm.Processes
+                    .OrderByDescending(p => p.DedicatedBytes + p.SharedBytes)
+                    .Take(3);
+                foreach (var p in top)
+                {
+                    var dedicatedGb = p.DedicatedBytes / (1024.0 * 1024.0 * 1024.0);
+                    var sharedMb = p.SharedBytes / (1024.0 * 1024.0);
+                    entries.Add((gm.Timestamp, "GPU-VRAM",
+                        $"{p.ProcessName ?? $"PID {p.ProcessId}"}: {dedicatedGb:F2} GB dedicated + {sharedMb:F0} MB shared"));
+                }
+            }
+        }
+
+        if (memoryPressureEvents is not null)
+        {
+            foreach (var mp in memoryPressureEvents)
+            {
+                if (mp.CommittedPercent >= 80 || mp.AvailableBytes < 1024L * 1024 * 1024)
+                {
+                    var availGb = mp.AvailableBytes / (1024.0 * 1024.0 * 1024.0);
+                    entries.Add((mp.Timestamp, "Memory",
+                        $"Commit: {mp.CommittedPercent:F0}%, Available: {availGb:F2} GB"));
+                }
+            }
+        }
+
+        if (dwmStateEvents is not null)
+        {
+            foreach (var dw in dwmStateEvents)
+            {
+                // IsHardwareRendering is derived from the composition flag (see
+                // DwmStateTracker), so printing the two as independent measurements
+                // would overstate what was actually observed.
+                var dwmState = dw.IsCompositionEnabled
+                    ? "hardware composition active"
+                    : "composition disabled - fell back to software rendering";
+                entries.Add((dw.Timestamp, "DWM", $"DWM {dwmState}"));
+            }
+        }
+
         return entries
             .OrderBy(e => e.Timestamp)
             .Select(e => new TimelineEntry(e.Timestamp, e.Category, e.Description))
@@ -120,31 +168,55 @@ public static class TimelineBuilder
 
     private static void AddTelemetryEntry(
         List<(DateTimeOffset, string, string)> entries,
-        TelemetrySnapshot snapshot)
+        TelemetrySnapshot snapshot,
+        IReadOnlyList<SensorCatalogEntry>? catalog)
     {
-        var parts = new List<string>();
+        // Sensor values are positional, so labelling them by value shape is unsafe: the old
+        // heuristic reported the first value in [0,100] as "CPU" (GPU load qualifies) and the
+        // last value above 100 as "RAM" in MB (a temperature in Celsius qualifies). In a
+        // forensic timeline those labels can simply be wrong, so resolve them against the
+        // session's sensor catalog instead.
+        if (catalog is null || catalog.Count == 0)
+            return;
 
-        var nonNullValues = snapshot.SensorValues
-            .Select((v, i) => (Index: i, Value: v))
-            .Where(x => x.Value.HasValue)
-            .ToList();
+        var cpuIndex = SensorIndices.CpuTotalLoad(catalog);
+        var gpuIndex = SensorIndices.GpuCoreLoad(catalog);
+        var usedIndex = SensorIndices.MemoryUsed(catalog);
+        var availableIndex = SensorIndices.MemoryAvailable(catalog);
 
-        if (nonNullValues.Count >= 3)
-        {
-            var cpu = nonNullValues.FirstOrDefault(x => x.Value > 0 && x.Value <= 100);
-            if (cpu != default)
-                parts.Add($"CPU:{cpu.Value:F0}%");
+        var parts = new List<string>(3);
+        AddPart(parts, snapshot, cpuIndex, "CPU", "F0", "%");
+        AddPart(parts, snapshot, gpuIndex, "GPU", "F0", "%");
 
-            var ram = nonNullValues.LastOrDefault(x => x.Value > 100);
-            if (ram != default)
-                parts.Add($"RAM:{ram.Value / 1024f:F1}GB");
-        }
+        var used = ValueAt(snapshot, usedIndex);
+        var available = ValueAt(snapshot, availableIndex);
+        if (used is not null && available is not null)
+            parts.Add($"RAM:{used.Value:F1}/{used.Value + available.Value:F1}GB");
+        else if (used is not null)
+            parts.Add($"RAM:{used.Value:F1}GB");
 
         if (parts.Count == 0)
             return;
 
-        var fg = snapshot.Foreground.ProcessName ?? "idle";
-        entries.Add((snapshot.Timestamp, "Telemetry", $"{fg} | {string.Join(" ", parts)}"));
+        var foreground = snapshot.Foreground.ProcessName ?? "idle";
+        entries.Add((snapshot.Timestamp, "Telemetry", $"{foreground} | {string.Join(" ", parts)}"));
+    }
+
+    private static float? ValueAt(TelemetrySnapshot snapshot, int? index)
+        => index is int i && i >= 0 && i < snapshot.SensorValues.Count
+            ? snapshot.SensorValues[i]
+            : null;
+
+    private static void AddPart(
+        List<string> parts,
+        TelemetrySnapshot snapshot,
+        int? index,
+        string label,
+        string format,
+        string suffix)
+    {
+        if (ValueAt(snapshot, index) is float value)
+            parts.Add($"{label}:{value.ToString(format, CultureInfo.InvariantCulture)}{suffix}");
     }
 
     private static string TruncateSummary(string? text, int maxLength)
