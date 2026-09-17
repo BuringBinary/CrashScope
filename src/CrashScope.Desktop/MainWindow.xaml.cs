@@ -192,6 +192,7 @@ public partial class MainWindow : Window
             "Recorder" => new RecorderStatusPage(),
             "Dashboard" => new DashboardPage(),
             "LiveMonitor" => new LiveMonitorPage(),
+            "AgentMonitor" => new AgentMonitorPage(),
             "Incidents" => new IncidentsPage(),
             "Timeline" => new TimelinePage(),
             "Settings" => new SettingsPage(),

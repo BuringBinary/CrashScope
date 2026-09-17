@@ -111,6 +111,12 @@
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="LiveMonitor"/>
+                            <RadioButton x:Name="NavAgentMonitor"
+                                         Content="&#xE945;  Agent Monitor"
+                                         FontFamily="Segoe MDL2 Assets"
+                                         Style="{StaticResource NavButton}"
+                                         Checked="NavButton_Checked"
+                                         Tag="AgentMonitor"/>
                             <RadioButton x:Name="NavIncidents"
                                          Content="&#xEA80;  Incidents"
                                          FontFamily="Segoe MDL2 Assets"

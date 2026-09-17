@@ -40,23 +40,14 @@ public static class AgentRpcProbe
         {
             if (string.IsNullOrWhiteSpace(pipeName))
             {
-                if (string.IsNullOrWhiteSpace(options.StateDirectory))
-                    return Fail(pipeName, "No pipe name given and no state directory to read rpc-endpoint.json from.");
-
-                var endpointPath = Path.Combine(options.StateDirectory, "rpc-endpoint.json");
-                if (!File.Exists(endpointPath))
-                    return Fail(pipeName, $"No endpoint file at {endpointPath} - the agent is not running or RPC is disabled.");
-
-                var endpoint = JsonSerializer.Deserialize<RpcEndpoint>(File.ReadAllText(endpointPath), RpcFraming.Options);
-                pipeName = endpoint?.PipeName;
-                if (string.IsNullOrWhiteSpace(pipeName))
-                    return Fail(pipeName, "The endpoint file did not contain a pipe name.");
+                if (!RpcEndpointResolver.TryResolve(options.StateDirectory, out pipeName, out var resolveError))
+                    return Fail(pipeName, resolveError);
             }
 
             using var client = new AgentRpcClient();
             try
             {
-                await client.ConnectAsync(pipeName, 4000, ct).ConfigureAwait(false);
+                await client.ConnectAsync(pipeName!, 4000, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
