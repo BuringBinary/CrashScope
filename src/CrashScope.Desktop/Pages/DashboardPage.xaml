@@ -28,7 +28,7 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <Border Background="#FF6B6B22" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
-                                <TextBlock Text="&#xE950;" FontFamily="Segoe MDL2 Assets"
+                                <TextBlock Text="&#xE950;" FontFamily="{StaticResource IconTextFont}"
                                            FontSize="16" Foreground="{StaticResource CpuColor}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -84,7 +84,7 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <Border Background="#00D68F22" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
-                                <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets"
+                                <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource IconTextFont}"
                                            FontSize="16" Foreground="{StaticResource GpuColor}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -158,7 +158,7 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <Border Background="#FFD93D22" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
-                                <TextBlock Text="&#xE950;" FontFamily="Segoe MDL2 Assets"
+                                <TextBlock Text="&#xE950;" FontFamily="{StaticResource IconTextFont}"
                                            FontSize="16" Foreground="{StaticResource RamColor}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -270,7 +270,7 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <Border Background="#00D68F22" CornerRadius="6" Width="28" Height="28" Margin="0,0,10,0">
-                            <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets"
+                            <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource IconTextFont}"
                                        FontSize="14" Foreground="{StaticResource GpuColor}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -320,7 +320,7 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <Border Background="#FFD93D22" CornerRadius="6" Width="28" Height="28" Margin="0,0,10,0">
-                            <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets"
+                            <TextBlock Text="&#xE946;" FontFamily="{StaticResource IconTextFont}"
                                        FontSize="14" Foreground="{StaticResource WarningColor}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>

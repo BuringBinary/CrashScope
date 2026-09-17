@@ -35,19 +35,19 @@
                            Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="330" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
-                <Button x:Name="ConnectButton" Content="&#xE895;  Connect" FontFamily="Segoe MDL2 Assets"
+                <Button x:Name="ConnectButton" Content="&#xE895;  Connect" FontFamily="{StaticResource IconTextFont}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="94" Margin="8,0,0,0"
                         Click="ConnectButton_Click"/>
-                <Button x:Name="DisconnectButton" Content="&#xE8F4;  Stop client" FontFamily="Segoe MDL2 Assets"
+                <Button x:Name="DisconnectButton" Content="&#xE8F4;  Stop client" FontFamily="{StaticResource IconTextFont}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="110" Margin="6,0,0,0"
                         Click="DisconnectButton_Click"/>
-                <Button x:Name="StartRecButton" Content="&#xE768;  Start" FontFamily="Segoe MDL2 Assets"
+                <Button x:Name="StartRecButton" Content="&#xE768;  Start" FontFamily="{StaticResource IconTextFont}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="80" Margin="6,0,0,0"
                         Click="StartButton_Click"/>
-                <Button x:Name="StopRecButton" Content="&#xE71A;  Stop rec" FontFamily="Segoe MDL2 Assets"
+                <Button x:Name="StopRecButton" Content="&#xE71A;  Stop rec" FontFamily="{StaticResource IconTextFont}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="92" Margin="6,0,0,0"
                         Click="StopButton_Click"/>

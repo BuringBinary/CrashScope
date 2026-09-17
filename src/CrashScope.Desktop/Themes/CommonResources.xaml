@@ -4,4 +4,9 @@
     <!-- Common resources placeholder - LocaleExtension removed, was causing XamlParseException at startup -->
     <!-- Localization is handled via LocalizationService.T() in code-behind, not via markup extension resource -->
 
+    <!-- Icon glyphs (U+E7xx PUA) come from Segoe MDL2 Assets. That font has NO letters and NO CJK,
+         so any "icon + label" string must be able to fall back to a text font, otherwise the label
+         renders as tofu boxes. WPF walks this composite list left to right per character. -->
+    <FontFamily x:Key="IconTextFont">Segoe MDL2 Assets, Segoe UI, Microsoft YaHei UI, Microsoft YaHei</FontFamily>
+
 </ResourceDictionary>

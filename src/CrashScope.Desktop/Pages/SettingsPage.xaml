@@ -310,7 +310,7 @@
                                        TextTrimming="CharacterEllipsis"
                                        MaxWidth="380"/>
                             <Button Content="&#xE8C8;"
-                                    FontFamily="Segoe MDL2 Assets"
+                                    FontFamily="{StaticResource IconTextFont}"
                                     Width="28" Height="24"
                                     Style="{StaticResource SecondaryButton}"
                                     Margin="8,0,0,0"

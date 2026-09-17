@@ -26,7 +26,7 @@
                            Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="320" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
-                <Button x:Name="ConnectButton" Content="&#xE895;  Connect" FontFamily="Segoe MDL2 Assets"
+                <Button x:Name="ConnectButton" Content="&#xE895;  Connect" FontFamily="{StaticResource IconTextFont}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="94" Margin="8,0,0,0"
                         Click="ConnectButton_Click"/>
@@ -168,7 +168,7 @@
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBox x:Name="RollbackReasonBox" Width="240" Height="26" FontSize="12"
                                  VerticalContentAlignment="Center"/>
-                        <Button Content="&#xE7A7;  Roll back selected" FontFamily="Segoe MDL2 Assets"
+                        <Button Content="&#xE7A7;  Roll back selected" FontFamily="{StaticResource IconTextFont}"
                                 FontSize="12" Style="{StaticResource SecondaryButton}"
                                 Height="26" Width="150" Margin="6,0,0,0"
                                 Click="RollbackButton_Click"/>

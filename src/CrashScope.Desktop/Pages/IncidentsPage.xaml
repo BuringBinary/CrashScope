@@ -59,7 +59,7 @@
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
                     <Button x:Name="CompareButton"
                             Content="&#xE8E3;  Compare (2)"
-                            FontFamily="Segoe MDL2 Assets"
+                            FontFamily="{StaticResource IconTextFont}"
                             Height="34" FontSize="12"
                             Style="{StaticResource AccentButton}"
                             Click="CompareButton_Click"
@@ -68,7 +68,7 @@
                             Margin="0,0,8,0"/>
                     <Button x:Name="CrossAnalysisButton"
                             Content="&#xE9D2;  Analyze All"
-                            FontFamily="Segoe MDL2 Assets"
+                            FontFamily="{StaticResource IconTextFont}"
                             Height="34" FontSize="12"
                             Style="{StaticResource AccentButton}"
                             Click="CrossAnalysisButton_Click"
@@ -221,7 +221,7 @@
                                    VerticalAlignment="Center"/>
                         <Button x:Name="CloseAnalysisButton"
                                 Content="&#xE711;"
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{StaticResource IconTextFont}"
                                 Width="28" Height="28"
                                 FontSize="12"
                                 Background="Transparent"
@@ -288,7 +288,7 @@
 
                         <!-- Patterns Section -->
                         <TextBlock Text="&#xE8F1;  Patterns Found"
-                                   FontFamily="Segoe MDL2 Assets"
+                                   FontFamily="{StaticResource IconTextFont}"
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"
                                    Margin="0,0,0,8"/>
@@ -323,7 +323,7 @@
 
                         <!-- Drivers Section -->
                         <TextBlock Text="&#xE7C5;  Drivers"
-                                   FontFamily="Segoe MDL2 Assets"
+                                   FontFamily="{StaticResource IconTextFont}"
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"
                                    Margin="0,16,0,8"/>
@@ -358,7 +358,7 @@
 
                         <!-- Recommendations Section -->
                         <TextBlock Text="&#xEA4B;  Recommendations"
-                                   FontFamily="Segoe MDL2 Assets"
+                                   FontFamily="{StaticResource IconTextFont}"
                                    FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"
                                    Margin="0,16,0,8"/>
@@ -422,7 +422,7 @@
                                    VerticalAlignment="Center"/>
                         <Button x:Name="CloseComparisonButton"
                                 Content="&#xE711;"
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{StaticResource IconTextFont}"
                                 Width="28" Height="28"
                                 FontSize="12"
                                 Background="Transparent"
