@@ -1,5 +1,8 @@
+using System.Text.Json;
 using CrashScope.Core.Monitoring;
 using CrashScope.Core.Ipc;
+using CrashScope.Core.Actions;
+using CrashScope.Contracts;
 using System.Globalization;
 
 // CrashScope CLI agent.
@@ -23,6 +26,7 @@ if (args.Length > 0 && args[0] is "probe")
 
 string? dataRootOverride = null;
 var rpcEnabled = true;
+var actionsEnabled = true;
 string? pipeNameOverride = null;
 foreach (var arg in args)
 {
@@ -32,6 +36,8 @@ foreach (var arg in args)
         pipeNameOverride = arg["--pipe-name=".Length..];
     else if (arg is "--no-rpc")
         rpcEnabled = false;
+    else if (arg is "--no-actions")
+        actionsEnabled = false;
     else if (arg is "-h" or "--help")
     {
         PrintUsage();
@@ -101,7 +107,8 @@ Console.WriteLine("Press Ctrl+C to stop cleanly.");
 AgentRpcServer? rpc = null;
 if (rpcEnabled)
 {
-    rpc = new AgentRpcServer(engine, stateDirectory, pipeNameOverride, incidentsRoot);
+    var actions = actionsEnabled ? new SystemActions(new PowerPlanService(), stateDirectory) : null;
+    rpc = new AgentRpcServer(engine, stateDirectory, pipeNameOverride, incidentsRoot, actions);
     rpc.Start();
     Console.WriteLine($"RPC: named pipe '{rpc.PipeName}' (endpoint: {Path.Combine(stateDirectory, "rpc-endpoint.json")})");
 }
@@ -126,6 +133,7 @@ static async Task<int> RunProbeAsync(string[] args)
     string? pipeName = null;
     string? stateDir = null;
     var listen = TimeSpan.FromSeconds(2);
+    var exercise = false;
     foreach (var arg in args)
     {
         if (arg.StartsWith("--pipe-name=", StringComparison.OrdinalIgnoreCase))
@@ -134,9 +142,11 @@ static async Task<int> RunProbeAsync(string[] args)
             stateDir = arg["--state-dir=".Length..];
         else if (arg.StartsWith("--duration=", StringComparison.OrdinalIgnoreCase))
             listen = TimeSpan.FromSeconds(double.Parse(arg["--duration=".Length..], CultureInfo.InvariantCulture));
+        else if (arg is "--exercise")
+            exercise = true;
         else if (arg is "-h" or "--help")
         {
-            Console.WriteLine("Usage: CrashScope.Agent probe [--pipe-name=<name>] [--state-dir=<path>] [--duration=<seconds>]");
+            Console.WriteLine("Usage: CrashScope.Agent probe [--pipe-name=<name>] [--state-dir=<path>] [--duration=<seconds>] [--exercise]");
             Console.WriteLine();
             Console.WriteLine("  Connects to a running agent's RPC pipe, prints status, a sensor catalog summary");
             Console.WriteLine("  and live telemetry, then exits. Default listen window: 2 s.");
@@ -174,6 +184,48 @@ static async Task<int> RunProbeAsync(string[] args)
     Console.WriteLine(latest is not null && latest.Values.Count > 0
         ? $"Telemetry: {result.TelemetryUpdates} live updates; latest {latest.Values.Count} values @ {latest.Timestamp:HH:mm:ss}"
         : $"Telemetry: {result.TelemetryUpdates} live updates; none buffered (recorder idle?)");
+    if (exercise && result.PipeName is not null)
+        return await RunActionsExerciseAsync(result.PipeName);
+    return 0;
+}
+
+static async Task<int> RunActionsExerciseAsync(string pipeName)
+{
+    using var client = new AgentRpcClient();
+    await client.ConnectAsync(pipeName, 5000);
+    await client.SendRequestAsync(RpcMessages.Hello, new HelloPayload("rpc-probe-exercise", RpcProtocol.Version));
+    var options = RpcFraming.Options;
+    Console.WriteLine("Actions exercise: every change below is rolled back before exit.");
+
+    var plans = (await client.SendRequestAsync(RpcMessages.GetPowerPlans))!.Value
+        .Deserialize<PowerPlansPayload>(options)!;
+    var active = plans.Plans.FirstOrDefault(p => p.IsActive);
+    var target = plans.Plans.FirstOrDefault(p => !p.IsActive);
+    Console.WriteLine($"Power plans: {plans.Plans.Count} (active: {active?.Name ?? "n/a"})");
+    if (target is null)
+    {
+        Console.WriteLine("Plan cycle skipped: the host has a single power plan.");
+    }
+    else
+    {
+        await client.SendRequestAsync(RpcMessages.SetPowerPlan, new SetPowerPlanRequest(target.Guid, "probe --exercise"));
+        Console.WriteLine($"  set plan '{target.Name}'");
+        var journal = (await client.SendRequestAsync(RpcMessages.GetActions))!.Value
+            .Deserialize<ActionsPayload>(options)!;
+        var applied = journal.Actions.First(a => a.Action == "set-power-plan" && a.Status == "applied");
+        await client.SendRequestAsync(RpcMessages.RollbackAction, new RollbackActionRequest(applied.ActionId, "probe --exercise rollback"));
+        Console.WriteLine($"  rolled back to '{active?.Name}'");
+    }
+
+    var probePid = Environment.ProcessId;
+    await client.SendRequestAsync(RpcMessages.SetProcessPriority, new SetProcessPriorityRequest(probePid, "BelowNormal", "probe --exercise"));
+    Console.WriteLine($"  set own priority (pid {probePid}) to BelowNormal");
+    var journal2 = (await client.SendRequestAsync(RpcMessages.GetActions))!.Value
+        .Deserialize<ActionsPayload>(options)!;
+    var appliedPriority = journal2.Actions.First(a => a.Action == "set-process-priority" && a.Status == "applied");
+    await client.SendRequestAsync(RpcMessages.RollbackAction, new RollbackActionRequest(appliedPriority.ActionId, "probe --exercise rollback"));
+    Console.WriteLine("  rolled back priority");
+    Console.WriteLine("ACTIONS EXERCISE PASSED (all changes restored).");
     return 0;
 }
 
@@ -186,6 +238,7 @@ static void PrintUsage()
     Console.WriteLine("  --data-root=<path>  Record under <path> instead of %LOCALAPPDATA%\\CrashScope.");
     Console.WriteLine("                      Use the Service root (%ProgramData%\\CrashScope) to share data.");
     Console.WriteLine("  --no-rpc            Disable the local RPC control plane (headless recorder).");
+    Console.WriteLine("  --no-actions        Disable system-mutation verbs (power plan / process priority).");
     Console.WriteLine("  --pipe-name=<name>  Serve RPC on <name> instead of the default PID-suffixed pipe.");
     Console.WriteLine("  probe               Inspect a running agent over RPC; see: probe --help.");
     Console.WriteLine("  -h, --help          Show this help.");

@@ -2,6 +2,7 @@ using System.IO.Pipes;
 using System.Text.Json;
 using System.Threading.Channels;
 using CrashScope.Contracts;
+using CrashScope.Core.Actions;
 using CrashScope.Core.Analysis;
 using CrashScope.Core.Monitoring;
 
@@ -22,6 +23,7 @@ public sealed class AgentRpcServer : IDisposable
 
     private readonly RecorderEngine _engine;
     private readonly string? _incidentsRoot;
+    private readonly ISystemActions? _actions;
     private readonly string _endpointPath;
     private readonly object _gate = new();
     private readonly Dictionary<int, ClientConnection> _clients = new();
@@ -32,10 +34,11 @@ public sealed class AgentRpcServer : IDisposable
 
     public string PipeName { get; }
 
-    public AgentRpcServer(RecorderEngine engine, string stateDirectory, string? pipeNameOverride = null, string? incidentsRoot = null)
+    public AgentRpcServer(RecorderEngine engine, string stateDirectory, string? pipeNameOverride = null, string? incidentsRoot = null, ISystemActions? actions = null)
     {
         _engine = engine;
         _incidentsRoot = incidentsRoot;
+        _actions = actions;
         PipeName = pipeNameOverride ?? $"{RpcProtocol.PipeNamePrefix}{Environment.ProcessId}";
         Directory.CreateDirectory(stateDirectory);
         _endpointPath = Path.Combine(stateDirectory, "rpc-endpoint.json");
@@ -171,6 +174,7 @@ public sealed class AgentRpcServer : IDisposable
             }
 
             client.Handshaken = true;
+            client.ClientName = hello?.ClientName ?? "unknown";
             var session = _engine.CurrentSession;
             await client.SendAsync(new RpcEnvelope(
                 RpcProtocol.Version,
@@ -190,7 +194,15 @@ public sealed class AgentRpcServer : IDisposable
                 var envelope = await RpcFraming.ReadEnvelopeAsync(client.Pipe, client.Token).ConfigureAwait(false);
                 if (envelope is null)
                     break; // client disconnected cleanly
-                await DispatchAsync(client, envelope).ConfigureAwait(false);
+                try
+                {
+                    await DispatchAsync(client, envelope).ConfigureAwait(false);
+                }
+                catch (ActionException ex)
+                {
+                    // One catch maps every mutation failure onto the wire.
+                    await SendErrorAsync(client, ex.Code, ex.Message, envelope.Id).ConfigureAwait(false);
+                }
             }
         }
         catch
@@ -256,6 +268,39 @@ public sealed class AgentRpcServer : IDisposable
                 }
                 break;
 
+            case RpcMessages.GetPowerPlans:
+                await client.SendAsync(Response(RpcMessages.PowerPlans, envelope.Id, PowerPlansBody()), client.Token)
+                    .ConfigureAwait(false);
+                break;
+            case RpcMessages.GetProcesses:
+                await client.SendAsync(Response(RpcMessages.Processes, envelope.Id, ProcessesBody()), client.Token)
+                    .ConfigureAwait(false);
+                break;
+            case RpcMessages.GetActions:
+                await client.SendAsync(Response(RpcMessages.Actions, envelope.Id, ActionsBody()), client.Token)
+                    .ConfigureAwait(false);
+                break;
+            case RpcMessages.SetPowerPlan:
+                var planRequest = RpcFraming.DeserializePayload<SetPowerPlanRequest>(envelope);
+                RequireActions(planRequest);
+                var planRecord = _actions!.SetPowerPlan(planRequest!.PlanGuid, client.ClientName, planRequest.Reason);
+                await client.SendAsync(Response(RpcMessages.Ok, envelope.Id, new OkPayload($"power plan set: {planRecord.Target}")), client.Token)
+                    .ConfigureAwait(false);
+                break;
+            case RpcMessages.SetProcessPriority:
+                var priorityRequest = RpcFraming.DeserializePayload<SetProcessPriorityRequest>(envelope);
+                RequireActions(priorityRequest);
+                var priorityRecord = _actions!.SetProcessPriority(priorityRequest!.Pid, priorityRequest.Priority, client.ClientName, priorityRequest.Reason);
+                await client.SendAsync(Response(RpcMessages.Ok, envelope.Id, new OkPayload($"priority set: {priorityRecord.NewValue}")), client.Token)
+                    .ConfigureAwait(false);
+                break;
+            case RpcMessages.RollbackAction:
+                var rollbackRequest = RpcFraming.DeserializePayload<RollbackActionRequest>(envelope);
+                RequireActions(rollbackRequest);
+                var rollbackRecord = _actions!.Rollback(rollbackRequest!.ActionId, client.ClientName, rollbackRequest.Reason);
+                await client.SendAsync(Response(RpcMessages.Ok, envelope.Id, new OkPayload($"rolled back: {rollbackRecord.Target}")), client.Token)
+                    .ConfigureAwait(false);
+                break;
             case RpcMessages.Hello:
                 await SendErrorAsync(client, "already-handshaken", "This connection already said hello.", envelope.Id)
                     .ConfigureAwait(false);
@@ -374,6 +419,36 @@ public sealed class AgentRpcServer : IDisposable
             IncidentCatalog.ReadSummary(_incidentsRoot, id),
             IncidentCatalog.ReadTimeline(_incidentsRoot, id));
     }
+    private PowerPlansPayload PowerPlansBody()
+    {
+        if (_actions is null)
+            return new PowerPlansPayload([]);
+        return new PowerPlansPayload(_actions.ListPowerPlans()
+            .Select(p => new PowerPlanDto(p.Guid, p.Name, p.IsActive)).ToList());
+    }
+    private ProcessesPayload ProcessesBody()
+    {
+        if (_actions is null)
+            return new ProcessesPayload([]);
+        return new ProcessesPayload(_actions.ListProcesses()
+            .Select(p => new ProcessDto(p.Pid, p.Name, p.Priority)).ToList());
+    }
+    private ActionsPayload ActionsBody()
+    {
+        if (_actions is null)
+            return new ActionsPayload([]);
+        return new ActionsPayload(_actions.RecentActions()
+            .Select(a => new ActionRecordDto(a.ActionId, a.Timestamp, a.Action, a.Target, a.OldValue, a.NewValue, a.Caller, a.Reason, a.Status, a.Error, a.Reversible))
+            .ToList());
+    }
+    private ISystemActions RequireActions(object? request)
+    {
+        if (_actions is null)
+            throw new ActionException("actions-unavailable", "This agent was started without the actions plane (--no-actions).");
+        if (request is null)
+            throw new ActionException("bad-request", "The request payload is missing or malformed.");
+        return _actions;
+    }
 
     private static RpcEnvelope Response(string type, string? requestId, object payload) =>
         new(RpcProtocol.Version, requestId, type, DateTimeOffset.Now,
@@ -418,6 +493,7 @@ public sealed class AgentRpcServer : IDisposable
         public CancellationToken Token { get; } = token;
 
         public bool Handshaken { get; set; }
+        public string ClientName { get; set; } = "unknown";
 
         public ChannelReader<RpcEnvelope> Outbound => _outbound.Reader;
 

@@ -48,6 +48,12 @@ success the server replies `welcome`:
 | `stop-recording` | `ok` / `error` | - |
 | `get-incidents` | `incidents` | `{ incidents: [{ id, timestamp, leadingMode, confidence, hypothesisCount, hasSummary, hasTimeline }] }`, newest first |
 | `get-incident-detail` | `incident-detail` | request `{ id }` (a directory name, never a path); response `{ id, summary, timeline }` with the markdown texts (either may be null) |
+| `get-power-plans` | `power-plans` | `{ plans: [{ guid, name, isActive }] }` |
+| `get-processes` | `processes` | `{ processes: [{ pid, name, priority }] }` |
+| `get-actions` | `actions` | `{ actions: [actionRecord] }`, newest first (audit journal) |
+| `set-power-plan` | `ok` / `error` | request `{ planGuid, reason }` - `reason` is mandatory |
+| `set-process-priority` | `ok` / `error` | request `{ pid, priority, reason }`; priorities Idle/BelowNormal/Normal/AboveNormal/High only (no RealTime) |
+| `rollback-action` | `ok` / `error` | request `{ actionId, reason }`; appends a rollback row, never edits the journal |
 
 Unknown verbs get `error` with code `unknown-type`; requests always get exactly
 one response with the same `id`.
@@ -62,7 +68,21 @@ one response with the same `id`.
 ## Error codes
 
 `handshake-required`, `protocol-version`, `already-handshaken`, `unknown-type`,
-`start-failed`, `stop-failed`, `bad-incident-id`, `incident-not-found`.
+`start-failed`, `stop-failed`, `bad-incident-id`, `incident-not-found`,
+`actions-unavailable`, `reason-required`, `unknown-plan`, `already-active`,
+`unknown-priority`, `process-not-found`, `set-failed`, `rollback-target-not-found`,
+`rollback-failed`.
+
+## The actions plane
+
+Every mutation is journalled append-only to `<state-dir>/actions.jsonl` (write-through)
+with timestamp, caller (the hello client name), reason, old and new values, and
+rollback metadata - so toolbox-side changes become forensic evidence instead of
+invisible variables. Mutations without a non-blank reason are rejected
+(`reason-required`). Start the agent with `--no-actions` to serve the read verbs
+but refuse all mutations (`actions-unavailable`). `CrashScope.Agent probe
+--exercise` self-tests the plane end to end (power plan set + rollback, process
+priority on the probe process itself) and restores everything it changes.
 
 ## Implementation
 

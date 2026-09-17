@@ -40,6 +40,15 @@ public static class RpcMessages
     public const string IncidentList = "incidents";
     public const string GetIncidentDetail = "get-incident-detail";
     public const string IncidentDetail = "incident-detail";
+    public const string GetPowerPlans = "get-power-plans";
+    public const string PowerPlans = "power-plans";
+    public const string GetProcesses = "get-processes";
+    public const string Processes = "processes";
+    public const string GetActions = "get-actions";
+    public const string Actions = "actions";
+    public const string SetPowerPlan = "set-power-plan";
+    public const string SetProcessPriority = "set-process-priority";
+    public const string RollbackAction = "rollback-action";
     public const string Ok = "ok";
     public const string Error = "error";
     public const string StatusChanged = "status-changed";
@@ -111,6 +120,26 @@ public sealed record IncidentListPayload(IReadOnlyList<IncidentSummaryDto> Incid
 public sealed record IncidentDetailRequest(string Id);
 
 public sealed record IncidentDetailPayload(string Id, string? Summary, string? Timeline);
+public sealed record PowerPlanDto(string Guid, string Name, bool IsActive);
+public sealed record PowerPlansPayload(IReadOnlyList<PowerPlanDto> Plans);
+public sealed record SetPowerPlanRequest(string PlanGuid, string Reason);
+public sealed record ProcessDto(int Pid, string Name, string Priority);
+public sealed record ProcessesPayload(IReadOnlyList<ProcessDto> Processes);
+public sealed record SetProcessPriorityRequest(int Pid, string Priority, string Reason);
+public sealed record ActionRecordDto(
+    string ActionId,
+    DateTimeOffset Timestamp,
+    string Action,
+    string Target,
+    string? OldValue,
+    string NewValue,
+    string Caller,
+    string Reason,
+    string Status,
+    string? Error,
+    bool Reversible);
+public sealed record ActionsPayload(IReadOnlyList<ActionRecordDto> Actions);
+public sealed record RollbackActionRequest(string ActionId, string Reason);
 
 /// <summary>Raised client-side when the server answers a request with an error envelope.</summary>
 public sealed class RpcException(string code, string message, string? forId = null)

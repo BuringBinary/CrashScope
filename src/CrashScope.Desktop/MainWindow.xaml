@@ -123,6 +123,12 @@
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="AgentIncidents"/>
+                            <RadioButton x:Name="NavAgentActions"
+                                         Content="&#xE90F;  Agent Actions"
+                                         FontFamily="Segoe MDL2 Assets"
+                                         Style="{StaticResource NavButton}"
+                                         Checked="NavButton_Checked"
+                                         Tag="AgentActions"/>
                             <RadioButton x:Name="NavIncidents"
                                          Content="&#xEA80;  Incidents"
                                          FontFamily="Segoe MDL2 Assets"

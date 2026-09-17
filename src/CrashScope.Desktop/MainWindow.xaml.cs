@@ -194,6 +194,7 @@ public partial class MainWindow : Window
             "LiveMonitor" => new LiveMonitorPage(),
             "AgentMonitor" => new AgentMonitorPage(),
             "AgentIncidents" => new AgentIncidentsPage(),
+            "AgentActions" => new AgentActionsPage(),
             "Incidents" => new IncidentsPage(),
             "Timeline" => new TimelinePage(),
             "Settings" => new SettingsPage(),
