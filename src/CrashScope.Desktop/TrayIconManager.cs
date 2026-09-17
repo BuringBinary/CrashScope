@@ -49,8 +49,12 @@ public sealed class TrayIconManager : IDisposable
     private ContextMenuStrip CreateContextMenu()
     {
         var menu = new ContextMenuStrip();
-        menu.Items.Add("Start Recording", null, (_, _) => _service.StartRecording());
-        menu.Items.Add("Stop Recording", null, (_, _) => _service.StopRecording());
+        menu.Items.Add("Start Recording", null, async (_, _) =>
+        {
+            try { await _service.StopRecordingAsync(); await Task.Run(_service.StartRecording); }
+            catch (Exception ex) { System.Windows.MessageBox.Show(ex.Message, "CrashScope"); }
+        });
+        menu.Items.Add("Stop Recording", null, async (_, _) => await _service.StopRecordingAsync());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Open Data Folder", null, (_, _) =>
         {
@@ -64,7 +68,7 @@ public sealed class TrayIconManager : IDisposable
 
         menu.Opening += (_, _) =>
         {
-            menu.Items[0].Enabled = !_service.IsRecording;
+            menu.Items[0].Enabled = !_service.IsRecording && !_service.IsStopping;
             menu.Items[1].Enabled = _service.IsRecording;
         };
 
@@ -75,12 +79,12 @@ public sealed class TrayIconManager : IDisposable
     {
         // AppService raises StatusChanged from the recorder thread; the WinForms
         // NotifyIcon may only be touched on the UI thread.
-        _window.Dispatcher.Invoke(() =>
+        _window.Dispatcher.InvokeAsync(() =>
         {
             _notifyIcon.Icon = _service.IsRecording ? _iconRecording : _iconStopped;
             _notifyIcon.Text = _service.IsRecording
                 ? $"CrashScope - Recording ({_service.SampleCount} samples)"
-                : "CrashScope - Stopped";
+                : $"CrashScope - {_service.RecorderState}";
         });
     }
 
@@ -113,6 +117,11 @@ public sealed class TrayIconManager : IDisposable
 
     private void OnShowFromTray(object? sender, EventArgs e)
     {
+        if (_window is MainWindow mainWindow)
+        {
+            mainWindow.ShowFromTray();
+            return;
+        }
         StopBlink();
         _window.Show();
         _window.WindowState = System.Windows.WindowState.Normal;

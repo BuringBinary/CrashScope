@@ -16,32 +16,60 @@ namespace CrashScope.Desktop;
 public partial class MainWindow : Window
 {
     private readonly AppService _service;
-    private readonly TrayIconManager _tray;
-    private readonly RetentionService _retention;
+    private readonly TrayIconManager? _tray;
+    private readonly RetentionService? _retention;
     private readonly LocalizationService _localization;
     private bool _forceClose;
     private UserControl? _currentPage;
 
     public MainWindow()
     {
+        // Only InitializeComponent (XAML) and the two core services are allowed to fail the
+        // window. Everything else degrades to a status-bar message: a broken tray icon or
+        // retention scan must never turn into "double-click, nothing happens".
         InitializeComponent();
+        StartupLog.Info("MainWindow.InitializeComponent ok");
 
         _service = App.Current.Service;
-        _retention = new RetentionService(_service.RootDirectory);
-        _tray = new TrayIconManager(this, _service);
         _localization = App.Current.Localization;
-        _localization.LocaleChanged += OnLocaleChanged;
 
+        var startupWarnings = new List<string>();
+
+        try { _retention = new RetentionService(_service.RootDirectory); }
+        catch (Exception ex)
+        {
+            StartupLog.Error("RetentionService unavailable", ex);
+            startupWarnings.Add($"Retention disabled: {ex.Message}");
+        }
+
+        try { _tray = new TrayIconManager(this, _service); }
+        catch (Exception ex)
+        {
+            StartupLog.Error("Tray icon unavailable", ex);
+            startupWarnings.Add($"Tray icon disabled: {ex.Message}");
+        }
+
+        _localization.LocaleChanged += OnLocaleChanged;
         _service.StatusChanged += OnRecordingStatusChanged;
 
-        NavigateTo("Recorder");
-        EnforceRetentionOnStartup();
+        try { NavigateTo("Home"); }
+        catch (Exception ex)
+        {
+            StartupLog.Error("Home page failed to load; falling back to Settings", ex);
+            startupWarnings.Add($"Home page failed: {ex.Message}");
+            try { NavigateTo("Settings"); }
+            catch (Exception ex2) { StartupLog.Error("Settings page also failed", ex2); }
+        }
+
+        if (startupWarnings.Count > 0)
+            StatusBarText.Text = string.Join(" | ", startupWarnings);
+
         CheckPreviousSessionOnStartup();
     }
 
     private void OnLocaleChanged()
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.InvokeAsync(() =>
         {
             RefreshWindowLocale();
             (_currentPage as IRefreshableLocale)?.RefreshLocale();
@@ -64,6 +92,7 @@ public partial class MainWindow : Window
 
     private void EnforceRetentionOnStartup()
     {
+        if (_retention is null) return;
         var (sessions, incidents, bytes) = _retention.Enforce();
         var usageMb = _retention.GetCurrentUsage() / (1024.0 * 1024.0);
 
@@ -76,27 +105,41 @@ public partial class MainWindow : Window
 
     private async void CheckPreviousSessionOnStartup()
     {
-        await Task.Delay(1500); // let UI render first
-        var analysis = _service.CheckPreviousUncleanSession();
-        if (analysis is not null)
+        try
         {
-            var leading = analysis.Hypotheses.FirstOrDefault(h => h.Score > 0);
-            var mode = leading?.Mode.ToString() ?? "Unknown";
-            var confidence = leading?.Confidence ?? 0;
-            _tray.ShowUncleanSessionBalloon(mode, confidence);
-
-            Dispatcher.Invoke(() =>
+            await Task.Delay(1500); // let UI render first
+            var analysis = await Task.Run(_service.CheckPreviousUncleanSession);
+            // Recovery first; retention also acquires ownership and protects pending evidence.
+            try { EnforceRetentionOnStartup(); }
+            catch (Exception ex) { StatusBarText.Text = $"Retention skipped: {ex.Message}"; }
+            if (_service.RecoveryError is not null)
+                StatusBarText.Text = $"Recovery deferred: {_service.RecoveryError}";
+            if (analysis is not null)
             {
-                // navigate to Incidents page
-                NavIncidents.IsChecked = true;
-                NavigateTo("Incidents");
-            });
+                var leading = analysis.Hypotheses.FirstOrDefault(h => h.Score > 0);
+                var mode = leading?.Mode.ToString() ?? "Unknown";
+                var confidence = leading?.Confidence ?? 0;
+                _tray?.ShowUncleanSessionBalloon(mode, confidence);
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    // navigate to Incidents page
+                    NavIncidents.IsChecked = true;
+                    NavigateTo("Incidents");
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            // async void: an escaped exception here would crash the process after the window is up.
+            StartupLog.Error("Previous-session check failed", ex);
+            StatusBarText.Text = $"Previous-session check failed: {ex.Message}";
         }
     }
 
     private void OnRecordingStatusChanged()
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.InvokeAsync(() =>
         {
             if (_service.IsRecording)
             {
@@ -105,7 +148,8 @@ public partial class MainWindow : Window
             }
             else
             {
-                StatusText.Text = "Recorder: Stopped";
+                StatusText.Text = $"Recorder: {_service.RecorderState}";
+                StatusText.ToolTip = _service.RecorderError;
                 StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"));
             }
         });
@@ -145,8 +189,24 @@ public partial class MainWindow : Window
 
     private void HideToTray()
     {
+        if (_tray is null)
+        {
+            // No tray icon to come back from: hiding would strand the user. Minimise instead.
+            WindowState = WindowState.Minimized;
+            return;
+        }
         _tray.StopBlink();
         Hide();
+    }
+
+    /// <summary>Restores the window from the tray (or from a second-instance launch signal).</summary>
+    public void ShowFromTray()
+    {
+        _tray?.StopBlink();
+        Show();
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate();
+        Topmost = true; Topmost = false; // pull to front without staying topmost
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
@@ -157,9 +217,10 @@ public partial class MainWindow : Window
             HideToTray();
             return;
         }
-        _tray.Dispose();
-        _service.Dispose();
+        _tray?.Dispose();
+        // Service is disposed exactly once by App.OnExit.
         base.OnClosing(e);
+        System.Windows.Application.Current.Shutdown();
     }
 
     /// <summary>
@@ -178,6 +239,37 @@ public partial class MainWindow : Window
         Close();
     }
 
+    private UserControl CreateHomePage()
+    {
+        var page = new HomePage();
+        page.NavigateRequested += tag =>
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                // Update nav radio
+                var radio = tag switch
+                {
+                    "Home" => NavHome,
+                    "Recorder" => NavRecorder,
+                    "Dashboard" => NavDashboard,
+                    "LiveMonitor" => NavLiveMonitor,
+                    "Hardware" => NavHardware,
+                    "AgentMonitor" => NavAgentMonitor,
+                    "AgentIncidents" => NavAgentIncidents,
+                    "AgentActions" => NavAgentActions,
+                    "Incidents" => NavIncidents,
+                    "Timeline" => NavTimeline,
+                    "Settings" => NavSettings,
+                    _ => null
+                };
+                if (radio != null) radio.IsChecked = true;
+                NavigateTo(tag);
+            });
+        };
+        return page;
+    }
+
+
     private void NavButton_Checked(object sender, RoutedEventArgs e)
     {
         if (sender is RadioButton radio && radio.Tag is string page)
@@ -189,16 +281,18 @@ public partial class MainWindow : Window
         ContentArea.Children.Clear();
         UserControl content = page switch
         {
+            "Home" => CreateHomePage(),
             "Recorder" => new RecorderStatusPage(),
             "Dashboard" => new DashboardPage(),
             "LiveMonitor" => new LiveMonitorPage(),
+            "Hardware" => new HardwareOverviewPage(),
             "AgentMonitor" => new AgentMonitorPage(),
             "AgentIncidents" => new AgentIncidentsPage(),
             "AgentActions" => new AgentActionsPage(),
             "Incidents" => new IncidentsPage(),
             "Timeline" => new TimelinePage(),
             "Settings" => new SettingsPage(),
-            _ => new RecorderStatusPage()
+            _ => CreateHomePage()
         };
         _currentPage = content;
         ContentArea.Children.Add(content);
