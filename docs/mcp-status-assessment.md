@@ -62,9 +62,8 @@ between the docs and the tree.
 2. **Commit is blocked by a missing git identity** - known, recorded, still
    undone. Two-minute fix, should not wait another session.
 3. **Deferred LOW items** were closed in the same-day second pass (L1-L4,
-   L6-L8, L10-L12), except L4's English strings (i18n pass) and L6's iGPU
-   filter (needs an `IsDiscrete` flag on the driver inventory; see
-   `mcp-code-review.md`).
+   L6-L8, L10-L12) and third pass (L4's display strings, L6's `IsDiscrete`
+   iGPU filter); no review findings remain open (see `mcp-code-review.md`).
 4. **Storage cadence shares the display counter** (every 5 s) - documented, but
    it means storage evidence granularity is coupled to an unrelated tracker.
 5. **Untested-by-construction paths**: ETW queue bound (M5) and the live
@@ -129,6 +128,11 @@ the only strategic gap is that Phase 1 (field validation) has not started.
   146 -> 148, Core/Desktop builds green). L4 keeps its English strings for the
   i18n pass; L6's iGPU filter is deferred pending an `IsDiscrete` flag on the
   driver-inventory capture. Dispositions recorded in `mcp-code-review.md`.
+- Third pass closed the last two review leftovers: `GpuTransition` no longer
+  carries display text - the Dashboard page formats it (L4) - and the driver
+  inventory captures `IsDiscrete` from the driver-reported memory size so
+  driver correlation can filter integrated adapters (L6). Tests 184 -> 189
+  (the total already includes the sprint-5 action-plane suite).
 - Remote branches `design/player-toolbox-integration`,
   `feat/foundation-rpc-contracts` and `feature/desktop-foundation` were fetched
   via the proxy; each carries one docs-only commit from earlier design work.

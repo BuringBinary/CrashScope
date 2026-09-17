@@ -38,7 +38,8 @@ public static class DriverInventory
                     matchingId,
                     string.IsNullOrWhiteSpace(version) ? null : version,
                     date,
-                    DetectVendor(description, matchingId)));
+                    DetectVendor(description, matchingId),
+                    DetectDiscrete(ReadVideoMemoryBytes(instanceKey))));
             }
         }
         catch
@@ -83,5 +84,38 @@ public static class DriverInventory
             return "Intel";
 
         return "Other";
+    }
+
+    // Discrete classification uses the memory size the driver itself reports in
+    // the same registry key (HardwareInformation.MemorySize): a measured value,
+    // not name inference (which M11 removed). DXGI adapter enumeration was
+    // evaluated first but misbehaves on hosts with virtual-display/overlay
+    // drivers; the registry value is per-entry and needs no COM join. Missing
+    // or corrupt values stay unknown instead of being guessed.
+    internal const long DiscreteThresholdBytes = 1L << 30; // 1 GiB
+
+    internal static bool? DetectDiscrete(long? videoMemoryBytes)
+        => videoMemoryBytes is { } bytes and >= 0
+            ? bytes >= DiscreteThresholdBytes
+            : null;
+
+    private static long? ReadVideoMemoryBytes(RegistryKey instanceKey)
+    {
+        try
+        {
+            return instanceKey.GetValue("HardwareInformation.MemorySize") switch
+            {
+                byte[] b when b.Length >= 8 => BitConverter.ToInt64(b, 0),
+                byte[] b when b.Length == 4 => BitConverter.ToUInt32(b, 0),
+                int i => (uint)i, // REG_DWORD is unsigned; 16 GB cards saturate the high bits
+                uint u => u,
+                long l => l,
+                _ => null
+            };
+        }
+        catch
+        {
+            return null; // best-effort inventory
+        }
     }
 }

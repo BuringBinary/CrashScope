@@ -329,6 +329,45 @@ public sealed class CrossIncidentAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_IntegratedAdapter_Filtered_WhenDiscreteKnown()
+    {
+        var igpu = new DriverInventoryEntry(
+            "AMD Radeon(TM) Graphics", "VEN_1002&DEV_13C0", "24.10.1", BaseTime, "AMD", IsDiscrete: false);
+        var dgpu = new DriverInventoryEntry(
+            "AMD Radeon RX 7900 XTX", "VEN_1002", "24.5.1", BaseTime, "AMD", IsDiscrete: true);
+
+        var incidents = new[]
+        {
+            MakeIncident("S1", BaseTime, FailureMode.DriverTimeoutRecovery, drivers: [igpu, dgpu]),
+            MakeIncident("S2", BaseTime.AddDays(1), FailureMode.DriverTimeoutRecovery, drivers: [igpu, dgpu])
+        };
+
+        var report = CrossIncidentAnalyzer.Analyze(incidents);
+
+        Assert.Single(report.DriverCorrelations);
+        Assert.Equal("24.5.1", report.DriverCorrelations[0].DriverVersion);
+    }
+
+    [Fact]
+    public void Analyze_NoDiscreteKnown_KeepsFullInventory()
+    {
+        var igpu = new DriverInventoryEntry(
+            "AMD Radeon(TM) Graphics", "VEN_1002&DEV_13C0", "24.10.1", BaseTime, "AMD", IsDiscrete: false);
+
+        var incidents = new[]
+        {
+            MakeIncident("S1", BaseTime, FailureMode.DriverTimeoutRecovery, drivers: [igpu]),
+            MakeIncident("S2", BaseTime.AddDays(1), FailureMode.DriverTimeoutRecovery, drivers: [igpu])
+        };
+
+        var report = CrossIncidentAnalyzer.Analyze(incidents);
+
+        // An iGPU-only machine must not lose its driver correlation to the filter.
+        Assert.Single(report.DriverCorrelations);
+        Assert.Equal("24.10.1", report.DriverCorrelations[0].DriverVersion);
+    }
+
+    [Fact]
     public void Analyze_NoDrivers_NoCorrelations()
     {
         var incidents = new[]

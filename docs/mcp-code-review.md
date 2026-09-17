@@ -14,6 +14,20 @@ Scope: full read of `CrashScope` src + test (61 C# files, ~10,400 LOC), deployme
 > closed: the single-incident label and the always-"Worsening" 3-incidents trend are fixed,
 > while the iGPU driver-correlation filter needs an `IsDiscrete` flag captured with the driver
 > inventory - name-based filtering would reintroduce the guessing M11 removed. Tests 146 -> 148.
+>
+> **Update (2026-09-17, third pass):** L4 and L6 are fully closed; no review findings remain
+> open. L4: `GpuTransitionMonitor` no longer builds display text - `GpuTransition` carries
+> measurements only and the Dashboard page owns the sentence, the same layer as every other
+> UI string (the app's UI language is uniformly English; an app-wide localization pass is a
+> product decision outside this review). L6: `DriverInventoryEntry` gained `IsDiscrete`,
+> classified from the driver-reported `HardwareInformation.MemorySize` in the same registry
+> key (>= 1 GiB = discrete, missing/corrupt = unknown, never guessed from names). DXGI
+> adapter enumeration was tried first and abandoned: the factory creates but `EnumAdapters1`
+> returns DXGI_ERROR_INVALID_CALL on hosts with virtual-display/overlay drivers, while the
+> registry value is per-entry and needs no COM join. PnP topology was verified on live
+> hardware not to discriminate (an iGPU can sit behind a root port). `CorrelateDrivers` now
+> correlates only known-discrete adapters when any is known and keeps the full inventory
+> otherwise (an iGPU-only machine must not lose its correlation). Tests 184 -> 189.
 
 ## Overall assessment
 
@@ -84,9 +98,9 @@ The CLI agent runs an inline loop with **no ETW sessions** and a different data 
 - **L1.** `GpuEngineTracker` has no `IDisposable`; its `PerformanceCounter` set is never disposed (bounded by live GPU instances, but it matters for multi-day service runs).
 - **L2.** `TrayIconManager.CreateIcon` never calls `DestroyIcon` on the `GetHicon()` handle (3 GDI handles per app launch) - `TrayIconManager.cs:159-161`.
 - **L3.** `TrayIconManager.ShowUncleanSessionBalloon` re-subscribes `BalloonTipClicked` on every call (handler accumulation); `OnStatusChanged` touches the WinForms `NotifyIcon` from the recorder thread (works in practice, should be marshalled) - `TrayIconManager.cs:72-93`.
-- **L4.** Desktop `GpuTransitionMonitor` is level-triggered: while a delta persists, a new "transition" fires every second and up to 50 near-duplicates accumulate in `RecentTransitions`; descriptions are hard-coded English (no localization) - `GpuTransitionMonitor.cs:57-103`.
+- **L4.** ~~Desktop `GpuTransitionMonitor` is level-triggered: while a delta persists, a new "transition" fires every second and up to 50 near-duplicates accumulate in `RecentTransitions`; descriptions are hard-coded English (no localization) - `GpuTransitionMonitor.cs:57-103`.~~ **Done.** Duplicate firing was fixed in the second pass (edge-triggered re-arming). The third pass removed the hard-coded English from the monitor entirely: `GpuTransition` is measurement-only and the Dashboard page formats the sentence, the same layer as all other UI strings.
 - **L5.** `GraphicsContextBuilder.cs:83` comment ("A stop event after the final snapshot means the app was running at the end") contradicts the code that follows; the running-at-end logic is a 30 s-granularity heuristic - fine, but fix the comment.
-- **L6.** `CrossIncidentAnalyzer` quirks: iGPU driver entries pollute driver correlation (every incident lists both adapters); a single incident is labeled "Stable" rather than "insufficient data"; with exactly 3 incidents the trend is always "Worsening" (first half has one point -> rate 0) - `CrossIncidentAnalyzer.cs:291-433`.
+- **L6.** ~~`CrossIncidentAnalyzer` quirks: iGPU driver entries pollute driver correlation (every incident lists both adapters); a single incident is labeled "Stable" rather than "insufficient data"; with exactly 3 incidents the trend is always "Worsening" (first half has one point -> rate 0) - `CrossIncidentAnalyzer.cs:291-433`.~~ **Done.** The single-incident label and the 3-incident trend were fixed in the second pass. The third pass added `IsDiscrete` to the driver inventory (driver-reported `HardwareInformation.MemorySize` >= 1 GiB, unknown when absent) and `CorrelateDrivers` filters to known-discrete adapters whenever at least one is known.
 - **L7.** `CorrelateDrivers` resolves vendor/date by version string only, ignoring the adapter - two adapters sharing a version can swap metadata - `CrossIncidentAnalyzer.cs:321-322`.
 - **L8.** `SessionJournal` persists `CleanShutdown=false` immediately in the constructor, so an instant crash before the first heartbeat yields a near-empty incident. Acceptable false positive, but consider a `neverStarted` marker the collector can skip - `SessionJournal.cs:20-29`.
 - **L9.** `EtwDxgKrnlMonitor.IsInteresting` uses magic event ids (250/253/400/497/500/600/700/800) with no comments - unauditable - `EtwDxgKrnlMonitor.cs:135-140`.

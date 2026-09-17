@@ -1,4 +1,3 @@
-using System.Globalization;
 
 namespace CrashScope.Desktop;
 
@@ -7,7 +6,6 @@ public sealed class GpuTransitionMonitor
     private readonly int _gpuLoadIdx;
     private readonly int _gpuClockIdx;
     private readonly int _gpuPowerIdx;
-    private readonly string _gpuName;
 
     private readonly List<GpuTransition> _recentTransitions = new();
     private readonly Dictionary<string, bool> _signalActive = new(StringComparer.OrdinalIgnoreCase);
@@ -22,21 +20,14 @@ public sealed class GpuTransitionMonitor
         ("Power", 15f, 0.50f)
     ];
 
-    private static readonly Dictionary<string, string> Units = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Load"] = "%",
-        ["Clock"] = "MHz",
-        ["Power"] = "W"
-    };
 
     public event Action<GpuTransition>? TransitionDetected;
 
-    public GpuTransitionMonitor(int gpuLoadIdx, int gpuClockIdx, int gpuPowerIdx, string gpuName)
+    public GpuTransitionMonitor(int gpuLoadIdx, int gpuClockIdx, int gpuPowerIdx)
     {
         _gpuLoadIdx = gpuLoadIdx;
         _gpuClockIdx = gpuClockIdx;
         _gpuPowerIdx = gpuPowerIdx;
-        _gpuName = gpuName;
     }
 
     public IReadOnlyList<GpuTransition> RecentTransitions => _recentTransitions;
@@ -89,8 +80,6 @@ public sealed class GpuTransitionMonitor
 
         var isDrop = delta < 0;
         var elapsed = (series[^1].Timestamp - series[0].Timestamp).TotalSeconds;
-        var unit = Units.GetValueOrDefault(sensorType, "");
-        var direction = isDrop ? "drop" : "surge";
 
         var transition = new GpuTransition(
             series[^1].Timestamp,
@@ -100,8 +89,7 @@ public sealed class GpuTransitionMonitor
             tailMean,
             elapsed,
             IsTrend: true,
-            IsDrop: isDrop,
-            Description: $"{_gpuName} {sensorName}: {direction} from ~{Format(headMean)}{unit} to ~{Format(tailMean)}{unit} over {elapsed:0.#}s");
+            IsDrop: isDrop);
 
         _recentTransitions.Add(transition);
         while (_recentTransitions.Count > MaxTransitions)
@@ -110,7 +98,6 @@ public sealed class GpuTransitionMonitor
         TransitionDetected?.Invoke(transition);
     }
 
-    private static string Format(float value) => value.ToString("0.#", CultureInfo.InvariantCulture);
 }
 
 public sealed record GpuTransition(
@@ -121,5 +108,4 @@ public sealed record GpuTransition(
     float ToValue,
     double ElapsedSeconds,
     bool IsTrend,
-    bool IsDrop,
-    string Description);
+    bool IsDrop);

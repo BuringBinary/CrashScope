@@ -297,7 +297,16 @@ public static class CrossIncidentAnalyzer
             var drivers = incident.Graphics?.DriverInventory ?? [];
             if (drivers.Count == 0) continue;
 
-            foreach (var d in drivers)
+            // Integrated adapters appear in every incident's inventory and drown
+            // the discrete rows that matter for crash attribution. When the
+            // inventory knows at least one discrete GPU, correlate only those;
+            // otherwise (iGPU-only machine, legacy captures with unknown state)
+            // keep the full set - never worse than before the filter existed.
+            var selected = drivers.Any(d => d.IsDiscrete == true)
+                ? drivers.Where(d => d.IsDiscrete == true).ToList()
+                : drivers;
+
+            foreach (var d in selected)
             {
                 var key = $"{d.AdapterName}|{d.DriverVersion ?? "Unknown"}";
                 if (!driverIncidents.ContainsKey(key))

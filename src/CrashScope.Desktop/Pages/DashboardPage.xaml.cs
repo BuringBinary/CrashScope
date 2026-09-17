@@ -3,6 +3,7 @@ using CrashScope.Core.Models;
 using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Series;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -33,6 +34,7 @@ public partial class DashboardPage : UserControl
     private int _ramLoadIdx = -1;
 
     private GpuTransitionMonitor? _transitionMonitor;
+    private string _gpuDisplayName = "GPU";
 
     private readonly PlotModel _cpuPlotModel;
     private readonly PlotModel _gpuPlotModel;
@@ -292,7 +294,8 @@ public partial class DashboardPage : UserControl
             ? catalog[_gpuModelIdx].HardwareName
             : "GPU";
 
-        _transitionMonitor = new GpuTransitionMonitor(_gpuLoadIdx, _gpuClockIdx, _gpuPowerIdx, gpuName);
+        _gpuDisplayName = gpuName;
+        _transitionMonitor = new GpuTransitionMonitor(_gpuLoadIdx, _gpuClockIdx, _gpuPowerIdx);
         _transitionMonitor.TransitionDetected += OnTransitionDetected;
     }
 
@@ -338,7 +341,7 @@ public partial class DashboardPage : UserControl
             {
                 Timestamp = transition.Timestamp.ToString("HH:mm:ss"),
                 SensorLabel = $"{transition.SensorName} ({transition.SensorType})",
-                TransitionDetail = transition.Description,
+                TransitionDetail = DescribeTransition(transition, _gpuDisplayName),
                 MarkerColor = transition.IsDrop
                     ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"))
                     : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F"))
@@ -352,6 +355,25 @@ public partial class DashboardPage : UserControl
             GpuTransitionsList.ItemsSource = _transitionItems.ToList();
         });
     }
+
+    // Display-side formatting: the monitor reports measurements, this page owns
+    // presentation text (the same layer as every other UI string). A future
+    // localization pass swaps the wording here, not in the monitoring logic.
+    private static string DescribeTransition(GpuTransition transition, string gpuName)
+    {
+        var unit = transition.SensorType switch
+        {
+            "Load" => "%",
+            "Clock" => "MHz",
+            "Power" => "W",
+            _ => ""
+        };
+        var direction = transition.IsDrop ? "drop" : "surge";
+        return $"{gpuName} {transition.SensorName}: {direction} from ~{FormatValue(transition.FromValue)}{unit}" +
+               $" to ~{FormatValue(transition.ToValue)}{unit} over {transition.ElapsedSeconds:0.#}s";
+    }
+
+    private static string FormatValue(float value) => value.ToString("0.#", CultureInfo.InvariantCulture);
 
     private void ClearTransitionsButton_Click(object sender, RoutedEventArgs e)
     {

@@ -98,7 +98,8 @@ public sealed record DriverInventoryEntry(
     string? MatchingDeviceId,
     string? DriverVersion,
     DateTimeOffset? DriverDate,
-    string Vendor);
+    string Vendor,
+    bool? IsDiscrete = null);
 
 public sealed record EtwDxgKrnlEvent(
     DateTimeOffset Timestamp,
