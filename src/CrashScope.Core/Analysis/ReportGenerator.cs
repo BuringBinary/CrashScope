@@ -55,6 +55,12 @@ public static class ReportGenerator
         sb.AppendLine($"**Date**: {analysis.PreviousSession.LastHeartbeatAt:yyyy-MM-dd HH:mm:ss}");
         sb.AppendLine($"**Session**: {analysis.PreviousSession.SessionId}");
         sb.AppendLine();
+        if (analysis.PreviousSession.RecorderError is not null)
+        {
+            sb.AppendLine($"> Recorder fault: {analysis.PreviousSession.RecorderError}");
+            sb.AppendLine("> This is an interrupted recording, not proof of a system crash. Telemetry gaps and the ranking below may reflect recorder failure.");
+            sb.AppendLine();
+        }
         sb.AppendLine("## Top Hypothesis");
         sb.AppendLine();
 

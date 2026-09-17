@@ -323,7 +323,7 @@ public partial class DashboardPage : UserControl
     private void OnSensorUpdated(IReadOnlyList<float?> values)
     {
         _history.Push(values);
-        Dispatcher.Invoke(() =>
+        Dispatcher.InvokeAsync(() =>
         {
             UpdateDisplay(values);
             UpdateCharts();
@@ -333,7 +333,7 @@ public partial class DashboardPage : UserControl
 
     private void OnTransitionDetected(GpuTransition transition)
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.InvokeAsync(() =>
         {
             GpuTransitionsPanel.Visibility = Visibility.Visible;
 
@@ -508,7 +508,7 @@ public partial class DashboardPage : UserControl
 
         _lastEngineUsages = aggregated;
 
-        Dispatcher.Invoke(() => UpdateGpuEngines(aggregated, sample.Timestamp));
+        Dispatcher.InvokeAsync(() => UpdateGpuEngines(aggregated, sample.Timestamp));
     }
 
     private void UpdateGpuEngines(Dictionary<string, float> engines, DateTimeOffset timestamp)

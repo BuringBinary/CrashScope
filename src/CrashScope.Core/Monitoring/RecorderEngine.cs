@@ -9,7 +9,13 @@ namespace CrashScope.Core.Monitoring;
 
 public sealed class RecorderEngine : IDisposable
 {
-    private readonly string _sessionDirectory;
+    private readonly string _sessionDirectoryPrefix;
+    private string _sessionDirectory;
+    private readonly RecorderRuntimeHooks? _hooks;
+    private volatile DataRootLease? _owner;
+    private Task? _stopTask;
+    private volatile RecorderState _state = RecorderState.Stopped;
+    private long _lastSampleTicks;
     private readonly string _stateDirectory;
     private readonly string _incidentsRoot;
 
@@ -66,12 +72,23 @@ public sealed class RecorderEngine : IDisposable
         string stateDirectory,
         string incidentsRoot)
     {
-        _sessionDirectory = sessionDirectory;
+        _sessionDirectoryPrefix = Path.GetFullPath(sessionDirectory);
+        _sessionDirectory = _sessionDirectoryPrefix;
         _stateDirectory = stateDirectory;
         _incidentsRoot = incidentsRoot;
     }
 
-    public bool IsRecording { get; private set; }
+    // Injection seam for deterministic lifecycle tests; production always uses the real collectors.
+    internal RecorderEngine(string sessionDirectory, string stateDirectory, string incidentsRoot, RecorderRuntimeHooks hooks)
+        : this(sessionDirectory, stateDirectory, incidentsRoot) => _hooks = hooks;
+
+    public RecorderState State => _state;
+    public bool IsRecording => _state == RecorderState.Recording;
+    public bool HasActiveResources => _owner is not null;
+    public string? LastError { get; private set; }
+    public string? RecoveryError { get; private set; }
+    public DateTimeOffset? LastSampleAt => Interlocked.Read(ref _lastSampleTicks) is var ticks && ticks > 0
+        ? new DateTimeOffset(ticks, TimeSpan.Zero) : null;
     public SessionState? CurrentSession => _journal?.Current;
     public SessionState? PreviousSession => _journal?.PreviousState;
     public int SampleCount { get; private set; }
@@ -104,113 +121,173 @@ public sealed class RecorderEngine : IDisposable
         lock (_lock)
         {
             if (IsRecording) return;
+            if (_owner is not null || _stopTask is { IsCompleted: false })
+                throw new InvalidOperationException("The previous recording is stopping or faulted. Stop it fully before starting again.");
 
-            Directory.CreateDirectory(_sessionDirectory);
-
-            _journal = new SessionJournal(_stateDirectory, _sessionDirectory);
-            _hardware = new HardwareMonitor();
-
-            File.WriteAllText(
-                Path.Combine(_sessionDirectory, "sensor-catalog.json"),
-                JsonSerializer.Serialize(_hardware.Catalog, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
-            File.WriteAllText(
-                Path.Combine(_sessionDirectory, "driver-inventory.json"),
-                JsonSerializer.Serialize(DriverInventory.Capture(), new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
-
-            _telemetryWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "telemetry.jsonl"));
-            _foregroundWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "foreground-events.jsonl"));
-            _processEventWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "process-events.jsonl"));
-            _processSnapshotWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "process-snapshots.jsonl"));
-            _gpuEngineWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "gpu-engines.jsonl"));
-            _displayWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "display-events.jsonl"));
-            _powerWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "power-events.jsonl"));
-            _remoteSessionWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "remote-session-events.jsonl"));
-            _storageWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "storage.jsonl"));
-            _gpuMemoryWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "gpu-memory.jsonl"));
-            _memoryPressureWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "memory-pressure.jsonl"));
-            _dwmStateWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "dwm-state.jsonl"));
-
-            _processTracker = new ProcessTracker();
-            _gpuEngineTracker = new GpuEngineTracker();
-            _displayTracker = new DisplayTopologyTracker();
-            _powerTracker = new PowerTracker();
-            _storageTracker = new StorageTracker();
-            _gpuMemoryTracker = new GpuMemoryTracker();
-            _memoryPressureTracker = new MemoryPressureTracker();
-            _dwmTracker = new DwmStateTracker();
-
-            _etwMonitor = new EtwDxgKrnlMonitor();
-            _etwMonitor.EventReceived += e => EtwEventReceived?.Invoke(e);
-            try { _etwMonitor.Start(_sessionDirectory); }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW GPU session start failed (admin required): {ex.Message}");
-            }
-
-            var kernelPowerCfg = new ProviderConfig(
-                ProviderGuid: new Guid("331C3B3A-2005-44C2-AC5E-77220C37D6B4"),
-                ProviderName: "Microsoft-Windows-Kernel-Power",
-                OutputFile: "etw-kernel-power.jsonl",
-                IsInteresting: traceEvent =>
-                    traceEvent.TaskName is "SuspendStart" or "SuspendEnd" or "ResumeStart" or "ResumeEnd"
-                    || ((int)traceEvent.ID >= 10 && (int)traceEvent.ID <= 30)
-                    || traceEvent.TaskName.Contains("Thermal", StringComparison.OrdinalIgnoreCase)
-                    || traceEvent.TaskName.Contains("Power", StringComparison.OrdinalIgnoreCase));
-            var wheaCfg = new ProviderConfig(
-                ProviderGuid: new Guid("C26C4F3C-3F66-4E99-8F8A-39405CFED220"),
-                ProviderName: "Microsoft-Windows-WHEA-Logger",
-                OutputFile: "etw-whea.jsonl",
-                IsInteresting: _ => true);
-            _etwSystemMonitor = new EtwRealTimeMonitor(kernelPowerCfg, wheaCfg);
-            _etwSystemMonitor.EventReceived += e => EtwSystemEventReceived?.Invoke(e);
-            try { _etwSystemMonitor.Start(_sessionDirectory); }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW system session start failed (admin required): {ex.Message}");
-            }
-
-            _previousForeground = null;
-            _processPollCounter = 0;
-            _processSnapshotCounter = 0;
-            _heartbeatCounter = 0;
-            _displayCounter = 0;
-            _powerCounter = 0;
-            _etwDrainCounter = 0;
-            _retentionCounter = 0;
-            _stopping = false;
+            _owner = DataRootLease.Acquire(_stateDirectory);
+            _state = RecorderState.Starting;
+            LastError = null;
+            RecoveryError = null;
+            _journal = null;
             SampleCount = 0;
-
-            _cts = new CancellationTokenSource();
-            var token = _cts.Token;
-
-            IsRecording = true;
-            StatusChanged?.Invoke();
-
-            _recordingTask = Task.Run(async () =>
+            Interlocked.Exchange(ref _lastSampleTicks, 0);
+            try
             {
-                var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-                try
-                {
-                    while (await timer.WaitForNextTickAsync(token))
-                    {
-                        Tick(token);
-                    }
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception ex)
-                {
-                    // A single failed tick (a tracker throwing, a writer already disposed
-                    // during shutdown) must not fault the recording task: an unobserved
-                    // fault leaks the thread and silently ends the recording session.
-                    try { System.Diagnostics.Trace.WriteLine($"[CrashScope] recording loop stopped: {ex}"); }
-                    catch { }
-                }
-                finally
-                {
-                    timer.Dispose();
-                }
-            }, token);
+                // Preserve first; recovery failure must not destroy the pending evidence.
+                SessionRecovery.Preserve(_stateDirectory, SessionJournal.ReadPrevious(_stateDirectory));
+                try { SessionRecovery.RecoverOwned(_stateDirectory, _incidentsRoot, _hooks?.Recover); }
+                catch (Exception ex) { RecoveryError = ex.Message; }
+
+                // A fresh identity and directory for every Start, including RPC restarts.
+                _sessionDirectory = _sessionDirectoryPrefix + "-" + Guid.NewGuid().ToString("N");
+                Directory.CreateDirectory(_sessionDirectory);
+                _journal = new SessionJournal(_stateDirectory, _sessionDirectory);
+                if (_hooks is not null) _hooks.Initialize();
+                else InitializeCollectors();
+
+                _previousForeground = null;
+                _processPollCounter = _processSnapshotCounter = _heartbeatCounter = 0;
+                _displayCounter = _powerCounter = _etwDrainCounter = _retentionCounter = 0;
+                _stopping = false;
+                _cts = new CancellationTokenSource();
+                var token = _cts.Token;
+                _state = RecorderState.Recording;
+                _recordingTask = Task.Run(() => RunLoopAsync(token));
+            }
+            catch (Exception ex)
+            {
+                ReportFault(ex);
+                CleanupResources();
+                _owner.Dispose();
+                _owner = null;
+                Notify(StatusChanged);
+                throw;
+            }
         }
+        Notify(StatusChanged);
+    }
+
+    private void InitializeCollectors()
+    {
+        _hardware = new HardwareMonitor();
+
+        File.WriteAllText(
+            Path.Combine(_sessionDirectory, "sensor-catalog.json"),
+            JsonSerializer.Serialize(_hardware.Catalog, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
+        File.WriteAllText(
+            Path.Combine(_sessionDirectory, "driver-inventory.json"),
+            JsonSerializer.Serialize(DriverInventory.Capture(), new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
+
+        _telemetryWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "telemetry.jsonl"));
+        _foregroundWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "foreground-events.jsonl"));
+        _processEventWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "process-events.jsonl"));
+        _processSnapshotWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "process-snapshots.jsonl"));
+        _gpuEngineWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "gpu-engines.jsonl"));
+        _displayWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "display-events.jsonl"));
+        _powerWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "power-events.jsonl"));
+        _remoteSessionWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "remote-session-events.jsonl"));
+        _storageWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "storage.jsonl"));
+        _gpuMemoryWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "gpu-memory.jsonl"));
+        _memoryPressureWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "memory-pressure.jsonl"));
+        _dwmStateWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "dwm-state.jsonl"));
+
+        _processTracker = new ProcessTracker();
+        _gpuEngineTracker = new GpuEngineTracker();
+        _displayTracker = new DisplayTopologyTracker();
+        _powerTracker = new PowerTracker();
+        _storageTracker = new StorageTracker();
+        _gpuMemoryTracker = new GpuMemoryTracker();
+        _memoryPressureTracker = new MemoryPressureTracker();
+        _dwmTracker = new DwmStateTracker();
+
+        _etwMonitor = new EtwDxgKrnlMonitor();
+        _etwMonitor.EventReceived += e => Notify(EtwEventReceived, e);
+        try { _etwMonitor.Start(_sessionDirectory); }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW GPU session start failed (admin required): {ex.Message}");
+        }
+
+        var kernelPowerCfg = new ProviderConfig(
+            ProviderGuid: new Guid("331C3B3A-2005-44C2-AC5E-77220C37D6B4"),
+            ProviderName: "Microsoft-Windows-Kernel-Power",
+            OutputFile: "etw-kernel-power.jsonl",
+            IsInteresting: traceEvent =>
+                traceEvent.TaskName is "SuspendStart" or "SuspendEnd" or "ResumeStart" or "ResumeEnd"
+                || ((int)traceEvent.ID >= 10 && (int)traceEvent.ID <= 30)
+                || traceEvent.TaskName.Contains("Thermal", StringComparison.OrdinalIgnoreCase)
+                || traceEvent.TaskName.Contains("Power", StringComparison.OrdinalIgnoreCase));
+        var wheaCfg = new ProviderConfig(
+            ProviderGuid: new Guid("C26C4F3C-3F66-4E99-8F8A-39405CFED220"),
+            ProviderName: "Microsoft-Windows-WHEA-Logger",
+            OutputFile: "etw-whea.jsonl",
+            IsInteresting: _ => true);
+        _etwSystemMonitor = new EtwRealTimeMonitor(kernelPowerCfg, wheaCfg);
+        _etwSystemMonitor.EventReceived += e => Notify(EtwSystemEventReceived, e);
+        try { _etwSystemMonitor.Start(_sessionDirectory); }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW system session start failed (admin required): {ex.Message}");
+        }
+    }
+
+    private async Task RunLoopAsync(CancellationToken token)
+    {
+        using var timer = new PeriodicTimer(_hooks?.Interval ?? TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
+            {
+                if (_hooks is null) Tick(token);
+                else
+                {
+                    _hooks.Tick(token);
+                    SampleCount++;
+                    Interlocked.Exchange(ref _lastSampleTicks, DateTimeOffset.UtcNow.Ticks);
+                    _journal!.Heartbeat(DateTimeOffset.Now);
+                    Notify(SensorUpdated, (IReadOnlyList<float?>)Array.Empty<float?>());
+                }
+            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            // Fail closed, visibly. Do not spin on a full disk or claim the recorder is healthy.
+            ReportFault(ex);
+            Notify(StatusChanged);
+        }
+    }
+
+    private void ReportFault(Exception ex)
+    {
+        LastError = $"{ex.GetType().Name}: {ex.Message}";
+        _state = RecorderState.Faulted;
+        try { _journal?.MarkFault(LastError); }
+        catch (Exception persistenceError)
+        {
+            LastError += $" (could not persist recorder fault: {persistenceError.Message})";
+        }
+        try { System.Diagnostics.Trace.WriteLine($"[CrashScope] recorder fault: {LastError}"); } catch { }
+    }
+
+    // Observers must not be able to terminate the acquisition loop. UI observers must marshal asynchronously.
+    private static void Notify(Action? handlers)
+    {
+        if (handlers is null) return;
+        foreach (Action handler in handlers.GetInvocationList())
+            try { handler(); } catch (Exception ex) { TraceObserverFailure(ex); }
+    }
+
+    private static void Notify<T>(Action<T>? handlers, T value)
+    {
+        if (handlers is null) return;
+        foreach (Action<T> handler in handlers.GetInvocationList())
+            try { handler(value); } catch (Exception ex) { TraceObserverFailure(ex); }
+    }
+
+    private static void TraceObserverFailure(Exception ex)
+    {
+        try { System.Diagnostics.Trace.WriteLine($"[CrashScope] observer failed: {ex.Message}"); } catch { }
     }
 
     private void Tick(CancellationToken token)
@@ -225,8 +302,11 @@ public sealed class RecorderEngine : IDisposable
         var sensorValues = _hardware!.CaptureValues();
         _telemetryWriter!.Write(new TelemetrySnapshot(now, foreground, sensorValues));
         SampleCount++;
+        Interlocked.Exchange(ref _lastSampleTicks, now.UtcTicks);
+        // The first durable sample is enough to make this session recoverable (not five ticks later).
+        if (SampleCount == 1) _journal!.Heartbeat(now);
 
-        SensorUpdated?.Invoke(sensorValues);
+        Notify(SensorUpdated, sensorValues);
 
         if (_previousForeground is null ||
             _previousForeground.ProcessId != foreground.ProcessId ||
@@ -234,7 +314,7 @@ public sealed class RecorderEngine : IDisposable
         {
             var fe = new ForegroundEvent(now, foreground.ProcessId, foreground.ProcessName, foreground.IdleSeconds);
             _foregroundWriter!.Write(fe);
-            ForegroundChanged?.Invoke(fe);
+            Notify(ForegroundChanged, fe);
             _previousForeground = foreground;
         }
 
@@ -244,14 +324,14 @@ public sealed class RecorderEngine : IDisposable
             foreach (var processEvent in _processTracker!.Poll(now))
             {
                 _processEventWriter!.Write(processEvent);
-                ProcessEventReceived?.Invoke(processEvent);
+                Notify(ProcessEventReceived, processEvent);
             }
 
             var engineSample = _gpuEngineTracker!.Capture(now);
             if (engineSample is not null)
             {
                 _gpuEngineWriter!.Write(engineSample);
-                GpuEngineUpdated?.Invoke(engineSample);
+                Notify(GpuEngineUpdated, engineSample);
             }
         }
 
@@ -262,21 +342,21 @@ public sealed class RecorderEngine : IDisposable
             if (displayChange is not null)
             {
                 _displayWriter!.Write(displayChange);
-                DisplayChanged?.Invoke(displayChange);
+                Notify(DisplayChanged, displayChange);
             }
 
             var remoteChange = _powerTracker!.PollRemoteSession(now);
             if (remoteChange is not null)
             {
                 _remoteSessionWriter!.Write(remoteChange);
-                RemoteSessionChanged?.Invoke(remoteChange);
+                Notify(RemoteSessionChanged, remoteChange);
             }
 
             if (_storageTracker is { IsAvailable: true })
             {
                 var storageSample = _storageTracker.Capture(now);
                 _storageWriter!.Write(storageSample);
-                StorageUpdated?.Invoke(storageSample);
+                Notify(StorageUpdated, storageSample);
             }
 
             if (_gpuMemoryTracker is { IsAvailable: true })
@@ -285,7 +365,7 @@ public sealed class RecorderEngine : IDisposable
                 if (gpuMemSample is not null)
                 {
                     _gpuMemoryWriter!.Write(gpuMemSample);
-                    GpuMemoryUpdated?.Invoke(gpuMemSample);
+                    Notify(GpuMemoryUpdated, gpuMemSample);
                 }
             }
 
@@ -294,7 +374,7 @@ public sealed class RecorderEngine : IDisposable
                 if (memPressure is not null)
                 {
                     _memoryPressureWriter!.Write(memPressure);
-                    MemoryPressureUpdated?.Invoke(memPressure);
+                    Notify(MemoryPressureUpdated, memPressure);
                 }
             }
 
@@ -302,7 +382,7 @@ public sealed class RecorderEngine : IDisposable
             if (dwmChange is not null)
             {
                 _dwmStateWriter!.Write(dwmChange);
-                DwmStateChanged?.Invoke(dwmChange);
+                Notify(DwmStateChanged, dwmChange);
             }
         }
 
@@ -313,7 +393,7 @@ public sealed class RecorderEngine : IDisposable
             if (schemeChange is not null)
             {
                 _powerWriter!.Write(schemeChange);
-                PowerSchemeChanged?.Invoke(schemeChange);
+                Notify(PowerSchemeChanged, schemeChange);
             }
         }
 
@@ -327,7 +407,7 @@ public sealed class RecorderEngine : IDisposable
         {
             _heartbeatCounter = 0;
             _journal!.Heartbeat(now);
-            StatusChanged?.Invoke();
+            Notify(StatusChanged);
         }
 
         if (++_retentionCounter >= RetentionIntervalSeconds)
@@ -343,7 +423,7 @@ public sealed class RecorderEngine : IDisposable
                 {
                     var etwEvents = _etwMonitor.DrainBuffer();
                     foreach (var e in etwEvents)
-                        EtwEventReceived?.Invoke(e);
+                        Notify(EtwEventReceived, e);
                 }
                 catch { }
 
@@ -355,7 +435,7 @@ public sealed class RecorderEngine : IDisposable
                         {
                             var sysEvents = _etwSystemMonitor.DrainBuffer(file);
                             foreach (var e in sysEvents)
-                                EtwSystemEventReceived?.Invoke(e);
+                                Notify(EtwSystemEventReceived, e);
                         }
                         catch { }
                     }
@@ -363,79 +443,104 @@ public sealed class RecorderEngine : IDisposable
             }
     }
 
+    /// <summary>
+    /// Compatibility for process-exit/IDisposable callers. A slow stop retains ownership and resources;
+    /// completion proceeds in the background. Normal hosts should await StopAsync.
+    /// </summary>
     public void Stop()
     {
+        var stop = StopAsync();
+        stop.Wait(TimeSpan.FromSeconds(3));
+    }
+
+    public Task StopAsync()
+    {
+        Task stop;
         lock (_lock)
         {
-            if (!IsRecording) return;
-
+            if (_stopTask is not null) return _stopTask;
+            if (_owner is null) return Task.CompletedTask;
             _stopping = true;
+            if (_state != RecorderState.Faulted) _state = RecorderState.Stopping;
             _cts?.Cancel();
-
-            try { _recordingTask?.Wait(TimeSpan.FromSeconds(3)); }
-            catch (AggregateException) { }
-
-            _journal?.MarkClean();
-            _hardware?.Dispose();
-            _telemetryWriter?.Dispose();
-            _foregroundWriter?.Dispose();
-            _processEventWriter?.Dispose();
-            _processSnapshotWriter?.Dispose();
-            _gpuEngineWriter?.Dispose();
-            _displayWriter?.Dispose();
-            _powerWriter?.Dispose();
-            _remoteSessionWriter?.Dispose();
-            _storageWriter?.Dispose();
-            _gpuMemoryWriter?.Dispose();
-            _memoryPressureWriter?.Dispose();
-            _dwmStateWriter?.Dispose();
-
-            try { _etwMonitor?.Stop(); } catch { }
-            try { _etwMonitor?.Dispose(); } catch { }
-            _etwMonitor = null;
-
-            try { _etwSystemMonitor?.Stop(); } catch { }
-            try { _etwSystemMonitor?.Dispose(); } catch { }
-            _etwSystemMonitor = null;
-
-            _storageTracker?.Dispose();
-            _storageTracker = null;
-            _gpuMemoryTracker?.Dispose();
-            _gpuMemoryTracker = null;
-            _gpuEngineTracker?.Dispose();
-            _gpuEngineTracker = null;
-
-            _cts?.Dispose();
-            _cts = null;
-            _recordingTask = null;
-            IsRecording = false;
-            StatusChanged?.Invoke();
+            var recording = _recordingTask;
+            _stopTask = Task.Run(async () =>
+            {
+                // Never dispose collectors, mark clean, or admit another Start while Tick is alive.
+                if (recording is not null) await recording.ConfigureAwait(false);
+                lock (_lock)
+                {
+                    CleanupResources();
+                    if (LastError is null)
+                    {
+                        try { _journal?.MarkClean(); }
+                        catch (Exception ex) { ReportFault(ex); }
+                    }
+                    _cts?.Dispose();
+                    _cts = null;
+                    _recordingTask = null;
+                    _owner?.Dispose();
+                    _owner = null;
+                    _state = LastError is null ? RecorderState.Stopped : RecorderState.Faulted;
+                    _stopTask = null;
+                }
+                Notify(StatusChanged);
+            });
+            stop = _stopTask;
         }
+        Notify(StatusChanged); // Publish Stopping immediately, even when a native Tick is still blocked.
+        return stop;
+    }
+
+    private void CleanupResources()
+    {
+        // Attempt every cleanup even if an earlier resource throws. Startup failures use the same path.
+        void Release(IDisposable? resource)
+        {
+            try { resource?.Dispose(); }
+            catch (Exception ex) { ReportFault(ex); }
+        }
+        Release(_etwMonitor); _etwMonitor = null;
+        Release(_etwSystemMonitor); _etwSystemMonitor = null;
+        Release(_hardware); _hardware = null;
+        Release(_telemetryWriter); _telemetryWriter = null;
+        Release(_foregroundWriter); _foregroundWriter = null;
+        Release(_processEventWriter); _processEventWriter = null;
+        Release(_processSnapshotWriter); _processSnapshotWriter = null;
+        Release(_gpuEngineWriter); _gpuEngineWriter = null;
+        Release(_displayWriter); _displayWriter = null;
+        Release(_powerWriter); _powerWriter = null;
+        Release(_remoteSessionWriter); _remoteSessionWriter = null;
+        Release(_storageWriter); _storageWriter = null;
+        Release(_gpuMemoryWriter); _gpuMemoryWriter = null;
+        Release(_memoryPressureWriter); _memoryPressureWriter = null;
+        Release(_dwmStateWriter); _dwmStateWriter = null;
+        Release(_storageTracker); _storageTracker = null;
+        Release(_gpuMemoryTracker); _gpuMemoryTracker = null;
+        Release(_gpuEngineTracker); _gpuEngineTracker = null;
+        if (_hooks is not null)
+            try { _hooks.Dispose(); } catch (Exception ex) { ReportFault(ex); }
     }
 
     public IncidentAnalysis? CheckPreviousUncleanSession()
     {
-        if (_journal?.PreviousState is { CleanShutdown: false, NeverStarted: false } previous)
+        lock (_lock)
         {
-            var incidentDirectory = Path.Combine(
-                _incidentsRoot,
-                $"{previous.LastHeartbeatAt:yyyyMMdd-HHmmss}-{previous.SessionId[..8]}");
+            if (_owner is not null) return null; // Never inspect an actively owned session as a crash.
             try
             {
-                return CrashEvidenceCollector.CollectForUncleanSession(previous, incidentDirectory);
+                RecoveryError = null;
+                return SessionRecovery.Recover(_stateDirectory, _incidentsRoot, _hooks?.Recover);
             }
-            catch
+            catch (Exception ex)
             {
-                return null;
+                RecoveryError = ex.Message;
+                return null; // The durable pending queue is retried by Start or the next launch.
             }
         }
-        return null;
     }
 
-    public void Dispose()
-    {
-        Stop();
-    }
+    public void Dispose() => Stop();
 
     /// <summary>
     /// Bounds sessions/ and incidents/ growth for unattended deployments. Retention used to
@@ -443,9 +548,8 @@ public sealed class RecorderEngine : IDisposable
     /// or Agent-only host grew without limit.
     /// </summary>
     /// <remarks>
-    /// Deliberately not called from Start(): the live session directory must never be a
-    /// deletion candidate, and the previous session's incident is collected right after
-    /// Start() by the host, so evicting at startup could race that analysis.
+    /// Runs under the recorder's data-root lease. Active and pending-recovery sessions
+    /// are excluded before any recursive deletion; external retention skips a busy root.
     /// </remarks>
     private void EnforceRetention()
     {
@@ -455,7 +559,7 @@ public sealed class RecorderEngine : IDisposable
             if (string.IsNullOrEmpty(root))
                 return;
 
-            var (sessions, incidents, bytes) = new RetentionService(root).Enforce();
+            var (sessions, incidents, bytes) = new RetentionService(root).EnforceOwned();
             if (sessions > 0 || incidents > 0)
                 System.Diagnostics.Trace.WriteLine(
                     $"[CrashScope] retention: removed {sessions} session(s), {incidents} incident(s), freed {bytes / (1024 * 1024)} MB");
@@ -467,3 +571,8 @@ public sealed class RecorderEngine : IDisposable
         }
     }
 }
+
+public enum RecorderState { Stopped, Starting, Recording, Stopping, Faulted }
+
+internal sealed record RecorderRuntimeHooks(Action Initialize, Action<CancellationToken> Tick, Action Dispose, TimeSpan Interval,
+    Func<SessionState, string, IncidentAnalysis>? Recover = null);

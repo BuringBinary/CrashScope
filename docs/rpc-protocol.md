@@ -41,7 +41,7 @@ success the server replies `welcome`:
 
 | Verb | Response type | Payload |
 |---|---|---|
-| `get-status` | `status` | `{ recording, sampleCount, sessionId, startedAt, uptimeSeconds, agentVersion, primaryGpu }` |
+| `get-status` | `status` | `{ recording, sampleCount, sessionId, startedAt, uptimeSeconds, agentVersion, primaryGpu, recorderState, recorderError, lastSampleAt, recoveryError }` |
 | `get-sensor-catalog` | `catalog` | `{ entries: [{ id, hardwareType, hardwareName, sensorType, sensorName, identifier }] }` |
 | `get-latest-telemetry` | `telemetry` | `{ timestamp, values: [float or null] }` - `values` is empty before the first sample |
 | `start-recording` | `ok` / `error` | - |
@@ -103,3 +103,22 @@ telemetry count, then exits 0. Exit 3 means the agent was unreachable or the
 endpoint file is missing; `probe --help` documents the flags. The probe logic
 lives in `AgentRpcProbe` (Core.Ipc) so tests and future tools reuse it without
 a process boundary.
+
+## Reliability lifecycle additions (2026-09-17)
+
+Protocol v1 gains optional status fields; old status payloads still deserialize:
+
+- `recorderState`: `Stopped`, `Starting`, `Recording`, `Stopping`, or `Faulted`.
+- `recorderError`: the last acquisition/cleanup failure, if any. This is not evidence of a machine crash.
+- `lastSampleAt`: UTC timestamp of the latest successfully written telemetry sample, or null before sampling.
+- `recoveryError`: recovery was deferred; pending evidence remains on disk for a later launch.
+
+`recording` is true only in `Recording`. Stop publishes `Stopping` immediately and acknowledges only after
+its worker exits and cleanup finishes. It does not mark a known faulty session clean. A request timeout
+is not proof that stopping finished; a blocked native collector retains resources and data-root ownership.
+A faulted recorder must be stopped before it can be restarted. Every restart uses a distinct evidence directory.
+The latest-telemetry cache is invalidated when stopping or starting a fresh session.
+
+Data-root ownership is held by the recorder and shared as a protocol with recovery/retention, not by the
+RPC listener itself. CurrentUserOnly authorization and the actions plane have not been redesigned in this pass.
+The full change/validation record is `docs/mcp-reliability-convergence.md`.

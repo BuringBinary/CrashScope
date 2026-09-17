@@ -30,7 +30,7 @@ public partial class RecorderStatusPage : UserControl
         RefreshStatus();
     }
 
-    private void OnStatusChanged() => Dispatcher.Invoke(RefreshStatus);
+    private void OnStatusChanged() => Dispatcher.InvokeAsync(RefreshStatus);
 
     private void RefreshStatus()
     {
@@ -55,7 +55,7 @@ public partial class RecorderStatusPage : UserControl
         else
         {
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"));
-            RecorderStatusLabel.Text = "STOPPED";
+            RecorderStatusLabel.Text = _service.RecorderState.ToString().ToUpperInvariant();
             StartStopButton.Content = "\uE768  Start Recording";
             StartStopButton.Style = (Style)FindResource("AccentButton");
             SessionIdText.Text = "--";
@@ -63,6 +63,8 @@ public partial class RecorderStatusPage : UserControl
             SampleCountText.Text = "0";
         }
 
+        StartStopButton.IsEnabled = !_service.IsStopping;
+        RecorderStatusLabel.ToolTip = _service.RecorderError ?? _service.RecoveryError;
         DataDirText.Text = _service.DataDirectory;
         ElevatedText.Text = _service.IsElevated ? "Yes (Administrator)" : "No (Limited)";
 
@@ -83,28 +85,25 @@ public partial class RecorderStatusPage : UserControl
         AgentVersionText.Text = "v0.5.0-dev";
     }
 
-    private void StartStopButton_Click(object sender, RoutedEventArgs e)
+    private async void StartStopButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_service.IsRecording)
+        StartStopButton.IsEnabled = false;
+        var stopRequested = _service.IsRecording;
+        try
         {
-            _service.StopRecording();
-        }
-        else
-        {
-            var analysis = _service.CheckPreviousUncleanSession();
-            if (analysis is not null)
+            if (stopRequested)
+                await _service.StopRecordingAsync();
+            else
             {
-                var leading = analysis.Hypotheses.FirstOrDefault(h => h.Score > 0);
-                var msg = "Previous unclean session detected.\n\n";
-                if (leading is not null)
-                    msg += $"Top hypothesis: {leading.Mode} (confidence {leading.Confidence:P0})\n";
-                msg += "\nIncident saved. Check Incidents tab for details.";
-                MessageBox.Show(msg, "CrashScope", MessageBoxButton.OK, MessageBoxImage.Information);
+                await _service.StopRecordingAsync(); // Also release a faulted recorder.
+                await Task.Run(_service.StartRecording);
             }
-
-            _service.StartRecording();
         }
-        RefreshStatus();
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "CrashScope", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally { RefreshStatus(); }
     }
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e)

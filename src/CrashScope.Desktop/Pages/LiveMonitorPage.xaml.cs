@@ -44,7 +44,7 @@ public partial class LiveMonitorPage : UserControl
 
     private void AddEvent(string category, string message)
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.InvokeAsync(() =>
         {
             _events.Add(new LiveEventItem
             {

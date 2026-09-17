@@ -51,7 +51,70 @@ public partial class SettingsPage : UserControl
         PopulateThemeComboBox();
 
         UpdateUsage();
+        RefreshStartupState();
+        RefreshRecoveryPending();
     }
+
+    private void RefreshStartupState()
+    {
+        try
+        {
+            AutoStartCheckBox.IsChecked = IsAutoStartEnabled();
+        }
+        catch
+        {
+            AutoStartCheckBox.IsChecked = false;
+        }
+    }
+
+    private void RefreshRecoveryPending()
+    {
+        try
+        {
+            var pendingDir = System.IO.Path.Combine(_service.RootDirectory, "state", "recovery-pending");
+            if (System.IO.Directory.Exists(pendingDir))
+            {
+                var count = System.IO.Directory.GetFiles(pendingDir, "*.json").Length;
+                if (count > 0)
+                {
+                    RecoveryPendingText.Text = $"待恢复任务: {count} 个，下次启动将重试收集证据。";
+                    RecoveryPendingText.Visibility = Visibility.Visible;
+                    return;
+                }
+            }
+            RecoveryPendingText.Visibility = Visibility.Collapsed;
+        }
+        catch
+        {
+            RecoveryPendingText.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private static string AutoStartKeyPath => @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+    private static string AutoStartValueName => "CrashScope.Desktop";
+
+    private bool IsAutoStartEnabled()
+    {
+        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(AutoStartKeyPath, false);
+        var val = key?.GetValue(AutoStartValueName) as string;
+        return !string.IsNullOrWhiteSpace(val);
+    }
+
+    private void SetAutoStart(bool enable)
+    {
+        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(AutoStartKeyPath, true) ?? Microsoft.Win32.Registry.CurrentUser.CreateSubKey(AutoStartKeyPath);
+        if (key == null) throw new InvalidOperationException("无法打开注册表 Run 键");
+        if (enable)
+        {
+            var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CrashScope.Desktop.exe");
+            key.SetValue(AutoStartValueName, $"\"{exePath}\"", Microsoft.Win32.RegistryValueKind.String);
+        }
+        else
+        {
+            key.DeleteValue(AutoStartValueName, false);
+        }
+    }
+
 
     private void PopulateLanguageComboBox()
     {
@@ -158,5 +221,55 @@ public partial class SettingsPage : UserControl
             },
             Dispatcher);
         _statusTimer.Start();
+    }
+
+    private void AutoStartCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_initialized) return;
+        try
+        {
+            var enable = AutoStartCheckBox.IsChecked == true;
+            SetAutoStart(enable);
+            ShowStatus(enable ? "已启用开机启动" : "已关闭开机启动", "#00D68F");
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"开机启动设置失败: {ex.Message}", "#FF6B6B");
+            RefreshStartupState();
+        }
+    }
+
+    private void OpenDataFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = _service.RootDirectory,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"打开失败: {ex.Message}", "#FF6B6B");
+        }
+    }
+
+    private void OpenIncidentsFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dir = _service.IncidentsRoot;
+            System.IO.Directory.CreateDirectory(dir);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = dir,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"打开失败: {ex.Message}", "#FF6B6B");
+        }
     }
 }

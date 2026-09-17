@@ -46,7 +46,8 @@ public sealed record SessionState(
     string AgentVersion,
     // True until the first Heartbeat: the journal was persisted but the recorder
     // never captured anything. An unclean end here is not an incident worth collecting.
-    bool NeverStarted = false);
+    bool NeverStarted = false,
+    string? RecorderError = null);
 
 public sealed record WindowsEventEvidence(
     DateTimeOffset? TimeCreated,

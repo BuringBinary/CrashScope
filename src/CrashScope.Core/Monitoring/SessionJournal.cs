@@ -1,5 +1,5 @@
 using System.Security.Principal;
-using System.Text;
+using CrashScope.Core.Infrastructure;
 using System.Text.Json;
 using CrashScope.Core.Models;
 
@@ -8,14 +8,15 @@ namespace CrashScope.Core.Monitoring;
 public sealed class SessionJournal
 {
     private readonly string _statePath;
-    private SessionState _state;
+    private volatile SessionState _state;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     public SessionJournal(string rootDirectory, string sessionDirectory)
     {
         Directory.CreateDirectory(rootDirectory);
         _statePath = Path.Combine(rootDirectory, "last-session.json");
-        PreviousState = LoadPrevious();
+        PreviousState = ReadPrevious(rootDirectory);
+        SessionRecovery.Preserve(rootDirectory, PreviousState);
 
         var now = DateTimeOffset.Now;
         _state = new SessionState(
@@ -27,7 +28,7 @@ public sealed class SessionJournal
             IsElevated(),
             typeof(SessionJournal).Assembly.GetName().Version?.ToString() ?? "0.1.0",
             NeverStarted: true);
-        Persist();
+        Persist(_state);
     }
 
     public SessionState? PreviousState { get; }
@@ -37,43 +38,37 @@ public sealed class SessionJournal
     {
         // A heartbeat proves the recorder actually ran: from here on, an unclean
         // end is a genuine incident, never a "persisted then died" false positive.
-        _state = _state with { LastHeartbeatAt = now, CleanShutdown = false, NeverStarted = false };
-        Persist();
+        Persist(_state with { LastHeartbeatAt = now, CleanShutdown = false, NeverStarted = false });
     }
 
     public void MarkClean()
     {
-        _state = _state with { LastHeartbeatAt = DateTimeOffset.Now, CleanShutdown = true, NeverStarted = false };
-        Persist();
+        Persist(_state with { LastHeartbeatAt = DateTimeOffset.Now, CleanShutdown = true, NeverStarted = false });
     }
 
-    private SessionState? LoadPrevious()
+    /// <summary>Read-only, fail-closed load: corruption must not look like a fresh install.</summary>
+    public static SessionState? ReadPrevious(string stateDirectory)
     {
-        try
-        {
-            if (!File.Exists(_statePath)) return null;
-            return JsonSerializer.Deserialize<SessionState>(File.ReadAllText(_statePath), _jsonOptions);
-        }
-        catch
-        {
-            return null;
-        }
+        var path = Path.Combine(stateDirectory, "last-session.json");
+        if (!File.Exists(path)) return null;
+        // Readers must allow the writer's atomic rename while they finish reading the old inode.
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var state = JsonSerializer.Deserialize<SessionState>(stream, AtomicJsonFile.Options)
+            ?? throw new InvalidDataException("Session state is empty; preserve it for manual recovery.");
+        SessionRecovery.ValidateId(state.SessionId);
+        return state;
     }
 
-    private void Persist()
+    public void MarkFault(string error)
     {
-        var json = JsonSerializer.Serialize(_state, _jsonOptions);
-        var bytes = new UTF8Encoding(false).GetBytes(json);
-        var temp = _statePath + ".tmp";
+        Persist(_state with { CleanShutdown = false, NeverStarted = false, RecorderError = error });
+    }
 
-        using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.Read,
-                   bufferSize: 4096, options: FileOptions.WriteThrough))
-        {
-            stream.Write(bytes);
-            stream.Flush(flushToDisk: true);
-        }
-
-        File.Move(temp, _statePath, overwrite: true);
+    private void Persist(SessionState next)
+    {
+        AtomicJsonFile.Write(_statePath, next);
+        // Publish only the committed state. A failed write must not look clean/recoverable in memory.
+        _state = next;
     }
 
     private static bool IsElevated()

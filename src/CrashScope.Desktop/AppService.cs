@@ -13,6 +13,7 @@ public sealed class AppService : IDisposable
     private readonly string _incidentsRoot;
 
     private RecorderEngine? _engine;
+    private readonly object _lifecycleGate = new();
 
     public AppService()
     {
@@ -24,6 +25,10 @@ public sealed class AppService : IDisposable
         _incidentsRoot = Path.Combine(_root, "incidents");
     }
 
+    public RecorderState RecorderState => _engine?.State ?? RecorderState.Stopped;
+    public bool IsStopping => RecorderState == RecorderState.Stopping;
+    public string? RecorderError => _engine?.LastError;
+    public string? RecoveryError { get; private set; }
     public bool IsRecording => _engine?.IsRecording ?? false;
     public SessionState? CurrentSession => _engine?.CurrentSession;
     public SessionState? PreviousSession => _engine?.PreviousSession;
@@ -45,63 +50,66 @@ public sealed class AppService : IDisposable
 
     public void StartRecording()
     {
-        Directory.CreateDirectory(_stateDirectory);
-        Directory.CreateDirectory(_sessionsRoot);
-        Directory.CreateDirectory(_incidentsRoot);
+        lock (_lifecycleGate)
+        {
+            if (_engine?.IsRecording == true) return;
+            if (_engine?.HasActiveResources == true)
+                throw new InvalidOperationException("The previous recorder is stopping or faulted; stop it before restarting.");
+            _engine?.Dispose();
+            Directory.CreateDirectory(_stateDirectory);
+            Directory.CreateDirectory(_sessionsRoot);
+            Directory.CreateDirectory(_incidentsRoot);
 
-        var sessionDirectory = Path.Combine(_sessionsRoot, DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            var sessionDirectory = Path.Combine(_sessionsRoot, DateTime.Now.ToString("yyyyMMdd-HHmmss"));
 
-        _engine = new RecorderEngine(sessionDirectory, _stateDirectory, _incidentsRoot);
-        _engine.StatusChanged += () => StatusChanged?.Invoke();
-        _engine.SensorUpdated += v => SensorUpdated?.Invoke(v);
-        _engine.ForegroundChanged += e => ForegroundChanged?.Invoke(e);
-        _engine.ProcessEventReceived += e => ProcessEventReceived?.Invoke(e);
-        _engine.GpuEngineUpdated += e => GpuEngineUpdated?.Invoke(e);
-        _engine.DisplayChanged += e => DisplayChanged?.Invoke(e);
-        _engine.PowerSchemeChanged += e => PowerSchemeChanged?.Invoke(e);
-        _engine.RemoteSessionChanged += e => RemoteSessionChanged?.Invoke(e);
+            _engine = new RecorderEngine(sessionDirectory, _stateDirectory, _incidentsRoot);
+            _engine.StatusChanged += () => StatusChanged?.Invoke();
+            _engine.SensorUpdated += v => SensorUpdated?.Invoke(v);
+            _engine.ForegroundChanged += e => ForegroundChanged?.Invoke(e);
+            _engine.ProcessEventReceived += e => ProcessEventReceived?.Invoke(e);
+            _engine.GpuEngineUpdated += e => GpuEngineUpdated?.Invoke(e);
+            _engine.DisplayChanged += e => DisplayChanged?.Invoke(e);
+            _engine.PowerSchemeChanged += e => PowerSchemeChanged?.Invoke(e);
+            _engine.RemoteSessionChanged += e => RemoteSessionChanged?.Invoke(e);
 
-        _engine.Start();
+            _engine.Start();
+            RecoveryError = _engine.RecoveryError;
+        }
     }
 
     public void StopRecording()
     {
-        _engine?.Stop();
-        _engine?.Dispose();
-        _engine = null;
+        lock (_lifecycleGate)
+        {
+            _engine?.Stop();
+            // Retain fault details and an in-flight stop; a later Start may replace a fully stopped engine.
+        }
+        StatusChanged?.Invoke();
+    }
+
+    public async Task StopRecordingAsync()
+    {
+        Task stop;
+        lock (_lifecycleGate) stop = _engine?.StopAsync() ?? Task.CompletedTask;
+        await stop;
+        // Preserve fault details for the UI; StartRecording replaces this stopped engine.
         StatusChanged?.Invoke();
     }
 
     public IncidentAnalysis? CheckPreviousUncleanSession()
     {
-        if (_engine is not null)
-            return _engine.CheckPreviousUncleanSession();
-
-        var tempJournal = new SessionJournal(_stateDirectory, Path.Combine(_sessionsRoot, "temp-check"));
         try
         {
-            if (tempJournal.PreviousState is { CleanShutdown: false, NeverStarted: false } previous)
-            {
-                var incidentDirectory = Path.Combine(
-                    _incidentsRoot,
-                    $"{previous.LastHeartbeatAt:yyyyMMdd-HHmmss}-{previous.SessionId[..8]}");
-                try
-                {
-                    return CrashScope.Core.Diagnostics.CrashEvidenceCollector.CollectForUncleanSession(previous, incidentDirectory);
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-            return null;
+            RecoveryError = null;
+            // SessionRecovery holds the same lease as the Agent. A live Agent is never an incident.
+            return _engine is not null
+                ? _engine.CheckPreviousUncleanSession()
+                : SessionRecovery.Recover(_stateDirectory, _incidentsRoot);
         }
-        finally
+        catch (Exception ex)
         {
-            if (Directory.Exists(tempJournal.Current.SessionDirectory))
-            {
-                try { Directory.Delete(tempJournal.Current.SessionDirectory, recursive: true); } catch { }
-            }
+            RecoveryError = ex.Message;
+            return null;
         }
     }
 

@@ -55,7 +55,42 @@
                 </StackPanel>
             </Border>
 
+
+            <!-- Startup & Tray -->
+            <Border Background="{StaticResource CardBg}"
+                    CornerRadius="12" Padding="24" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Startup &amp; Tray" FontSize="16" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimary}" Margin="0,0,0,4"/>
+                    <TextBlock Text="开机启动和托盘行为，默认不修改系统，仅当前用户" FontSize="12"
+                               Foreground="{StaticResource TextSecondary}" Margin="0,0,0,16" TextWrapping="Wrap"/>
+
+                    <CheckBox x:Name="AutoStartCheckBox" Content="开机自动启动（当前用户注册表 Run）"
+                              Foreground="{StaticResource TextPrimary}" FontSize="13" Margin="0,0,0,8"
+                              Checked="AutoStartCheckBox_Changed" Unchecked="AutoStartCheckBox_Changed"/>
+                    <TextBlock Text="仅启动 Desktop，不自动开始录制；录制需手动开始或由 Agent 负责" FontSize="11"
+                               Foreground="{StaticResource TextSecondary}" Margin="24,0,0,12" TextWrapping="Wrap"/>
+
+                    <CheckBox x:Name="MinimizeToTrayCheckBox" Content="最小化到托盘"
+                              Foreground="{StaticResource TextPrimary}" FontSize="13" Margin="0,0,0,8"
+                              IsChecked="True"/>
+                    <CheckBox x:Name="CloseToTrayCheckBox" Content="关闭时最小化到托盘而非退出"
+                              Foreground="{StaticResource TextPrimary}" FontSize="13" Margin="0,0,0,12"
+                              IsChecked="True"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="打开数据目录" Width="120" Height="32" FontSize="12"
+                                Style="{StaticResource SecondaryButton}" Click="OpenDataFolder_Click" Margin="0,0,8,0"/>
+                        <Button Content="打开故障目录" Width="120" Height="32" FontSize="12"
+                                Style="{StaticResource SecondaryButton}" Click="OpenIncidentsFolder_Click"/>
+                    </StackPanel>
+                    <TextBlock x:Name="RecoveryPendingText" Text="" FontSize="11"
+                               Foreground="#FFD93D" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
+                </StackPanel>
+            </Border>
+
             <!-- Retention -->
+
             <Border Background="{StaticResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>

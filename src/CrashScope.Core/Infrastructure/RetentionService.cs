@@ -1,16 +1,19 @@
 using System.IO;
+using CrashScope.Core.Monitoring;
 using System.Text.Json;
 
 namespace CrashScope.Core.Infrastructure;
 
 public sealed class RetentionService
 {
+    private readonly string _stateDirectory;
     private readonly string _configPath;
     private readonly string _sessionsRoot;
     private readonly string _incidentsRoot;
 
     public RetentionService(string rootDirectory)
     {
+        _stateDirectory = Path.Combine(rootDirectory, "state");
         _configPath = Path.Combine(rootDirectory, "retention.json");
         _sessionsRoot = Path.Combine(rootDirectory, "sessions");
         _incidentsRoot = Path.Combine(rootDirectory, "incidents");
@@ -33,6 +36,16 @@ public sealed class RetentionService
 
     public (int SessionsDeleted, int IncidentsDeleted, long BytesFreed) Enforce()
     {
+        using var lease = DataRootLease.TryAcquire(_stateDirectory);
+        return lease is null ? (0, 0, 0) : EnforceOwned();
+    }
+
+    // Only RecorderEngine may bypass acquiring a second lease while it owns the root.
+    internal (int SessionsDeleted, int IncidentsDeleted, long BytesFreed) EnforceOwned()
+    {
+        HashSet<string> protectedSessions;
+        try { protectedSessions = SessionRecovery.ProtectedSessions(_stateDirectory); }
+        catch { return (0, 0, 0); } // Do not delete anything when protection state is unreadable.
         int sessionsDeleted = 0, incidentsDeleted = 0;
         long bytesFreed = 0;
 
@@ -40,19 +53,19 @@ public sealed class RetentionService
         {
             var cutoff = DateTime.Now.AddDays(-Settings.MaxRetentionDays);
 
-            sessionsDeleted += PurgeOldDirectories(_sessionsRoot, cutoff, ref bytesFreed);
-            incidentsDeleted += PurgeOldDirectories(_incidentsRoot, cutoff, ref bytesFreed);
+            sessionsDeleted += PurgeOldDirectories(_sessionsRoot, cutoff, protectedSessions, ref bytesFreed);
+            incidentsDeleted += PurgeOldDirectories(_incidentsRoot, cutoff, [], ref bytesFreed);
         }
 
         if (Settings.MaxTotalSizeMb > 0)
         {
             var maxBytes = Settings.MaxTotalSizeMb * 1024L * 1024L;
 
-            (var sDeleted, var sBytes) = EnforceTotalSize(_sessionsRoot, maxBytes / 2);
+            (var sDeleted, var sBytes) = EnforceTotalSize(_sessionsRoot, maxBytes / 2, protectedSessions);
             sessionsDeleted += sDeleted;
             bytesFreed += sBytes;
 
-            (var iDeleted, var iBytes) = EnforceTotalSize(_incidentsRoot, maxBytes / 2);
+            (var iDeleted, var iBytes) = EnforceTotalSize(_incidentsRoot, maxBytes / 2, []);
             incidentsDeleted += iDeleted;
             bytesFreed += iBytes;
         }
@@ -60,13 +73,14 @@ public sealed class RetentionService
         return (sessionsDeleted, incidentsDeleted, bytesFreed);
     }
 
-    private static int PurgeOldDirectories(string root, DateTime cutoff, ref long bytesFreed)
+    private static int PurgeOldDirectories(string root, DateTime cutoff, HashSet<string> protectedPaths, ref long bytesFreed)
     {
         if (!Directory.Exists(root)) return 0;
         var deleted = 0;
 
         foreach (var dir in Directory.GetDirectories(root))
         {
+            if (protectedPaths.Contains(Path.TrimEndingDirectorySeparator(Path.GetFullPath(dir)))) continue;
             try
             {
                 var creationTime = Directory.GetCreationTime(dir);
@@ -87,7 +101,7 @@ public sealed class RetentionService
         return deleted;
     }
 
-    private static (int Deleted, long BytesFreed) EnforceTotalSize(string root, long maxBytes)
+    private static (int Deleted, long BytesFreed) EnforceTotalSize(string root, long maxBytes, HashSet<string> protectedPaths)
     {
         if (!Directory.Exists(root)) return (0, 0);
 
@@ -113,6 +127,7 @@ public sealed class RetentionService
         foreach (var (path, _) in dirs)
         {
             if (totalSize <= maxBytes) break;
+            if (protectedPaths.Contains(Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)))) continue;
 
             try
             {

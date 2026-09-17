@@ -92,6 +92,13 @@
 
                         <!-- Navigation -->
                         <StackPanel Grid.Row="1" Margin="8,0">
+                            <RadioButton x:Name="NavHome"
+                                         Content="&#xE80F;  Home"
+                                         FontFamily="Segoe MDL2 Assets"
+                                         Style="{StaticResource NavButton}"
+                                         IsChecked="False"
+                                         Checked="NavButton_Checked"
+                                         Tag="Home"/>
                             <RadioButton x:Name="NavRecorder"
                                          Content="&#xE916;  Recorder"
                                          FontFamily="Segoe MDL2 Assets"
@@ -105,6 +112,13 @@
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="Dashboard"/>
+                            <RadioButton x:Name="NavHardware"
+                                         Content="&#xE950;  Hardware"
+                                         FontFamily="Segoe MDL2 Assets"
+                                         Style="{StaticResource NavButton}"
+                                         IsChecked="False"
+                                         Checked="NavButton_Checked"
+                                         Tag="Hardware"/>
                             <RadioButton x:Name="NavLiveMonitor"
                                          Content="&#xE7F7;  Live Monitor"
                                          FontFamily="Segoe MDL2 Assets"

@@ -197,8 +197,10 @@ dotnet run --project .\src\CrashScope.Desktop\CrashScope.Desktop.csproj
 在看哪个 App、已经离开多久"这一类证据——而这正是本项目最关心的现场。除非你需要无人登录也能录
 制，否则用计划任务。
 
-**不要同时启用两种模式**：两者会各自录制并写同一个 `state\last-session.json`，互相覆盖对方的
-会话状态，从而在下次启动时产生错误的 incident 判定。
+**同一数据根只能有一个录制器**：当前源码使用 `state\recorder.lock` 的独占文件句柄保护
+Agent、Service、Desktop 和恢复/清理流程；第二个录制器会被拒绝，不再互相覆盖会话状态。
+默认 Agent/Desktop 与 Service 使用不同数据根；不要无意启动多套采集器。升级时应先正常停止旧版宿主，
+旧版不参与新锁协议，不能靠新锁约束仍在运行的旧程序。
 
 Agent 现在与 Desktop / Service 共用同一条录制路径（`RecorderEngine`），因此命令行部署同样会启动
 三个 ETW 实时会话（DxgKrnl / Kernel-Power / WHEA）。ETW 内核会话需要管理员权限；未提权时会优雅
@@ -277,3 +279,19 @@ v0.7 所有代码功能已经完成，但 **还缺最关键的一步：在真机
 ## Status
 
 **v0.9 — GPU VRAM & Memory Pressure & DWM State（代码完成，待 AMD 真机验证）**
+
+## 可靠性收敛（源码，2026-09-17）
+
+- 每次开始录制创建独立 SessionId 和目录；RPC stop/start 不再复用旧证据目录。
+- 上次异常会话先进入 `state/recovery-pending/`，收集完成后发布到 `incidents/recovered-<sessionId>/`，
+  再写 `state/recovery-completed/` 收据；收集失败保留任务，下次启动重试。
+- Desktop 检查不再构造临时 session 或覆盖 Agent 的状态。录制器运行时，外部清理跳过该数据根；
+  录制器内部清理显式保护当前/待恢复 session。必要时允许超过配额，而不是删除活跃证据。
+- 录制状态区分 `Starting / Recording / Stopping / Stopped / Faulted`。未处理的采集/存储异常会明确报错并停止普通采样；
+  不假装继续录制，也不在持续磁盘故障时忙循环重试。正常宿主异步等待停止完成。
+- 慢停止不会在 3 秒后强行释放仍被 Tick 使用的资源；保持 Stopping 和所有权，直至任务真正退出。
+- 故障状态可通过 RPC 的 `recorderState / recorderError / lastSampleAt / recoveryError` 查看；
+  已知录制器故障也会出现在 incident 摘要警告中，不能将它直接当作系统崩溃。
+
+这批改动未自动部署到已发布程序，不承诺断电零丢失；长期硬件实录、ETW 吞吐、系统操作审计/回滚和分析口径仍需后续验证/修复。
+实现与验证记录：`docs/mcp-reliability-convergence.md`。

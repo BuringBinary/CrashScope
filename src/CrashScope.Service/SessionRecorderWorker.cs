@@ -35,6 +35,8 @@ public sealed class SessionRecorderWorker : BackgroundService
 
         engine.StatusChanged += () =>
         {
+            if (engine.LastError is not null)
+                _logger.LogError("Recorder {State}: {Error}", engine.State, engine.LastError);
             var session = engine.CurrentSession;
             if (session is not null)
                 _logger.LogDebug("Heartbeat: session {SessionId}, samples {Count}",
@@ -52,6 +54,8 @@ public sealed class SessionRecorderWorker : BackgroundService
         }
 
         engine.Start();
+        if (engine.RecoveryError is not null)
+            _logger.LogWarning("Recovery deferred; evidence preserved: {Error}", engine.RecoveryError);
         _logger.LogInformation("Recording started. Session: {SessionId}, Directory: {Dir}",
             engine.CurrentSession?.SessionId, sessionDirectory);
 
@@ -65,7 +69,7 @@ public sealed class SessionRecorderWorker : BackgroundService
         }
         finally
         {
-            engine.Stop();
+            await engine.StopAsync();
             _logger.LogInformation("Recording stopped. Total samples: {Count}", engine.SampleCount);
         }
     }

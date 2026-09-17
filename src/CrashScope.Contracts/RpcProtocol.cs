@@ -88,7 +88,11 @@ public sealed record StatusPayload(
     DateTimeOffset? StartedAt,
     double UptimeSeconds,
     string AgentVersion,
-    string? PrimaryGpu);
+    string? PrimaryGpu,
+    string? RecorderState = null,
+    string? RecorderError = null,
+    DateTimeOffset? LastSampleAt = null,
+    string? RecoveryError = null);
 
 public sealed record SensorEntryDto(
     int Id,

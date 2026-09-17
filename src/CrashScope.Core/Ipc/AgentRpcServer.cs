@@ -258,7 +258,7 @@ public sealed class AgentRpcServer : IDisposable
             case RpcMessages.StopRecording:
                 try
                 {
-                    _engine.Stop();
+                    await _engine.StopAsync().ConfigureAwait(false);
                     await client.SendAsync(Response(RpcMessages.Ok, envelope.Id, new OkPayload("stopped")), client.Token)
                         .ConfigureAwait(false);
                 }
@@ -357,9 +357,13 @@ public sealed class AgentRpcServer : IDisposable
         }
     }
 
-    private void OnEngineStatusChanged() =>
+    private void OnEngineStatusChanged()
+    {
+        if (!_engine.IsRecording || _engine.SampleCount == 0)
+            lock (_gate) _latestTelemetry = null;
         Broadcast(new RpcEnvelope(RpcProtocol.Version, null, RpcMessages.StatusChanged, DateTimeOffset.Now,
             JsonSerializer.SerializeToElement(StatusBody(), RpcFraming.Options)));
+    }
 
     private void OnEngineSensorUpdated(IReadOnlyList<float?> values)
     {
@@ -393,7 +397,11 @@ public sealed class AgentRpcServer : IDisposable
             session?.StartedAt,
             session is null ? 0 : (DateTimeOffset.Now - session.StartedAt).TotalSeconds,
             VersionText(),
-            _engine.PrimaryGpuHardwareName);
+            _engine.PrimaryGpuHardwareName,
+            _engine.State.ToString(),
+            _engine.LastError,
+            _engine.LastSampleAt,
+            _engine.RecoveryError);
     }
 
     private IncidentListPayload ListIncidents()

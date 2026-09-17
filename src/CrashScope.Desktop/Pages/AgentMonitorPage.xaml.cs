@@ -71,7 +71,7 @@ public partial class AgentMonitorPage : UserControl
     private async void StopButton_Click(object sender, RoutedEventArgs e)
     {
         var confirm = System.Windows.MessageBox.Show(
-            "Stop the agent's recording session? The current session will be marked clean.",
+            "Stop the agent's recording session? It is marked clean only after successful shutdown; faults remain recorded.",
             "CrashScope", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
         if (confirm != MessageBoxResult.OK)
             return;
@@ -87,7 +87,8 @@ public partial class AgentMonitorPage : UserControl
 
     private void RenderState()
     {
-        RecordingText.Text = _vm.Recording ? "\u25CF recording" : "\u25CF idle";
+        RecordingText.Text = _vm.Recording ? "\u25CF recording" : $"\u25CF {_vm.RecorderState ?? "idle"}";
+        RecordingText.ToolTip = _vm.RecorderError ?? _vm.RecoveryError;
         RecordingText.Foreground = _vm.Recording
             ? (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(
                 System.Windows.Media.Color.FromRgb(0x00, 0xD6, 0x8F))

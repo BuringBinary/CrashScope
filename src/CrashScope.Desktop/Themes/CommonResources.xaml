@@ -1,8 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:CrashScope.Desktop.Services">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Localization Extension -->
-    <local:LocaleExtension x:Key="Loc"/>
+    <!-- Common resources placeholder - LocaleExtension removed, was causing XamlParseException at startup -->
+    <!-- Localization is handled via LocalizationService.T() in code-behind, not via markup extension resource -->
 
 </ResourceDictionary>

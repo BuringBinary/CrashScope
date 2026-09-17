@@ -89,7 +89,14 @@ if (previousIncident is not null)
                       $"(confidence {leading?.Confidence ?? 0:P0}). Details: summary.md");
 }
 
+engine.StatusChanged += () =>
+{
+    if (engine.LastError is not null)
+        Console.Error.WriteLine($"Recorder {engine.State}: {engine.LastError}");
+};
 engine.Start();
+if (engine.RecoveryError is not null)
+    Console.Error.WriteLine($"Recovery deferred (evidence preserved): {engine.RecoveryError}");
 
 var session = engine.CurrentSession;
 Console.WriteLine($"Session: {session?.SessionId}");
@@ -123,10 +130,10 @@ catch (OperationCanceledException)
     // Expected on Ctrl+C.
 }
 
-engine.Stop();
+await engine.StopAsync();
 rpc?.Stop(); // close the control plane after the recorder: a UI sees status flip, then a clean disconnect
-Console.WriteLine($"Stopped cleanly. Samples recorded: {engine.SampleCount}");
-return 0;
+Console.WriteLine($"Recorder state: {engine.State}. Samples recorded: {engine.SampleCount}");
+return engine.LastError is null ? 0 : 2;
 
 static async Task<int> RunProbeAsync(string[] args)
 {

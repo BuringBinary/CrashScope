@@ -50,6 +50,9 @@ public sealed class AgentMonitorViewModel : IDisposable
 
     public bool IsConnected { get; private set; }
     public bool Recording { get; private set; }
+    public string? RecorderState { get; private set; }
+    public string? RecorderError { get; private set; }
+    public string? RecoveryError { get; private set; }
     public int SampleCount { get; private set; }
     public double UptimeSeconds { get; private set; }
     public string? SessionId { get; private set; }
@@ -195,6 +198,9 @@ public sealed class AgentMonitorViewModel : IDisposable
         if (status is null)
             return;
         Recording = status.Recording;
+        RecorderState = status.RecorderState;
+        RecorderError = status.RecorderError;
+        RecoveryError = status.RecoveryError;
         SampleCount = status.SampleCount;
         UptimeSeconds = status.UptimeSeconds;
         SessionId = status.SessionId;
