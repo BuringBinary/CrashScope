@@ -61,8 +61,10 @@ between the docs and the tree.
    largest risk in the workspace right now.
 2. **Commit is blocked by a missing git identity** - known, recorded, still
    undone. Two-minute fix, should not wait another session.
-3. **Deferred LOW items L1-L4, L6-L8, L10-L12** remain open by agreed scope;
-   cheapest wins are already taken (L5, L9, L13, L14 done).
+3. **Deferred LOW items** were closed in the same-day second pass (L1-L4,
+   L6-L8, L10-L12), except L4's English strings (i18n pass) and L6's iGPU
+   filter (needs an `IsDiscrete` flag on the driver inventory; see
+   `mcp-code-review.md`).
 4. **Storage cadence shares the display counter** (every 5 s) - documented, but
    it means storage evidence granularity is coupled to an unrelated tracker.
 5. **Untested-by-construction paths**: ETW queue bound (M5) and the live
@@ -115,3 +117,18 @@ the only strategic gap is that Phase 1 (field validation) has not started.
    does the user prefer to commit personally as last time?
 2. Deployment mode: scheduled task (recommended) vs Windows service?
 3. Start A-Phase 1 install + Tests A/B now, or after the commit?
+
+## Post-script (same day, later)
+
+- Step 0 executed: git identity set (`Burning-binary <2601832547@qq.com>`), the
+  working tree committed as `b445ccb` (phase 0 code), `40a0985` (docs) and
+  `8572b2d` (stale-log removal). Push to origin is blocked only by the missing
+  GitHub credential on this machine: direct github.com is reset, but the local
+  Clash proxy at `127.0.0.1:7897` reaches it (`git ls-remote` verified).
+- Second pass closed review items L1-L4, L6-L8, L10-L12 (13 files, tests
+  146 -> 148, Core/Desktop builds green). L4 keeps its English strings for the
+  i18n pass; L6's iGPU filter is deferred pending an `IsDiscrete` flag on the
+  driver-inventory capture. Dispositions recorded in `mcp-code-review.md`.
+- Remote branches `design/player-toolbox-integration`,
+  `feat/foundation-rpc-contracts` and `feature/desktop-foundation` were fetched
+  via the proxy; each carries one docs-only commit from earlier design work.

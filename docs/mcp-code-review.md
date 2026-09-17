@@ -8,6 +8,12 @@ Scope: full read of `CrashScope` src + test (61 C# files, ~10,400 LOC), deployme
 > deferred by the agreed scope, except **L13** (repo hygiene) and **L14** (CI), both now done.
 > Counts quoted below are as found on arrival and are stale: the current tree is 66 source files
 > (~8,300 LOC) plus ~2,700 LOC of tests in 17 classes, **146 tests**, all passing.
+>
+> **Update (2026-09-17, second pass):** L1, L2, L3, L7, L8, L10, L11 and L12 are closed.
+> L4's duplicate firing is fixed (its English strings stay for the i18n pass). L6 is partially
+> closed: the single-incident label and the always-"Worsening" 3-incidents trend are fixed,
+> while the iGPU driver-correlation filter needs an `IsDiscrete` flag captured with the driver
+> inventory - name-based filtering would reintroduce the guessing M11 removed. Tests 146 -> 148.
 
 ## Overall assessment
 
