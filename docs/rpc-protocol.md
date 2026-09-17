@@ -71,3 +71,13 @@ one response with the same `id`.
   upcoming UI shell)
 - Agent flags: `--no-rpc` disables the surface; `--pipe-name=<name>` overrides
   the endpoint name.
+
+## Probe
+
+`CrashScope.Agent probe [--pipe-name=<n>] [--state-dir=<path>] [--duration=<s>]`
+is a ready-made inspection client: resolves the endpoint (explicit name or the
+endpoint file), handshakes, prints status, a sensor-catalog summary and the live
+telemetry count, then exits 0. Exit 3 means the agent was unreachable or the
+endpoint file is missing; `probe --help` documents the flags. The probe logic
+lives in `AgentRpcProbe` (Core.Ipc) so tests and future tools reuse it without
+a process boundary.

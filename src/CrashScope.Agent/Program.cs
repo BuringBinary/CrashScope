@@ -1,5 +1,6 @@
 using CrashScope.Core.Monitoring;
 using CrashScope.Core.Ipc;
+using System.Globalization;
 
 // CrashScope CLI agent.
 //
@@ -13,6 +14,11 @@ if (!OperatingSystem.IsWindows())
 {
     Console.Error.WriteLine("CrashScope currently supports Windows only.");
     return 2;
+}
+
+if (args.Length > 0 && args[0] is "probe")
+{
+    return await RunProbeAsync(args.Skip(1).ToArray());
 }
 
 string? dataRootOverride = null;
@@ -115,16 +121,73 @@ rpc?.Stop(); // close the control plane after the recorder: a UI sees status fli
 Console.WriteLine($"Stopped cleanly. Samples recorded: {engine.SampleCount}");
 return 0;
 
+static async Task<int> RunProbeAsync(string[] args)
+{
+    string? pipeName = null;
+    string? stateDir = null;
+    var listen = TimeSpan.FromSeconds(2);
+    foreach (var arg in args)
+    {
+        if (arg.StartsWith("--pipe-name=", StringComparison.OrdinalIgnoreCase))
+            pipeName = arg["--pipe-name=".Length..];
+        else if (arg.StartsWith("--state-dir=", StringComparison.OrdinalIgnoreCase))
+            stateDir = arg["--state-dir=".Length..];
+        else if (arg.StartsWith("--duration=", StringComparison.OrdinalIgnoreCase))
+            listen = TimeSpan.FromSeconds(double.Parse(arg["--duration=".Length..], CultureInfo.InvariantCulture));
+        else if (arg is "-h" or "--help")
+        {
+            Console.WriteLine("Usage: CrashScope.Agent probe [--pipe-name=<name>] [--state-dir=<path>] [--duration=<seconds>]");
+            Console.WriteLine();
+            Console.WriteLine("  Connects to a running agent's RPC pipe, prints status, a sensor catalog summary");
+            Console.WriteLine("  and live telemetry, then exits. Default listen window: 2 s.");
+            Console.WriteLine("  Without --pipe-name the endpoint is read from <state-dir>\\rpc-endpoint.json");
+            Console.WriteLine("  (default state dir: %LOCALAPPDATA%\\CrashScope\\state).");
+            return 0;
+        }
+    }
+
+    stateDir ??= Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CrashScope", "state");
+    Console.WriteLine($"Probing agent RPC (listen {listen.TotalSeconds:0.#} s)...");
+    var result = await AgentRpcProbe.RunAsync(new RpcProbeOptions
+    {
+        PipeName = pipeName,
+        StateDirectory = stateDir,
+        Listen = listen
+    });
+
+    if (!result.Connected)
+    {
+        Console.Error.WriteLine($"Probe failed: {result.Error}");
+        return 3;
+    }
+
+    Console.WriteLine($"Connected: {result.PipeName} (agent {result.Welcome?.AgentVersion}, protocol v{result.Welcome?.ProtocolVersion})");
+    var status = result.Status;
+    Console.WriteLine(status is null
+        ? "Status: unavailable"
+        : $"Recording: {(status.Recording ? "yes" : "no")} | Samples: {status.SampleCount} | Uptime: {status.UptimeSeconds:0} s | Primary GPU: {status.PrimaryGpu ?? "n/a"}");
+    var entries = result.Catalog?.Entries ?? [];
+    var hardware = entries.Select(e => e.HardwareName).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    Console.WriteLine($"Sensors: {entries.Count} entries across {hardware} hardware");
+    var latest = result.LatestTelemetry;
+    Console.WriteLine(latest is not null && latest.Values.Count > 0
+        ? $"Telemetry: {result.TelemetryUpdates} live updates; latest {latest.Values.Count} values @ {latest.Timestamp:HH:mm:ss}"
+        : $"Telemetry: {result.TelemetryUpdates} live updates; none buffered (recorder idle?)");
+    return 0;
+}
+
 static void PrintUsage()
 {
     Console.WriteLine("CrashScope agent - Windows flight recorder for crashes, freezes and GPU failures.");
     Console.WriteLine();
-    Console.WriteLine("Usage: CrashScope.Agent [--data-root=<path>] [--no-rpc] [--pipe-name=<name>]");
+    Console.WriteLine("Usage: CrashScope.Agent [--data-root=<path>] [--no-rpc] [--pipe-name=<name>] | probe [...]");
     Console.WriteLine();
     Console.WriteLine("  --data-root=<path>  Record under <path> instead of %LOCALAPPDATA%\\CrashScope.");
     Console.WriteLine("                      Use the Service root (%ProgramData%\\CrashScope) to share data.");
     Console.WriteLine("  --no-rpc            Disable the local RPC control plane (headless recorder).");
     Console.WriteLine("  --pipe-name=<name>  Serve RPC on <name> instead of the default PID-suffixed pipe.");
+    Console.WriteLine("  probe               Inspect a running agent over RPC; see: probe --help.");
     Console.WriteLine("  -h, --help          Show this help.");
     Console.WriteLine();
     Console.WriteLine("Run elevated (Administrator) to capture the ETW kernel sessions.");
