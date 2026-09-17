@@ -291,8 +291,11 @@ public sealed class RecorderEngine : IDisposable
 
             {
                 var memPressure = _memoryPressureTracker!.Capture(now);
-                _memoryPressureWriter!.Write(memPressure);
-                MemoryPressureUpdated?.Invoke(memPressure);
+                if (memPressure is not null)
+                {
+                    _memoryPressureWriter!.Write(memPressure);
+                    MemoryPressureUpdated?.Invoke(memPressure);
+                }
             }
 
             var dwmChange = _dwmTracker!.Poll(now);
@@ -399,6 +402,8 @@ public sealed class RecorderEngine : IDisposable
             _storageTracker = null;
             _gpuMemoryTracker?.Dispose();
             _gpuMemoryTracker = null;
+            _gpuEngineTracker?.Dispose();
+            _gpuEngineTracker = null;
 
             _cts?.Dispose();
             _cts = null;
@@ -410,7 +415,7 @@ public sealed class RecorderEngine : IDisposable
 
     public IncidentAnalysis? CheckPreviousUncleanSession()
     {
-        if (_journal?.PreviousState is { CleanShutdown: false } previous)
+        if (_journal?.PreviousState is { CleanShutdown: false, NeverStarted: false } previous)
         {
             var incidentDirectory = Path.Combine(
                 _incidentsRoot,

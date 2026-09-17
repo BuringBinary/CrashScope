@@ -309,8 +309,6 @@ public static class CrossIncidentAnalyzer
         if (driverIncidents.Count == 0)
             return [];
 
-        var allDriverVersions = driverIncidents.Keys.ToList();
-
         return driverIncidents
             .Select(kvp =>
             {
@@ -319,7 +317,7 @@ public static class CrossIncidentAnalyzer
                 var adapter = parts[0];
                 var version = parts[1];
                 var rep = incidentsForDriver[0].Graphics?.DriverInventory
-                    .FirstOrDefault(d => (d.DriverVersion ?? "Unknown") == version);
+                    .FirstOrDefault(d => d.AdapterName == adapter && (d.DriverVersion ?? "Unknown") == version);
 
                 var timestamps = incidentsForDriver
                     .Select(i => i.PreviousSession.LastHeartbeatAt)
@@ -368,7 +366,8 @@ public static class CrossIncidentAnalyzer
                     incidents.Count,
                     0,
                     incidents.Count == 0 ? 100 : 70,
-                    "Stable",
+                    // One incident is not a trend; do not present it as "Stable".
+                    "Insufficient data",
                     [])
             ];
         }
@@ -423,6 +422,12 @@ public static class CrossIncidentAnalyzer
 
         var firstSpan = firstHalf[^1].PreviousSession.LastHeartbeatAt - firstHalf[0].PreviousSession.LastHeartbeatAt;
         var secondSpan = secondHalf[^1].PreviousSession.LastHeartbeatAt - secondHalf[0].PreviousSession.LastHeartbeatAt;
+
+        // A half containing a single point has zero span and no meaningful rate;
+        // with exactly 3 incidents the first half is one point and the old code
+        // read its rate as 0, declaring every such history "Worsening".
+        if (firstSpan.TotalHours <= 0 || secondSpan.TotalHours <= 0)
+            return "Stable";
 
         var firstRate = firstSpan.TotalHours > 0 ? firstHalf.Count / firstSpan.TotalHours : 0;
         var secondRate = secondSpan.TotalHours > 0 ? secondHalf.Count / secondSpan.TotalHours : 0;

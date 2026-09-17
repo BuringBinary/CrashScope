@@ -64,6 +64,19 @@ public sealed class SessionJournalTests : IDisposable
     }
 
     [Fact]
+    public void NeverStarted_TrueUntilFirstHeartbeat()
+    {
+        var stateDir = Path.Combine(_tempRoot, "state");
+        var sessionDir = Path.Combine(_tempRoot, "session");
+
+        var journal = new SessionJournal(stateDir, sessionDir);
+        Assert.True(journal.Current.NeverStarted);
+
+        journal.Heartbeat(DateTimeOffset.Now);
+        Assert.False(journal.Current.NeverStarted);
+    }
+
+    [Fact]
     public void PreviousState_LoadsFromDisk()
     {
         var stateDir = Path.Combine(_tempRoot, "state");

@@ -80,7 +80,7 @@ public sealed class AppService : IDisposable
         var tempJournal = new SessionJournal(_stateDirectory, Path.Combine(_sessionsRoot, "temp-check"));
         try
         {
-            if (tempJournal.PreviousState is { CleanShutdown: false } previous)
+            if (tempJournal.PreviousState is { CleanShutdown: false, NeverStarted: false } previous)
             {
                 var incidentDirectory = Path.Combine(
                     _incidentsRoot,

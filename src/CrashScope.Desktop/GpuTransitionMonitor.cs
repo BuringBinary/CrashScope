@@ -10,6 +10,7 @@ public sealed class GpuTransitionMonitor
     private readonly string _gpuName;
 
     private readonly List<GpuTransition> _recentTransitions = new();
+    private readonly Dictionary<string, bool> _signalActive = new(StringComparer.OrdinalIgnoreCase);
     private const int MaxTransitions = 50;
     private const int MinWindowSamples = 10;
     private const int WindowSamples = 60;
@@ -77,7 +78,14 @@ public sealed class GpuTransitionMonitor
         var tailMean = (float)series.Skip(series.Count - MinWindowSamples).Average(p => p.Value);
         var delta = tailMean - headMean;
 
-        if (Math.Abs(delta) < limit) return;
+        // Fire only on the quiet -> active edge. The old level-triggered check
+        // re-fired every second for as long as a delta persisted, piling up to
+        // MaxTransitions near-duplicates; re-arming requires the signal to fall
+        // back below the limit first.
+        var active = Math.Abs(delta) >= limit;
+        var wasActive = _signalActive.GetValueOrDefault(sensorType);
+        _signalActive[sensorType] = active;
+        if (!active || wasActive) return;
 
         var isDrop = delta < 0;
         var elapsed = (series[^1].Timestamp - series[0].Timestamp).TotalSeconds;

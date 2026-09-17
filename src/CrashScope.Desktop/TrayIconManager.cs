@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
@@ -37,6 +38,7 @@ public sealed class TrayIconManager : IDisposable
         };
 
         _notifyIcon.DoubleClick += OnTrayDoubleClick;
+        _notifyIcon.BalloonTipClicked += OnBalloonTipClicked;
 
         _blinkTimer = new Timer { Interval = 800 };
         _blinkTimer.Tick += OnBlinkTick;
@@ -71,10 +73,15 @@ public sealed class TrayIconManager : IDisposable
 
     private void OnStatusChanged()
     {
-        _notifyIcon.Icon = _service.IsRecording ? _iconRecording : _iconStopped;
-        _notifyIcon.Text = _service.IsRecording
-            ? $"CrashScope - Recording ({_service.SampleCount} samples)"
-            : "CrashScope - Stopped";
+        // AppService raises StatusChanged from the recorder thread; the WinForms
+        // NotifyIcon may only be touched on the UI thread.
+        _window.Dispatcher.Invoke(() =>
+        {
+            _notifyIcon.Icon = _service.IsRecording ? _iconRecording : _iconStopped;
+            _notifyIcon.Text = _service.IsRecording
+                ? $"CrashScope - Recording ({_service.SampleCount} samples)"
+                : "CrashScope - Stopped";
+        });
     }
 
     public void ShowUncleanSessionBalloon(string mode, double confidence)
@@ -85,12 +92,10 @@ public sealed class TrayIconManager : IDisposable
             "CrashScope",
             $"Previous unclean shutdown detected.\nTop cause: {mode} ({confidence:P0} confidence)\nClick to view incident.",
             ToolTipIcon.Warning);
-        _notifyIcon.BalloonTipClicked += (_, _) =>
-        {
-            OnShowFromTray(this, EventArgs.Empty);
-        };
         _blinkTimer.Start();
     }
+
+    private void OnBalloonTipClicked(object? sender, EventArgs e) => OnShowFromTray(sender, e);
 
     private void OnBlinkTick(object? sender, EventArgs e)
     {
@@ -163,8 +168,21 @@ public sealed class TrayIconManager : IDisposable
         g.DrawLine(crossPen, 6, 16, 10, 16);
         g.DrawLine(crossPen, 22, 16, 26, 16);
 
+        // GetHicon allocates a GDI handle the returned Icon does not own; destroy
+        // it after cloning or it leaks (three handles per launch).
         var hIcon = bitmap.GetHicon();
-        var icon = Icon.FromHandle(hIcon);
-        return (Icon)icon.Clone();
+        try
+        {
+            using var fromHandle = Icon.FromHandle(hIcon);
+            return (Icon)fromHandle.Clone();
+        }
+        finally
+        {
+            DestroyIcon(hIcon);
+        }
     }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
 }

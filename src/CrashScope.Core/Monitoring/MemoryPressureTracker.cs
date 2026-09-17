@@ -7,14 +7,16 @@ public sealed class MemoryPressureTracker
 {
     public bool IsAvailable { get; } = true;
 
-    public MemoryPressureSample Capture(DateTimeOffset now)
+    public MemoryPressureSample? Capture(DateTimeOffset now)
     {
         var memStatus = new MEMORYSTATUSEX();
         memStatus.dwLength = (uint)Marshal.SizeOf<MEMORYSTATUSEX>();
 
         if (!GlobalMemoryStatusEx(ref memStatus))
         {
-            return new MemoryPressureSample(now, 0, 0, 0, 0);
+            // A zeroed sample reads as "0 bytes available" and fabricates top-weight
+            // "critically low available RAM" evidence. Skip the record instead.
+            return null;
         }
 
         var commitBytes = (long)memStatus.ullTotalPageFile - (long)memStatus.ullAvailPageFile;
@@ -32,6 +34,7 @@ public sealed class MemoryPressureTracker
     {
         public uint dwLength;
         public uint dwMemoryLoad;
+        // Unused by the capture but required: the struct must match the Win32 layout.
         public ulong ullTotalPhys;
         public ulong ullAvailPhys;
         public ulong ullTotalPageFile;

@@ -17,8 +17,20 @@ public sealed class ProcessTracker
         {
             foreach (var (pid, name) in current)
             {
-                if (!_previous.TryGetValue(pid, out var oldName) || !string.Equals(oldName, name, StringComparison.OrdinalIgnoreCase))
+                if (_previous.TryGetValue(pid, out var oldName))
+                {
+                    // Same PID, different image: rename or PID reuse. Emit the closing
+                    // stop for the old name so the start is not orphaned.
+                    if (!string.Equals(oldName, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        events.Add(new ProcessEvent(now, "stop", pid, oldName));
+                        events.Add(new ProcessEvent(now, "start", pid, name));
+                    }
+                }
+                else
+                {
                     events.Add(new ProcessEvent(now, "start", pid, name));
+                }
             }
 
             foreach (var (pid, name) in _previous)

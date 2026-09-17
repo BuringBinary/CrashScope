@@ -25,7 +25,8 @@ public sealed class SessionJournal
             false,
             sessionDirectory,
             IsElevated(),
-            typeof(SessionJournal).Assembly.GetName().Version?.ToString() ?? "0.1.0");
+            typeof(SessionJournal).Assembly.GetName().Version?.ToString() ?? "0.1.0",
+            NeverStarted: true);
         Persist();
     }
 
@@ -34,13 +35,15 @@ public sealed class SessionJournal
 
     public void Heartbeat(DateTimeOffset now)
     {
-        _state = _state with { LastHeartbeatAt = now, CleanShutdown = false };
+        // A heartbeat proves the recorder actually ran: from here on, an unclean
+        // end is a genuine incident, never a "persisted then died" false positive.
+        _state = _state with { LastHeartbeatAt = now, CleanShutdown = false, NeverStarted = false };
         Persist();
     }
 
     public void MarkClean()
     {
-        _state = _state with { LastHeartbeatAt = DateTimeOffset.Now, CleanShutdown = true };
+        _state = _state with { LastHeartbeatAt = DateTimeOffset.Now, CleanShutdown = true, NeverStarted = false };
         Persist();
     }
 

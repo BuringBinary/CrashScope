@@ -23,7 +23,10 @@ public static class GpuTransitionDetector
         ["Clock"] = "MHz",
         ["Power"] = "W",
         ["Temperature"] = "°C",
-        ["SmallData"] = "GB",
+        // LibreHardwareMonitor convention: Data values are GB, SmallData values
+        // are MB. Labels follow the sensor type rather than a per-adapter guess;
+        // re-verify against the live catalog during field validation.
+        ["SmallData"] = "MB",
         ["Data"] = "GB"
     };
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using CrashScope.Core.Monitoring;
 using Xunit;
 
@@ -33,6 +34,24 @@ public sealed class ProcessTrackerTests
 
         var ourPid = Process.GetCurrentProcess().Id;
         Assert.DoesNotContain(events, e => e.Event == "stop" && e.ProcessId == ourPid);
+    }
+
+    [Fact]
+    public void Poll_RenamedPid_EmitsStopThenStart()
+    {
+        var tracker = new ProcessTracker();
+        tracker.Poll(DateTimeOffset.Now); // establish baseline
+
+        var ourPid = Process.GetCurrentProcess().Id;
+        var previousField = typeof(ProcessTracker).GetField("_previous", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(previousField);
+        var previous = (Dictionary<int, string>)previousField!.GetValue(tracker)!;
+        previous[ourPid] = "DefinitelyNotOurName";
+
+        var events = tracker.Poll(DateTimeOffset.Now);
+
+        Assert.Contains(events, e => e.Event == "stop" && e.ProcessId == ourPid && e.ProcessName == "DefinitelyNotOurName");
+        Assert.Contains(events, e => e.Event == "start" && e.ProcessId == ourPid && e.ProcessName != "DefinitelyNotOurName");
     }
 }
 

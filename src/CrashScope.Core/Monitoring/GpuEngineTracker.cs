@@ -4,7 +4,7 @@ using CrashScope.Core.Models;
 
 namespace CrashScope.Core.Monitoring;
 
-public sealed partial class GpuEngineTracker
+public sealed partial class GpuEngineTracker : IDisposable
 {
     private const string CategoryName = "GPU Engine";
     private const string CounterName = "Utilization Percentage";
@@ -13,6 +13,7 @@ public sealed partial class GpuEngineTracker
     private readonly Dictionary<string, PerformanceCounter> _counters = new(StringComparer.Ordinal);
     private readonly Dictionary<int, string?> _processNames = new();
     private int _nameCacheAge;
+    private bool _disposed;
 
     public bool IsAvailable { get; }
 
@@ -30,6 +31,9 @@ public sealed partial class GpuEngineTracker
 
     public GpuEngineSample? Capture(DateTimeOffset now)
     {
+        if (_disposed)
+            return null;
+
         if (!IsAvailable)
             return null;
 
@@ -142,6 +146,18 @@ public sealed partial class GpuEngineTracker
 
         _processNames[pid] = name;
         return name;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+        foreach (var counter in _counters.Values)
+            counter.Dispose();
+        _counters.Clear();
+        _processNames.Clear();
     }
 
     [GeneratedRegex(@"^pid_(\d+)_.+engtype_(.+)$")]
