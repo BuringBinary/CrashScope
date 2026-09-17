@@ -59,7 +59,7 @@
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
                     <Button x:Name="CompareButton"
                             Content="&#xE8E3;  Compare (2)"
-                            FontFamily="{StaticResource IconTextFont}"
+                            ContentTemplate="{StaticResource IconTextTemplate}"
                             Height="34" FontSize="12"
                             Style="{StaticResource AccentButton}"
                             Click="CompareButton_Click"
@@ -68,7 +68,7 @@
                             Margin="0,0,8,0"/>
                     <Button x:Name="CrossAnalysisButton"
                             Content="&#xE9D2;  Analyze All"
-                            FontFamily="{StaticResource IconTextFont}"
+                            ContentTemplate="{StaticResource IconTextTemplate}"
                             Height="34" FontSize="12"
                             Style="{StaticResource AccentButton}"
                             Click="CrossAnalysisButton_Click"
@@ -221,7 +221,7 @@
                                    VerticalAlignment="Center"/>
                         <Button x:Name="CloseAnalysisButton"
                                 Content="&#xE711;"
-                                FontFamily="{StaticResource IconTextFont}"
+                                ContentTemplate="{StaticResource IconTextTemplate}"
                                 Width="28" Height="28"
                                 FontSize="12"
                                 Background="Transparent"
@@ -287,11 +287,11 @@
                         </Border>
 
                         <!-- Patterns Section -->
-                        <TextBlock Text="&#xE8F1;  Patterns Found"
-                                   FontFamily="{StaticResource IconTextFont}"
-                                   FontSize="14" FontWeight="SemiBold"
+                        <TextBlock FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"
-                                   Margin="0,0,0,8"/>
+                                   Margin="0,0,0,8">
+                                   <Run Text="&#xE8F1;" FontFamily="{StaticResource IconTextFont}"/><Run Text="  Patterns Found"/>
+                        </TextBlock>
                         <ItemsControl x:Name="PatternsList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -322,11 +322,11 @@
                         </ItemsControl>
 
                         <!-- Drivers Section -->
-                        <TextBlock Text="&#xE7C5;  Drivers"
-                                   FontFamily="{StaticResource IconTextFont}"
-                                   FontSize="14" FontWeight="SemiBold"
+                        <TextBlock FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"
-                                   Margin="0,16,0,8"/>
+                                   Margin="0,16,0,8">
+                                   <Run Text="&#xE7C5;" FontFamily="{StaticResource IconTextFont}"/><Run Text="  Drivers"/>
+                        </TextBlock>
                         <ItemsControl x:Name="DriversList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -357,11 +357,11 @@
                         </ItemsControl>
 
                         <!-- Recommendations Section -->
-                        <TextBlock Text="&#xEA4B;  Recommendations"
-                                   FontFamily="{StaticResource IconTextFont}"
-                                   FontSize="14" FontWeight="SemiBold"
+                        <TextBlock FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"
-                                   Margin="0,16,0,8"/>
+                                   Margin="0,16,0,8">
+                                   <Run Text="&#xEA4B;" FontFamily="{StaticResource IconTextFont}"/><Run Text="  Recommendations"/>
+                        </TextBlock>
                         <ItemsControl x:Name="RecommendationsList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -422,7 +422,7 @@
                                    VerticalAlignment="Center"/>
                         <Button x:Name="CloseComparisonButton"
                                 Content="&#xE711;"
-                                FontFamily="{StaticResource IconTextFont}"
+                                ContentTemplate="{StaticResource IconTextTemplate}"
                                 Width="28" Height="28"
                                 FontSize="12"
                                 Background="Transparent"

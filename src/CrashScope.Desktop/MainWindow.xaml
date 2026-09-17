@@ -47,16 +47,16 @@
                            VerticalAlignment="Center" Margin="12,0,0,0"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button Content="&#xE921;" FontFamily="{StaticResource IconTextFont}"
+                    <Button Content="&#xE921;" ContentTemplate="{StaticResource IconTextTemplate}"
                             Width="40" Height="40" FontSize="10"
                             Style="{StaticResource TitleBarButton}"
                             Click="MinimizeButton_Click"/>
                     <Button x:Name="MaxRestoreButton"
-                            Content="&#xE922;" FontFamily="{StaticResource IconTextFont}"
+                            Content="&#xE922;" ContentTemplate="{StaticResource IconTextTemplate}"
                             Width="40" Height="40" FontSize="10"
                             Style="{StaticResource TitleBarButton}"
                             Click="MaxRestoreButton_Click"/>
-                    <Button Content="&#xE8BB;" FontFamily="{StaticResource IconTextFont}"
+                    <Button Content="&#xE8BB;" ContentTemplate="{StaticResource IconTextTemplate}"
                             Width="40" Height="40" FontSize="10"
                             Style="{StaticResource TitleBarCloseButton}"
                             Click="CloseButton_Click"/>
@@ -94,70 +94,70 @@
                         <StackPanel Grid.Row="1" Margin="8,0">
                             <RadioButton x:Name="NavHome"
                                          Content="&#xE80F;  Home"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          IsChecked="False"
                                          Checked="NavButton_Checked"
                                          Tag="Home"/>
                             <RadioButton x:Name="NavRecorder"
                                          Content="&#xE916;  Recorder"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          IsChecked="True"
                                          Checked="NavButton_Checked"
                                          Tag="Recorder"/>
                             <RadioButton x:Name="NavDashboard"
                                          Content="&#xE9D2;  Dashboard"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="Dashboard"/>
                             <RadioButton x:Name="NavHardware"
                                          Content="&#xE950;  Hardware"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          IsChecked="False"
                                          Checked="NavButton_Checked"
                                          Tag="Hardware"/>
                             <RadioButton x:Name="NavLiveMonitor"
                                          Content="&#xE7F7;  Live Monitor"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="LiveMonitor"/>
                             <RadioButton x:Name="NavAgentMonitor"
                                          Content="&#xE945;  Agent Monitor"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="AgentMonitor"/>
                             <RadioButton x:Name="NavAgentIncidents"
                                          Content="&#xE8A5;  Agent Incidents"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="AgentIncidents"/>
                             <RadioButton x:Name="NavAgentActions"
                                          Content="&#xE90F;  Agent Actions"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="AgentActions"/>
                             <RadioButton x:Name="NavIncidents"
                                          Content="&#xEA80;  Incidents"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="Incidents"/>
                             <RadioButton x:Name="NavTimeline"
                                          Content="&#xE8F0;  Timeline"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="Timeline"/>
                             <RadioButton x:Name="NavSettings"
                                          Content="&#xE713;  Settings"
-                                         FontFamily="{StaticResource IconTextFont}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="Settings"/>

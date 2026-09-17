@@ -1,12 +1,41 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:conv="clr-namespace:CrashScope.Desktop.Converters;assembly=CrashScope.Desktop">
 
     <!-- Common resources placeholder - LocaleExtension removed, was causing XamlParseException at startup -->
     <!-- Localization is handled via LocalizationService.T() in code-behind, not via markup extension resource -->
 
-    <!-- Icon glyphs (U+E7xx PUA) come from Segoe MDL2 Assets. That font has NO letters and NO CJK,
-         so any "icon + label" string must be able to fall back to a text font, otherwise the label
-         renders as tofu boxes. WPF walks this composite list left to right per character. -->
-    <FontFamily x:Key="IconTextFont">Segoe MDL2 Assets, Segoe UI, Microsoft YaHei UI, Microsoft YaHei</FontFamily>
+    <!-- Icon glyphs (U+E7xx PUA) come from Segoe MDL2 Assets. That font has NO letters and NO CJK.
+         A FontFamily fallback list ("Segoe MDL2 Assets, Segoe UI, ...") does NOT help: WPF only walks the
+         list for a font that is missing entirely, not per missing glyph, so labels render as tofu boxes.
+         Therefore: IconTextFont is used ONLY for icon-only glyph TextBlocks, and "icon + label" content
+         goes through IconTextTemplate which renders the glyph and the label in two separate TextBlocks. -->
+    <FontFamily x:Key="IconTextFont">Segoe MDL2 Assets</FontFamily>
+
+    <conv:IconTextPartConverter x:Key="IconPart" Part="Icon"/>
+    <conv:IconTextPartConverter x:Key="LabelPart" Part="Label"/>
+
+    <!-- Usage: <Button Content="&#xE768;  Start" ContentTemplate="{StaticResource IconTextTemplate}"/>
+         Works for XAML content and for code-behind Content = "\uE768  文本" assignments alike. -->
+    <DataTemplate x:Key="IconTextTemplate">
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Converter={StaticResource IconPart}}"
+                       FontFamily="Segoe MDL2 Assets"
+                       VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding Converter={StaticResource LabelPart}}"
+                       VerticalAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Margin" Value="8,0,0,0"/>
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Margin" Value="0"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StackPanel>
+    </DataTemplate>
 
 </ResourceDictionary>

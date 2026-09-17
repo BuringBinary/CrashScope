@@ -27,7 +27,7 @@
                            Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="330" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
-                <Button x:Name="ConnectButton" Content="&#xE777;  Refresh" FontFamily="{StaticResource IconTextFont}"
+                <Button x:Name="ConnectButton" Content="&#xE777;  Refresh" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="96" Margin="8,0,0,0"
                         Click="RefreshButton_Click"/>
