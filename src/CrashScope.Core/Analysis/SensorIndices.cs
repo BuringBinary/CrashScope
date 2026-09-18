@@ -2,7 +2,7 @@ using CrashScope.Core.Models;
 
 namespace CrashScope.Core.Analysis;
 
-internal static class SensorIndices
+public static class SensorIndices
 {
     public static int? GpuCoreLoad(IReadOnlyList<SensorCatalogEntry>? catalog)
         => Find(catalog, e => IsPrimaryGpu(e, catalog) && IsType(e, "Load") && ContainsCore(e));

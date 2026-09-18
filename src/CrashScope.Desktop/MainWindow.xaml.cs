@@ -165,26 +165,40 @@ public partial class MainWindow : Window
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
-        HideToTray();
+        if (App.Current.UiSettings.MinimizeToTray)
+            HideToTray();
+        else
+            WindowState = WindowState.Minimized;
     }
 
     private void MaxRestoreButton_Click(object sender, RoutedEventArgs e)
     {
-        if (WindowState == WindowState.Maximized)
-        {
-            WindowState = WindowState.Normal;
-            MaxRestoreButton.Content = "\uE922";
-        }
-        else
-        {
-            WindowState = WindowState.Maximized;
-            MaxRestoreButton.Content = "\uE923";
-        }
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+    }
+
+    /// <summary>
+    /// Keeps the maximise/restore glyph in sync with the real window state.
+    /// </summary>
+    /// <remarks>
+    /// The glyph used to be flipped by hand inside the button handler, so any state change
+    /// that did not go through that button - Win+Up, Aero Snap, double-clicking the caption,
+    /// restoring from the tray - left the icon lying about the current state.
+    /// </remarks>
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        if (MaxRestoreButton is not null)
+            MaxRestoreButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        HideToTray();
+        if (App.Current.UiSettings.CloseToTray)
+            HideToTray();
+        else
+            RequestExit();
     }
 
     private void HideToTray()
@@ -211,7 +225,10 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        if (!_forceClose)
+        // Alt+F4 and the system menu land here too, so the same "close to tray" preference
+        // that drives the title-bar button must be honoured, otherwise the setting only
+        // half-works. _forceClose (tray Exit / RequestExit) always wins.
+        if (!_forceClose && App.Current.UiSettings.CloseToTray && _tray is not null)
         {
             e.Cancel = true;
             HideToTray();
@@ -230,8 +247,9 @@ public partial class MainWindow : Window
     /// <remarks>
     /// _forceClose was never assigned, so OnClosing always cancelled and hid: the tray
     /// "Exit" item left a ghost tray icon behind and App.OnExit disposed the service a
-    /// second time. Alt+F4 and the title-bar close button still minimise to the tray,
-    /// which is the intended behaviour.
+    /// second time. Alt+F4 and the title-bar close button now follow the user's
+    /// "close to tray" preference (UiSettingsService.CloseToTray); this method is the
+    /// unconditional exit path and always wins over it.
     /// </remarks>
     public void RequestExit()
     {

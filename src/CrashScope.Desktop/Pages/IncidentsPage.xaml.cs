@@ -58,7 +58,7 @@ public partial class IncidentsPage : UserControl
             Timestamp = i.Timestamp.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
             Title = $"{i.Timestamp.LocalDateTime:yyyy-MM-dd HH:mm} — {i.Mode}",
             Mode = i.Mode,
-            Confidence = $"{i.Confidence:P0} confidence",
+            Confidence = $"{i.Confidence:P0} evidence support (not probability)",
             ModeBackground = GetModeBrush(i.Mode),
             Incident = i
         }).ToList();
@@ -95,7 +95,7 @@ public partial class IncidentsPage : UserControl
             .Select(h => new HypothesisItem
             {
                 Name = $"{h.Mode}",
-                ScoreDisplay = $"Score: {h.Score:+0;-#} | {h.Confidence:P0}"
+                ScoreDisplay = $"Score: {h.Score:+0;-#} | evidence support {h.Confidence:P0} (not probability)"
             }).ToList();
         HypothesesList.ItemsSource = hypotheses;
 

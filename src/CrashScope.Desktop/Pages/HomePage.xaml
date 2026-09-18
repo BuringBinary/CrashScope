@@ -56,12 +56,14 @@
                     <StackPanel>
                         <TextBlock Text="Hardware Summary" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
-                        <TextBlock x:Name="CpuText" Text="CPU: Detecting..." FontSize="12"
+                        <TextBlock x:Name="CpuText" Text="CPU: Not recording" FontSize="12"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="GpuText" Text="GPU: Detecting..." FontSize="12"
+                        <TextBlock x:Name="GpuText" Text="GPU: Not recording" FontSize="12"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,0,0,6" TextWrapping="Wrap"/>
                         <TextBlock x:Name="RamText" Text="RAM: --" FontSize="12"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,0,0,6"/>
+                        <TextBlock x:Name="CollectionHealthText" Text="Collection: stopped" FontSize="11"
+                                   Foreground="{StaticResource TextSecondary}" Margin="0,8,0,0" TextWrapping="Wrap"/>
                         <TextBlock x:Name="DataRootText" Text="Data: --" FontSize="11"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,12,0,0" TextWrapping="Wrap"/>
                         <TextBlock x:Name="ElevationText" Text="Privilege: --" FontSize="11"

@@ -22,6 +22,7 @@ public partial class App : Application
     public AppService Service { get; } = new();
     public LocalizationService Localization { get; }
     public ThemeService Theme { get; }
+    public UiSettingsService UiSettings { get; } = new();
 
     public App()
     {

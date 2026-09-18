@@ -17,7 +17,7 @@ public sealed record EvaluationResult(
 
 public static class HypothesisEvaluator
 {
-    private const int FullConfidenceEvidenceMass = 4;
+    private const int EvidencePriorWeight = 4;
     private static readonly TimeSpan RecentWindow = TimeSpan.FromMinutes(10);
 
     public static EvaluationResult Evaluate(
@@ -49,16 +49,15 @@ public static class HypothesisEvaluator
             .Select(c => Score(c.Mode, c.Evidence))
             .ToList();
 
-        var positiveTotal = scored.Where(h => h.Score > 0).Sum(h => h.Score);
+        // This is a conservative evidence-support index, NOT a calibrated probability.
+        // A sole positive candidate must not become 100% merely because alternatives score <= 0.
         var hypotheses = scored
             .Select(h =>
             {
-                if (h.Score <= 0 || positiveTotal <= 0)
-                    return h;
-
+                if (h.Score <= 0) return h;
                 var strength = h.Evidence.Where(e => e.Supports).Sum(e => e.Weight);
-                var massCap = Math.Min(1.0, strength / (double)FullConfidenceEvidenceMass);
-                return h with { Confidence = massCap * (h.Score / (double)positiveTotal) };
+                var opposition = h.Evidence.Where(e => !e.Supports).Sum(e => e.Weight);
+                return h with { Confidence = h.Score / (double)(strength + opposition + EvidencePriorWeight) };
             })
             .OrderByDescending(h => h.Score)
             .ToList();
@@ -115,7 +114,7 @@ public static class HypothesisEvaluator
     {
         public bool HasSystemDeathEvidence => KernelPower41.Count > 0 || HasUnexpectedShutdown || KernelDumps.Count > 0;
         public bool HasStoragePressure => (MaxDiskTimePercent ?? 0) >= 95 || (MaxQueueDepth ?? 0) >= 8;
-        public bool HasVramPressure => (MaxDedicatedVramBytes ?? 0) > 7L * 1024 * 1024 * 1024;
+        public bool HasLargeGpuProcessCounter => (MaxDedicatedVramBytes ?? 0) > 7L * 1024 * 1024 * 1024;
         public bool HasMemoryPressure => (MaxMemoryCommittedPercent ?? 0) >= 90 || (MinAvailableBytes ?? long.MaxValue) < 512L * 1024 * 1024;
     }
 
@@ -286,7 +285,8 @@ public static class HypothesisEvaluator
         AddStorageEvidence(evidence, signals, facts);
 
         // v0.9 evidence
-        AddVramEvidence(evidence, signals, facts);
+        // GPU Process Memory is per-process accounting, potentially aggregated across adapters.
+        // Without adapter identity/capacity/residency validation it cannot establish VRAM exhaustion.
         AddMemoryPressureEvidence(evidence, signals, facts);
         AddDwmEvidence(evidence, signals, facts);
 
@@ -294,7 +294,13 @@ public static class HypothesisEvaluator
             Add(evidence, false, 1, "Display 4101 (TDR) events present - a driver timeout with recovery normally leaves the system alive");
 
         if (!signals.HasSystemDeathEvidence)
-            Add(evidence, false, 2, "No unexpected-shutdown evidence (Kernel-Power 41 / 6008 / kernel dumps) - the agent itself may have been terminated while the system kept running");
+        {
+            var unresolvedTimeout = signals.EtwTdrEvents.Any(e => e.EventName == "TdrTimedOut")
+                && !signals.EtwTdrEvents.Any(e => e.EventName == "TdrRecoverFromTimeout");
+            // Resource pressure and display transitions are context, not independent proof of a freeze.
+            var weight = unresolvedTimeout ? 2 : Math.Max(2, evidence.Where(e => e.Supports).Sum(e => e.Weight));
+            Add(evidence, false, weight, "No unexpected-shutdown evidence (Kernel-Power 41 / 6008 / kernel dumps); without an unresolved kernel GPU timeout, resource-pressure context cannot classify a hard freeze. The recorder may have stopped while the system kept running.");
+        }
 
         return evidence;
     }
@@ -378,51 +384,10 @@ public static class HypothesisEvaluator
             Add(evidence, true, 1, $"Telemetry lag ({facts.TelemetryLagSeconds:0.#}s) combined with storage pressure ?the recorder itself may have been blocked by disk I/O saturation");
     }
 
-    // Evidence thresholds for the v0.9 VRAM / memory-pressure streams.
-    //
-    // These used to fire on any non-zero sample, so an ordinary desktop session
-    // (2 GB of VRAM, 8 GB of free RAM) produced "VRAM exhaustion" and "extreme
-    // memory pressure" evidence. That inflated HardFreeze scores on every
-    // incident and made the ranking meaningless.
-    private const long VramExhaustedDedicatedBytes = 10L * 1024 * 1024 * 1024;
-    private const long VramHighDedicatedBytes = 7L * 1024 * 1024 * 1024;
-    private const long VramSpilloverTotalBytes = 12L * 1024 * 1024 * 1024;
     private const float MemoryCommitCriticalPercent = 95f;
     private const float MemoryCommitHighPercent = 90f;
     private const long AvailableMemoryCriticalBytes = 256L * 1024 * 1024;
     private const long AvailableMemoryLowBytes = 512L * 1024 * 1024;
-
-    private static void AddVramEvidence(
-        List<EvidenceItem> evidence,
-        Signals signals,
-        SessionFacts facts)
-    {
-        var dedicated = signals.MaxDedicatedVramBytes;
-        if (dedicated is null)
-            return;
-
-        var dedicatedGb = dedicated.Value / Gib;
-
-        // Mutually exclusive tiers: reporting both "approaching the limit" and
-        // "exhaustion" for the same peak double-counts one observation.
-        if (dedicated.Value >= VramExhaustedDedicatedBytes)
-        {
-            Add(evidence, true, 3,
-                $"A single process peaked at {dedicatedGb:F1} GB of dedicated VRAM - VRAM exhaustion is plausible; the driver starts spilling into system memory and GPU work stalls");
-        }
-        else if (dedicated.Value >= VramHighDedicatedBytes)
-        {
-            Add(evidence, true, 2,
-                $"A single process peaked at {dedicatedGb:F1} GB of dedicated VRAM - approaching VRAM limit on a mainstream adapter");
-        }
-
-        var total = signals.MaxTotalVramBytes;
-        if (total is not null && total.Value >= VramSpilloverTotalBytes && total.Value > dedicated.Value)
-        {
-            Add(evidence, true, 2,
-                $"Max total VRAM (dedicated+shared) reached {total.Value / Gib:F1} GB while dedicated peaked at {dedicatedGb:F1} GB - shared memory spillover indicates the adapter ran out of dedicated VRAM");
-        }
-    }
 
     private static void AddMemoryPressureEvidence(
         List<EvidenceItem> evidence,
@@ -510,7 +475,7 @@ public static class HypothesisEvaluator
             Add(evidence, true, 1, $"WER bluescreen reports: {Details(signals.WerBluescreen)}");
 
         if (!signals.HasSystemDeathEvidence)
-            Add(evidence, false, 2, "No unexpected-shutdown evidence - the system kept running");
+            Add(evidence, false, 2, "No unexpected-shutdown evidence was captured; system survival is not established by missing evidence");
 
         return evidence;
     }
@@ -598,7 +563,7 @@ public static class HypothesisEvaluator
             Add(evidence, false, 2, $"Real-time ETW: {signals.EtwKernelPowerSuspend.Count} suspend event(s) at {EtwProviderTimes(signals.EtwKernelPowerSuspend)} ?the system entered sleep, so this was not a true power loss");
 
         if (!signals.HasSystemDeathEvidence)
-            Add(evidence, false, 2, "No unexpected-shutdown evidence - the system kept running");
+            Add(evidence, false, 2, "No unexpected-shutdown evidence was captured; system survival is not established by missing evidence");
 
         return evidence;
     }
@@ -648,10 +613,10 @@ public static class HypothesisEvaluator
             questions.Add("Abnormally high disk latency was detected; check for failing storage hardware or background I/O-heavy processes.");
 
         // v0.9 open questions
-        if (signals.HasVramPressure)
-            questions.Add("VRAM pressure detected: a single process exceeded 7GB dedicated VRAM use. Investigate per-process GPU memory usage for a memory leak or resource-exhausting workload.");
+        if (signals.HasLargeGpuProcessCounter)
+            questions.Add("Unvalidated GPU process-memory counter exceeds 7 GiB. This is not proof of VRAM pressure: adapter identity, capacity and resident usage are unavailable in this stream; compare against adapter sensors before diagnosing exhaustion.");
         if (signals.MaxTotalVramBytes is > 0 && signals.MaxDedicatedVramBytes is > 0 && signals.MaxTotalVramBytes > signals.MaxDedicatedVramBytes * 1.5)
-            questions.Add("Shared GPU memory usage far exceeds dedicated VRAM; VRAM exhaustion may be forcing the driver to spill over into system RAM.");
+            questions.Add("GPU process-memory accounting includes shared allocations. Shared usage alone does not prove dedicated VRAM exhaustion or spillover.");
         if (signals.DwmFellBackToSoftware)
             questions.Add("DWM lost hardware rendering and fell back to software. This is a strong signal of GPU driver failure or a hung GPU. Check the timeline for TDR events around the same time.");
         if (signals.HasMemoryPressure)

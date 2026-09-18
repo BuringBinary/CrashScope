@@ -2,151 +2,93 @@ using CrashScope.Core.Infrastructure;
 using CrashScope.Core.Models;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Session;
-using System.Collections.Concurrent;
-using System.Text.Json;
 
 namespace CrashScope.Core.Monitoring;
 
 public sealed class EtwDxgKrnlMonitor : IDisposable
 {
     private static readonly Guid DxgKrnlProviderGuid = new("802EC45A-1E99-4B83-9920-87C98277BA9D");
-
-    /// <summary>
-    /// Cap on the in-memory hand-off queue. Events are written to etw-gpu.jsonl on the
-    /// processing thread, so the file is the durable record; this queue only feeds the
-    /// recorder tick and the UI. Without a cap a stalled tick - disk saturation is exactly
-    /// the crash scenario - grows the queue without bound and the flight recorder eats
-    /// memory when it is needed most. Oldest events are dropped first.
-    /// </summary>
-    private const int MaxBufferedEvents = 5000;
-
-    private readonly ConcurrentQueue<EtwDxgKrnlEvent> _buffer = new();
-    private CrashSafeJsonlWriter? _writer;
+    private readonly EtwCoverageTracker _coverage = new("Microsoft-Windows-DxgKrnl", DxgKrnlProviderGuid);
+    private EtwEventSink<EtwDxgKrnlEvent>? _sink;
     private TraceEventSession? _session;
     private Task? _processingTask;
     private CancellationTokenSource? _cts;
     private volatile bool _disposed;
-    private int _droppedEvents;
-
+    private bool _started;
+    private volatile bool _running;
+    public bool IsRunning { get => _running; private set => _running = value; }
+    public string? LastError => Coverage.LastError;
+    public EtwCoverageSnapshot Coverage => _coverage.Snapshot();
+    public int BufferedEventCount => _sink?.Count ?? 0;
+    public int DroppedEventCount => (int)Math.Min(int.MaxValue, Coverage.BufferDroppedEvents);
     public event Action<EtwDxgKrnlEvent>? EventReceived;
-
-    public bool IsRunning { get; private set; }
-
-    public int BufferedEventCount => _buffer.Count;
-
-    /// <summary>Events dropped from the in-memory queue because it hit its cap.</summary>
-    public int DroppedEventCount => Volatile.Read(ref _droppedEvents);
 
     public void Start(string sessionDirectory)
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(EtwDxgKrnlMonitor));
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (IsRunning) return;
-
-        _writer = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "etw-gpu.jsonl"));
-        _cts = new CancellationTokenSource();
-
-        // Unique per recorder instance so concurrent hosts (service + desktop)
-        // never dispose each other's live ETW sessions.
-        _session = CreateSession($"CrashScope-GpuKernel-{Environment.ProcessId}-{Path.GetFileName(sessionDirectory)}");
-        _session.Source.Dynamic.All += OnEvent;
-
-        IsRunning = true;
-        var token = _cts.Token;
-
-        _processingTask = Task.Run(() =>
+        if (_started) throw new InvalidOperationException("Create a new monitor for a new recording session.");
+        _started = true;
+        try
         {
-            try
-            {
-                _session.Source.Process();
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception ex) when (ex is not ObjectDisposedException)
+            var writer = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, "etw-gpu.jsonl"));
+            _sink = new(_coverage, e => writer.Write(e), writer);
+            _cts = new CancellationTokenSource();
+            var session = _session = new TraceEventSession(
+                $"CrashScope-GpuKernel-{Environment.ProcessId}-{Guid.NewGuid():N}", null) { StopOnDispose = true };
+            session.EnableProvider(DxgKrnlProviderGuid, TraceEventLevel.Verbose, ulong.MaxValue);
+            _coverage.Enabled();
+            session.Source.Dynamic.All += OnEvent;
+            IsRunning = true;
+            _coverage.Processing(true);
+            var token = _cts.Token;
+            _processingTask = Task.Run(() =>
             {
                 try
                 {
-                    System.Diagnostics.Trace.WriteLine($"[CrashScope:EtwDxgKrnlMonitor] session fault: {ex.Message}");
+                    session.Source.Process();
+                    if (!token.IsCancellationRequested)
+                        _coverage.Error("Processing ended", new InvalidOperationException("ETW processing ended unexpectedly."));
                 }
-                catch { }
-            }
-        }, token);
+                catch (Exception ex) { if (!token.IsCancellationRequested) _coverage.Error("Processing failed", ex); }
+                finally { IsRunning = false; _coverage.Processing(false); }
+            });
+        }
+        catch (Exception ex)
+        {
+            _coverage.Error("Start failed", ex);
+            Stop();
+            throw;
+        }
     }
 
-    public IReadOnlyList<EtwDxgKrnlEvent> DrainBuffer()
+    public IReadOnlyList<EtwDxgKrnlEvent> DrainBuffer() => _sink?.Drain() ?? [];
+
+    private void OnEvent(TraceEvent e)
     {
-        var list = new List<EtwDxgKrnlEvent>();
-        while (_buffer.TryDequeue(out var evt))
-            list.Add(evt);
-        return list;
+        if (_disposed || !IsRunning || e.ProviderGuid != DxgKrnlProviderGuid) return;
+        var at = new DateTimeOffset(e.TimeStamp);
+        _coverage.Received(at); // Count before filtering, including events not interesting to diagnosis.
+        if (!IsInteresting(e.TaskName, (int)e.ID)) return;
+        var item = new EtwDxgKrnlEvent(e.TimeStamp, (int)e.ID, e.TaskName, e.ProcessID, e.ProcessName, BuildDetail(e));
+        _sink?.Record(item, at);
+        try { EventReceived?.Invoke(item); } catch { }
     }
 
     public void Stop()
     {
-        if (!IsRunning) return;
-
-        try { _cts?.Cancel(); } catch { }
-
-        try { _session?.Dispose(); } catch { }
+        _cts?.Cancel();
+        // Join the processing task before closing its writer. Never mark clean while a callback can still write.
+        try { if (_processingTask is not null) _session?.Source.StopProcessing(); } catch (Exception ex) { _coverage.Error("Stop processing failed", ex); }
+        try { _session?.Dispose(); } catch (Exception ex) { _coverage.Error("Session disposal failed", ex); }
+        _processingTask?.GetAwaiter().GetResult();
         _session = null;
-
-        try
-        {
-            if (_processingTask is not null && !_processingTask.IsCompleted)
-                _processingTask.Wait(TimeSpan.FromSeconds(3));
-        }
-        catch (AggregateException) { }
-
-        FlushRemaining();
-        _writer?.Dispose();
-        _writer = null;
-
+        _processingTask = null;
         IsRunning = false;
-    }
-
-    private void FlushRemaining()
-    {
-        var remaining = DrainBuffer();
-        foreach (var evt in remaining)
-            _writer?.Write(evt);
-    }
-
-    private void OnEvent(TraceEvent traceEvent)
-    {
-        if (_disposed || !IsRunning) return;
-
-        var taskName = traceEvent.TaskName;
-        if (!IsInteresting(taskName, (int)traceEvent.ID))
-            return;
-
-        var detail = BuildDetail(traceEvent);
-        var etwEvent = new EtwDxgKrnlEvent(
-            traceEvent.TimeStamp,
-            (int)traceEvent.ID,
-            taskName,
-            traceEvent.ProcessID,
-            traceEvent.ProcessName,
-            detail);
-
-        Enqueue(etwEvent);
-
-        try { _writer?.Write(etwEvent); } catch { }
-
-        try { EventReceived?.Invoke(etwEvent); } catch { }
-    }
-
-    private void Enqueue(EtwDxgKrnlEvent etwEvent)
-    {
-        _buffer.Enqueue(etwEvent);
-        while (_buffer.Count > MaxBufferedEvents && _buffer.TryDequeue(out _))
-            Interlocked.Increment(ref _droppedEvents);
-    }
-
-    private static TraceEventSession CreateSession(string sessionName)
-    {
-        try { TraceEventSession.GetActiveSession(sessionName)?.Dispose(); } catch { }
-
-        var session = new TraceEventSession(sessionName, null) { StopOnDispose = true };
-        session.EnableProvider(DxgKrnlProviderGuid, TraceEventLevel.Verbose, 0xFFFFFFFFFFFFFFFF);
-        return session;
+        _coverage.Stopped();
+        _sink?.Dispose();
+        _cts?.Dispose();
+        _cts = null;
     }
 
     private static bool IsInteresting(string taskName, int eventId)
@@ -208,10 +150,6 @@ public sealed class EtwDxgKrnlMonitor : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-
         Stop();
-        _cts?.Dispose();
-        _session?.Dispose();
-        _writer?.Dispose();
     }
 }

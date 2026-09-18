@@ -65,7 +65,7 @@
                                                Foreground="{StaticResource TextPrimary}"/>
                                     <TextBlock FontSize="11"
                                                Foreground="{StaticResource TextSecondary}"
-                                               Text="{Binding Confidence, StringFormat=confidence {0:P0}}"/>
+                                               Text="{Binding Confidence, StringFormat=saved heuristic support {0:P0}}"/>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>

@@ -11,6 +11,7 @@ public sealed class SensorHistoryBuffer
 
     public SensorHistoryBuffer(int maxPoints = 300)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPoints);
         _maxPoints = maxPoints;
     }
 
@@ -18,10 +19,15 @@ public sealed class SensorHistoryBuffer
     {
         lock (_lock)
         {
-            _history.Add(new SensorSnapshot(DateTimeOffset.Now, sensorValues));
+            _history.Add(new SensorSnapshot(DateTimeOffset.Now, sensorValues.ToArray()));
             while (_history.Count > _maxPoints)
                 _history.RemoveAt(0);
         }
+    }
+
+    public void Clear()
+    {
+        lock (_lock) _history.Clear();
     }
 
     public IReadOnlyList<SensorSnapshot> GetHistory()
@@ -36,7 +42,7 @@ public sealed class SensorHistoryBuffer
     {
         lock (_lock)
         {
-            if (_history.Count == 0) return Array.Empty<(double, double)>();
+            if (sensorIndex < 0 || _history.Count == 0) return Array.Empty<(double, double)>();
 
             var baseTime = relativeTime ? _history[0].Timestamp : DateTimeOffset.MinValue;
             var result = new List<(double, double)>(_history.Count);
@@ -46,7 +52,7 @@ public sealed class SensorHistoryBuffer
                 if (sensorIndex < snapshot.Values.Count)
                 {
                     var value = snapshot.Values[sensorIndex];
-                    if (value.HasValue)
+                    if (value.HasValue && float.IsFinite(value.Value))
                     {
                         result.Add((
                             (snapshot.Timestamp - baseTime).TotalSeconds,

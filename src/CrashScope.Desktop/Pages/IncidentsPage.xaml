@@ -478,7 +478,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Confidence:" FontSize="11"
+                                        <TextBlock Text="Support:" ToolTip="Heuristic evidence support, not a calibrated probability" FontSize="11"
                                                    Foreground="{StaticResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftConfidence"
@@ -668,7 +668,7 @@
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Confidence:" FontSize="11"
+                                        <TextBlock Text="Support:" ToolTip="Heuristic evidence support, not a calibrated probability" FontSize="11"
                                                    Foreground="{StaticResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightConfidence"

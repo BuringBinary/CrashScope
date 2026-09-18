@@ -132,7 +132,10 @@ public sealed record DiskMetrics(
     float? DiskTimePercent,
     float? AvgReadLatencyMs,
     float? AvgWriteLatencyMs,
-    float? QueueDepth);
+    float? QueueDepth,
+    int? DiskIndex = null,
+    string? PerformanceSource = null,
+    string? SensorSource = null);
 
 public sealed record ProcessGpuMemory(
     int ProcessId,

@@ -18,6 +18,8 @@ public partial class DashboardPage : UserControl
     private readonly AppService _service;
     private readonly SensorHistoryBuffer _history = new(maxPoints: 300);
 
+    private IReadOnlyList<SensorCatalogEntry>? _mappedCatalog;
+    private string? _mappedSession;
     private int _cpuLoadIdx = -1;
     private int _cpuTempIdx = -1;
     private int _cpuClockIdx = -1;
@@ -63,10 +65,6 @@ public partial class DashboardPage : UserControl
     {
         InitializeComponent();
         _service = App.Current.Service;
-        _service.SensorUpdated += OnSensorUpdated;
-        _service.GpuEngineUpdated += OnGpuEngineUpdated;
-
-        BuildSensorMap();
 
         _cpuSeries = CreateLineSeries(CpuLineColor, "CPU Load");
         _gpuSeries = CreateLineSeries(GpuLineColor, "GPU Load");
@@ -90,12 +88,32 @@ public partial class DashboardPage : UserControl
         RamChart.Model = _ramPlotModel;
 
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _service.SensorUpdated -= OnSensorUpdated;
+        _service.SensorUpdated += OnSensorUpdated;
+        _service.GpuEngineUpdated -= OnGpuEngineUpdated;
+        _service.GpuEngineUpdated += OnGpuEngineUpdated;
+        _service.StatusChanged -= OnStatusChanged;
+        _service.StatusChanged += OnStatusChanged;
+        BuildSensorMap();
         DashboardHealth.Refresh(this);
     }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        _service.SensorUpdated -= OnSensorUpdated;
+        _service.GpuEngineUpdated -= OnGpuEngineUpdated;
+        _service.StatusChanged -= OnStatusChanged;
+    }
+
+    private void OnStatusChanged() => Dispatcher.InvokeAsync(() =>
+    {
+        if (IsLoaded) BuildSensorMap();
+    });
 
     private static LineSeries CreateLineSeries(OxyColor color, string title)
     {
@@ -229,106 +247,55 @@ public partial class DashboardPage : UserControl
     private void BuildSensorMap()
     {
         var catalog = _service.SensorCatalog;
-        for (var i = 0; i < catalog.Count; i++)
-        {
-            var entry = catalog[i];
-            var hw = entry.HardwareType;
-            var st = entry.SensorType;
-            var sn = entry.SensorName;
-
-            if (hw == "Cpu")
-            {
-                if (st == "Load" && sn.Contains("Total", StringComparison.OrdinalIgnoreCase))
-                    _cpuLoadIdx = i;
-                else if (st == "Temperature" && sn.Contains("Package", StringComparison.OrdinalIgnoreCase))
-                    _cpuTempIdx = i;
-                else if (st == "Clock" && sn.Contains("Package", StringComparison.OrdinalIgnoreCase))
-                    _cpuClockIdx = i;
-
-                if (_cpuModelIdx < 0)
-                    CpuModelText.Text = entry.HardwareName;
-                _cpuModelIdx = i;
-            }
-            else if (hw.Contains("Gpu", StringComparison.OrdinalIgnoreCase))
-            {
-                if (st == "Load" && sn.Contains("Core", StringComparison.OrdinalIgnoreCase))
-                    _gpuLoadIdx = i;
-                else if (st == "Temperature" && sn.Contains("Core", StringComparison.OrdinalIgnoreCase))
-                    _gpuTempIdx = i;
-                else if (st == "Clock" && sn.Contains("Core", StringComparison.OrdinalIgnoreCase))
-                    _gpuClockIdx = i;
-                else if (st == "Power" && sn.Contains("Package", StringComparison.OrdinalIgnoreCase))
-                    _gpuPowerIdx = i;
-                else if (st == "SmallData" && sn.Contains("Used", StringComparison.OrdinalIgnoreCase))
-                    _gpuVramUsedIdx = i;
-                else if (st == "SmallData" && sn.Contains("Total", StringComparison.OrdinalIgnoreCase))
-                    _gpuVramTotalIdx = i;
-
-                if (_gpuModelIdx < 0)
-                    GpuModelText.Text = entry.HardwareName;
-                _gpuModelIdx = i;
-            }
-            else if (hw == "Memory")
-            {
-                if (st == "Data" && sn.Contains("Used", StringComparison.OrdinalIgnoreCase))
-                    _ramUsedIdx = i;
-                else if (st == "Data" && sn.Contains("Available", StringComparison.OrdinalIgnoreCase))
-                    _ramAvailIdx = i;
-                else if (st == "Load" && sn.Contains("Memory", StringComparison.OrdinalIgnoreCase))
-                    _ramLoadIdx = i;
-            }
-        }
-
-        if (_cpuLoadIdx < 0) _cpuLoadIdx = FindFirst(catalog, "Cpu", "Load");
-        if (_cpuTempIdx < 0) _cpuTempIdx = FindFirst(catalog, "Cpu", "Temperature");
-        if (_cpuClockIdx < 0) _cpuClockIdx = FindFirst(catalog, "Cpu", "Clock");
-        if (_gpuLoadIdx < 0) _gpuLoadIdx = FindFirstGpu(catalog, "Load");
-        if (_gpuTempIdx < 0) _gpuTempIdx = FindFirstGpu(catalog, "Temperature");
-        if (_gpuClockIdx < 0) _gpuClockIdx = FindFirstGpu(catalog, "Clock");
-        if (_gpuPowerIdx < 0) _gpuPowerIdx = FindFirstGpu(catalog, "Power");
-        if (_gpuVramUsedIdx < 0) _gpuVramUsedIdx = FindFirst(catalog, "Gpu", "SmallData");
-        if (_ramUsedIdx < 0) _ramUsedIdx = FindFirst(catalog, "Memory", "Data");
-        if (_ramLoadIdx < 0) _ramLoadIdx = FindFirst(catalog, "Memory", "Load");
-
-        var gpuName = _gpuModelIdx >= 0 && _gpuModelIdx < catalog.Count
-            ? catalog[_gpuModelIdx].HardwareName
-            : "GPU";
-
-        _gpuDisplayName = gpuName;
+        var session = _service.CurrentSession?.SessionId;
+        if (ReferenceEquals(catalog, _mappedCatalog) && session == _mappedSession) return;
+        _mappedCatalog = catalog;
+        _mappedSession = session;
+        _history.Clear();
+        _transitionItems.Clear();
+        GpuTransitionsList.ItemsSource = null;
+        GpuTransitionsPanel.Visibility = Visibility.Collapsed;
+        _gpuTransitionMarkers.Points.Clear();
+        if (_transitionMonitor is not null) _transitionMonitor.TransitionDetected -= OnTransitionDetected;
+        var map = DesktopSensorMap.Build(catalog);
+        _cpuModelIdx = map.CpuModel;
+        _cpuLoadIdx = map.CpuLoad;
+        _cpuTempIdx = map.CpuTemp;
+        _cpuClockIdx = map.CpuClock;
+        _gpuModelIdx = map.GpuModel;
+        _gpuLoadIdx = map.GpuLoad;
+        _gpuTempIdx = map.GpuTemp;
+        _gpuClockIdx = map.GpuClock;
+        _gpuPowerIdx = map.GpuPower;
+        _gpuVramUsedIdx = map.GpuVramUsed;
+        _gpuVramTotalIdx = map.GpuVramTotal;
+        _ramUsedIdx = map.RamUsed;
+        _ramAvailIdx = map.RamAvailable;
+        _ramLoadIdx = map.RamLoad;
+        CpuModelText.Text = _cpuModelIdx >= 0 ? catalog[_cpuModelIdx].HardwareName : "CPU: unavailable / not recording";
+        _gpuDisplayName = _gpuModelIdx >= 0 ? catalog[_gpuModelIdx].HardwareName : "GPU: unavailable / not recording";
+        GpuModelText.Text = _gpuDisplayName;
         _transitionMonitor = new GpuTransitionMonitor(_gpuLoadIdx, _gpuClockIdx, _gpuPowerIdx);
         _transitionMonitor.TransitionDetected += OnTransitionDetected;
-    }
-
-    private static int FindFirst(IReadOnlyList<SensorCatalogEntry> catalog, string hardwareType, string sensorType)
-    {
-        for (var i = 0; i < catalog.Count; i++)
-        {
-            if (catalog[i].HardwareType == hardwareType && catalog[i].SensorType == sensorType)
-                return i;
-        }
-        return -1;
-    }
-
-    private static int FindFirstGpu(IReadOnlyList<SensorCatalogEntry> catalog, string sensorType)
-    {
-        for (var i = 0; i < catalog.Count; i++)
-        {
-            if (catalog[i].HardwareType.Contains("Gpu", StringComparison.OrdinalIgnoreCase) &&
-                catalog[i].SensorType == sensorType)
-                return i;
-        }
-        return -1;
+        UpdateDisplay([]);
+        UpdateCharts();
     }
 
     private void OnSensorUpdated(IReadOnlyList<float?> values)
     {
-        _history.Push(values);
+        var catalog = _service.SensorCatalog;
+        var session = _service.CurrentSession?.SessionId;
+        var displayValues = values.Select((v, i) => i < catalog.Count ? SensorValueQuality.ForDisplay(catalog[i], v) : null).ToArray();
         Dispatcher.InvokeAsync(() =>
         {
-            UpdateDisplay(values);
+            // Drop queued callbacks from an unloaded page or a prior recording/catalog.
+            if (!IsLoaded || session != _service.CurrentSession?.SessionId || !ReferenceEquals(catalog, _service.SensorCatalog)) return;
+            BuildSensorMap();
+            _history.Push(displayValues);
+            UpdateDisplay(displayValues);
             UpdateCharts();
+            _transitionMonitor?.Check(_history.GetHistory());
         });
-        _transitionMonitor?.Check(_history.GetHistory());
     }
 
     private void OnTransitionDetected(GpuTransition transition)
@@ -449,41 +416,21 @@ public partial class DashboardPage : UserControl
 
     private void UpdateDisplay(IReadOnlyList<float?> values)
     {
-        if (_cpuLoadIdx >= 0 && _cpuLoadIdx < values.Count)
-            CpuLoadText.Text = $"{values[_cpuLoadIdx]:F0}";
-        if (_cpuTempIdx >= 0 && _cpuTempIdx < values.Count)
-            CpuTempText.Text = $"{values[_cpuTempIdx]:F0}°C";
-        if (_cpuClockIdx >= 0 && _cpuClockIdx < values.Count)
-            CpuClockText.Text = $"{values[_cpuClockIdx]:F0} MHz";
-
-        if (_gpuLoadIdx >= 0 && _gpuLoadIdx < values.Count)
-            GpuLoadText.Text = $"{values[_gpuLoadIdx]:F0}";
-        if (_gpuTempIdx >= 0 && _gpuTempIdx < values.Count)
-            GpuTempText.Text = $"{values[_gpuTempIdx]:F0}°C";
-        if (_gpuClockIdx >= 0 && _gpuClockIdx < values.Count)
-            GpuClockText.Text = $"{values[_gpuClockIdx]:F0} MHz";
-        if (_gpuPowerIdx >= 0 && _gpuPowerIdx < values.Count)
-            GpuPowerText.Text = $"{values[_gpuPowerIdx]:F0} W";
-
-        if (_gpuVramUsedIdx >= 0 && _gpuVramUsedIdx < values.Count)
-        {
-            var usedGb = (values[_gpuVramUsedIdx] ?? 0) / 1024f;
-            GpuVramText.Text = $"{usedGb:F1} GB";
-        }
-
-        if (_ramUsedIdx >= 0 && _ramUsedIdx < values.Count)
-        {
-            var usedGb = (values[_ramUsedIdx] ?? 0);
-            RamUsedText.Text = $"{usedGb:F1}";
-            RamTotalText.Text = $"{usedGb + (_ramAvailIdx >= 0 ? values[_ramAvailIdx] ?? 0 : 0):F0} GB total";
-        }
-
-        if (_ramAvailIdx >= 0 && _ramAvailIdx < values.Count)
-            RamAvailText.Text = $"{values[_ramAvailIdx] ?? 0:F1} GB";
-
-        if (_ramLoadIdx >= 0 && _ramLoadIdx < values.Count)
-            RamPercentText.Text = $"{values[_ramLoadIdx]:F0}%";
-
+        float? Value(int i) => i >= 0 && i < values.Count ? values[i] : null;
+        string Show(int i, string unit = "", string format = "F0") => Value(i) is { } v ? v.ToString(format) + unit : "N/A";
+        CpuLoadText.Text = Show(_cpuLoadIdx);
+        CpuTempText.Text = Show(_cpuTempIdx, "°C");
+        CpuClockText.Text = Show(_cpuClockIdx, " MHz");
+        GpuLoadText.Text = Show(_gpuLoadIdx);
+        GpuTempText.Text = Show(_gpuTempIdx, "°C");
+        GpuClockText.Text = Show(_gpuClockIdx, " MHz");
+        GpuPowerText.Text = Show(_gpuPowerIdx, " W");
+        GpuVramText.Text = Value(_gpuVramUsedIdx) is { } vram ? $"{vram / 1024f:F1} GiB" : "N/A";
+        RamUsedText.Text = Show(_ramUsedIdx, format: "F1");
+        RamAvailText.Text = Show(_ramAvailIdx, " GiB", "F1");
+        RamPercentText.Text = Show(_ramLoadIdx, "%");
+        RamTotalText.Text = Value(_ramUsedIdx) is { } used && Value(_ramAvailIdx) is { } available
+            ? $"{used + available:F0} GiB total" : "N/A";
         UpdateSensorList(values);
     }
 
@@ -508,7 +455,7 @@ public partial class DashboardPage : UserControl
 
         _lastEngineUsages = aggregated;
 
-        Dispatcher.InvokeAsync(() => UpdateGpuEngines(aggregated, sample.Timestamp));
+        Dispatcher.InvokeAsync(() => { if (IsLoaded) UpdateGpuEngines(aggregated, sample.Timestamp); });
     }
 
     private void UpdateGpuEngines(Dictionary<string, float> engines, DateTimeOffset timestamp)
@@ -540,7 +487,6 @@ public partial class DashboardPage : UserControl
         {
             var entry = catalog[i];
             var value = values[i];
-            if (value.HasValue)
             {
                 var unit = entry.SensorType switch
                 {
@@ -556,7 +502,7 @@ public partial class DashboardPage : UserControl
                 items.Add(new SensorDisplayItem
                 {
                     Name = $"{entry.HardwareType} — {entry.SensorName}",
-                    Value = $"{value.Value:F1}{unit}"
+                    Value = value.HasValue ? $"{value.Value:F1}{unit}" : "N/A (unavailable or suspect)"
                 });
             }
         }

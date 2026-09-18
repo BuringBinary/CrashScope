@@ -2,194 +2,126 @@ using CrashScope.Core.Infrastructure;
 using CrashScope.Core.Models;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Diagnostics.Tracing.Session;
-using System.Collections.Concurrent;
 
 namespace CrashScope.Core.Monitoring;
 
 public sealed class EtwRealTimeMonitor : IDisposable
 {
-    /// <summary>
-    /// Per-provider cap on the in-memory hand-off queue; the JSONL file is the durable
-    /// record. See EtwDxgKrnlMonitor.MaxBufferedEvents for why this must be bounded.
-    /// </summary>
-    private const int MaxBufferedEventsPerProvider = 5000;
-
-    private readonly List<ProviderConfig> _providers;
-    private readonly Dictionary<string, CrashSafeJsonlWriter?> _writers = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, ConcurrentQueue<EtwProviderEvent>> _buffers = new(StringComparer.OrdinalIgnoreCase);
-
+    private readonly ProviderConfig[] _providers;
+    private readonly Dictionary<Guid, EtwCoverageTracker> _coverage;
+    private readonly Dictionary<string, EtwEventSink<EtwProviderEvent>> _sinks = new(StringComparer.OrdinalIgnoreCase);
     private TraceEventSession? _session;
     private Task? _processingTask;
     private CancellationTokenSource? _cts;
-
     private volatile bool _disposed;
-    private int _droppedEvents;
-
-    public bool IsRunning { get; private set; }
-
-    /// <summary>Events dropped from the in-memory queues because a provider hit its cap.</summary>
-    public int DroppedEventCount => Volatile.Read(ref _droppedEvents);
-
+    private bool _started;
+    private volatile bool _running;
+    public bool IsRunning { get => _running; private set => _running = value; }
+    public IReadOnlyList<EtwCoverageSnapshot> Coverage => _providers.Select(p => _coverage[p.ProviderGuid].Snapshot()).ToArray();
+    public string? LastError => Coverage.FirstOrDefault(c => c.LastError is not null)?.LastError;
+    public int DroppedEventCount => (int)Math.Min(int.MaxValue, Coverage.Sum(c => c.BufferDroppedEvents));
     public event Action<EtwProviderEvent>? EventReceived;
 
     public EtwRealTimeMonitor(params ProviderConfig[] providers)
     {
-        if (providers.Length == 0)
-            throw new ArgumentException("At least one provider must be configured.");
-
-        _providers = providers.ToList();
+        if (providers.Length == 0 || providers.Select(p => p.ProviderGuid).Distinct().Count() != providers.Length
+            || providers.Select(p => p.OutputFile).Distinct(StringComparer.OrdinalIgnoreCase).Count() != providers.Length)
+            throw new ArgumentException("Configure at least one provider, with unique provider IDs and output files.");
+        _providers = providers.ToArray();
+        _coverage = providers.ToDictionary(p => p.ProviderGuid, p => new EtwCoverageTracker(p.ProviderName, p.ProviderGuid));
     }
 
     public void Start(string sessionDirectory)
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(EtwRealTimeMonitor));
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (IsRunning) return;
-
-        foreach (var cfg in _providers)
+        if (_started) throw new InvalidOperationException("Create a new monitor for a new recording session.");
+        _started = true;
+        try
         {
-            var filePath = Path.Combine(sessionDirectory, cfg.OutputFile);
-            _writers[cfg.OutputFile] = new CrashSafeJsonlWriter(filePath);
-            _buffers[cfg.OutputFile] = new ConcurrentQueue<EtwProviderEvent>();
+            foreach (var cfg in _providers)
+            {
+                var writer = new CrashSafeJsonlWriter(Path.Combine(sessionDirectory, cfg.OutputFile));
+                _sinks[cfg.OutputFile] = new(_coverage[cfg.ProviderGuid], e => writer.Write(e), writer);
+            }
+            _cts = new CancellationTokenSource();
+            var session = _session = new TraceEventSession(
+                $"CrashScope-SystemRealtime-{Environment.ProcessId}-{Guid.NewGuid():N}", null) { StopOnDispose = true };
+            foreach (var cfg in _providers)
+            {
+                try
+                {
+                    session.EnableProvider(cfg.ProviderGuid, TraceEventLevel.Verbose, cfg.MatchAnyKeyword);
+                    _coverage[cfg.ProviderGuid].Enabled();
+                }
+                catch (Exception ex) { _coverage[cfg.ProviderGuid].Error("Provider enable failed", ex); }
+            }
+            if (!Coverage.Any(c => c.Enabled)) { Stop(); return; }
+            session.Source.Dynamic.All += OnEvent;
+            IsRunning = true;
+            foreach (var c in _coverage.Values.Where(c => c.Snapshot().Enabled)) c.Processing(true);
+            var token = _cts.Token;
+            _processingTask = Task.Run(() =>
+            {
+                try
+                {
+                    session.Source.Process();
+                    if (!token.IsCancellationRequested)
+                        ProcessingError(new InvalidOperationException("ETW processing ended unexpectedly."));
+                }
+                catch (Exception ex) { if (!token.IsCancellationRequested) ProcessingError(ex); }
+                finally
+                {
+                    IsRunning = false;
+                    foreach (var c in _coverage.Values) c.Processing(false);
+                }
+            });
         }
-
-        _cts = new CancellationTokenSource();
-        // Unique per recorder instance so concurrent hosts (service + desktop)
-        // never dispose each other's live ETW sessions.
-        _session = CreateSession($"CrashScope-SystemRealtime-{Environment.ProcessId}-{Path.GetFileName(sessionDirectory)}");
-        _session.Source.Dynamic.All += OnEvent;
-
-        IsRunning = true;
-        var token = _cts.Token;
-
-        _processingTask = Task.Run(() =>
+        catch (Exception ex)
         {
-            try
-            {
-                _session.Source.Process();
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception ex) when (ex is not ObjectDisposedException)
-            {
-                try { System.Diagnostics.Trace.WriteLine($"[CrashScope:EtwRTM] session fault: {ex.Message}"); }
-                catch { }
-            }
-        }, token);
+            foreach (var c in _coverage.Values) c.Error("Session start failed", ex);
+            Stop();
+            throw;
+        }
+    }
+
+    private void ProcessingError(Exception ex)
+    {
+        foreach (var c in _coverage.Values.Where(c => c.Snapshot().Enabled)) c.Error("Processing failed", ex);
+    }
+
+    private void OnEvent(TraceEvent e)
+    {
+        if (_disposed || !IsRunning) return;
+        // Provider names can be unresolved or localized; the manifest GUID is the stable identity.
+        var cfg = _providers.FirstOrDefault(p => p.ProviderGuid == e.ProviderGuid);
+        if (cfg is null) return;
+        var at = new DateTimeOffset(e.TimeStamp);
+        _coverage[cfg.ProviderGuid].Received(at);
+        if (!cfg.IsInteresting(e)) return;
+        var item = new EtwProviderEvent(cfg.ProviderName, e.TimeStamp, (int)e.ID, e.TaskName,
+            e.Level == TraceEventLevel.Informational ? "Info" : e.Level.ToString(), e.ProcessID, e.ProcessName, BuildDetail(e));
+        _sinks[cfg.OutputFile].Record(item, at);
+        try { EventReceived?.Invoke(item); } catch { }
     }
 
     public IReadOnlyList<EtwProviderEvent> DrainBuffer(string outputFile)
-    {
-        if (!_buffers.TryGetValue(outputFile, out var buffer))
-            return [];
-
-        var list = new List<EtwProviderEvent>();
-        while (buffer.TryDequeue(out var evt))
-            list.Add(evt);
-        return list;
-    }
-
-    public int BufferedEventCount(string outputFile)
-        => _buffers.TryGetValue(outputFile, out var b) ? b.Count : 0;
+        => _sinks.TryGetValue(outputFile, out var sink) ? sink.Drain() : [];
+    public int BufferedEventCount(string outputFile) => _sinks.TryGetValue(outputFile, out var sink) ? sink.Count : 0;
 
     public void Stop()
     {
-        if (!IsRunning) return;
-
-        try { _cts?.Cancel(); } catch { }
-
-        try { _session?.Dispose(); } catch { }
+        _cts?.Cancel();
+        try { if (_processingTask is not null) _session?.Source.StopProcessing(); } catch (Exception ex) { ProcessingError(ex); }
+        try { _session?.Dispose(); } catch (Exception ex) { ProcessingError(ex); }
+        _processingTask?.GetAwaiter().GetResult();
         _session = null;
-
-        try
-        {
-            if (_processingTask is not null && !_processingTask.IsCompleted)
-                _processingTask.Wait(TimeSpan.FromSeconds(3));
-        }
-        catch (AggregateException) { }
-
-        FlushAll();
-        foreach (var w in _writers.Values)
-            w?.Dispose();
-        _writers.Clear();
-        _buffers.Clear();
-
+        _processingTask = null;
         IsRunning = false;
-    }
-
-    private void FlushAll()
-    {
-        foreach (var (file, buffer) in _buffers)
-        {
-            if (!_writers.TryGetValue(file, out var writer) || writer is null)
-                continue;
-            while (buffer.TryDequeue(out var evt))
-                writer.Write(evt);
-        }
-    }
-
-    private void OnEvent(TraceEvent traceEvent)
-    {
-        if (_disposed || !IsRunning) return;
-
-        var providerName = traceEvent.ProviderName ?? "";
-        var cfg = _providers.FirstOrDefault(p =>
-            string.Equals(p.ProviderName, providerName, StringComparison.OrdinalIgnoreCase));
-
-        if (cfg is null) return;
-        if (!cfg.IsInteresting(traceEvent)) return;
-
-        var level = traceEvent.Level switch
-        {
-            TraceEventLevel.Critical => "Critical",
-            TraceEventLevel.Error => "Error",
-            TraceEventLevel.Warning => "Warning",
-            TraceEventLevel.Informational => "Info",
-            TraceEventLevel.Verbose => "Verbose",
-            _ => null
-        };
-
-        var etwEvent = new EtwProviderEvent(
-            providerName,
-            traceEvent.TimeStamp,
-            (int)traceEvent.ID,
-            traceEvent.TaskName,
-            level,
-            traceEvent.ProcessID,
-            traceEvent.ProcessName,
-            BuildDetail(traceEvent));
-
-        if (_writers.TryGetValue(cfg.OutputFile, out var writer) && writer is not null)
-        {
-            try { writer.Write(etwEvent); } catch { }
-        }
-        if (_buffers.TryGetValue(cfg.OutputFile, out var buffer))
-        {
-            buffer.Enqueue(etwEvent);
-            while (buffer.Count > MaxBufferedEventsPerProvider && buffer.TryDequeue(out _))
-                Interlocked.Increment(ref _droppedEvents);
-        }
-
-        try { EventReceived?.Invoke(etwEvent); } catch { }
-    }
-
-    private TraceEventSession CreateSession(string sessionName)
-    {
-        try { TraceEventSession.GetActiveSession(sessionName)?.Dispose(); } catch { }
-
-        var session = new TraceEventSession(sessionName, null) { StopOnDispose = true };
-
-        foreach (var cfg in _providers)
-        {
-            try
-            {
-                session.EnableProvider(cfg.ProviderGuid, TraceEventLevel.Verbose, cfg.MatchAnyKeyword);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.WriteLine($"[CrashScope:ETW] Failed to enable {cfg.ProviderName}: {ex.Message}");
-            }
-        }
-
-        return session;
+        foreach (var c in _coverage.Values) c.Stopped();
+        foreach (var sink in _sinks.Values) sink.Dispose();
+        _cts?.Dispose();
+        _cts = null;
     }
 
     private static string? BuildDetail(TraceEvent traceEvent)
@@ -218,13 +150,8 @@ public sealed class EtwRealTimeMonitor : IDisposable
         if (_disposed) return;
         _disposed = true;
         Stop();
-        _cts?.Dispose();
-        _session?.Dispose();
-        foreach (var w in _writers.Values)
-            w?.Dispose();
     }
 }
-
 public sealed record ProviderConfig(
     Guid ProviderGuid,
     string ProviderName,

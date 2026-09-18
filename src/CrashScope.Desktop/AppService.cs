@@ -1,4 +1,6 @@
+using CrashScope.Core.Analysis;
 using CrashScope.Core.Models;
+using System.Collections.Concurrent;
 using CrashScope.Core.Monitoring;
 using System.IO;
 using System.Text.Json;
@@ -12,6 +14,7 @@ public sealed class AppService : IDisposable
     private readonly string _sessionsRoot;
     private readonly string _incidentsRoot;
 
+    private readonly ConcurrentDictionary<string, (DateTime Modified, long Length, IncidentAnalysis Analysis)> _incidentCache = new();
     private RecorderEngine? _engine;
     private readonly object _lifecycleGate = new();
 
@@ -26,6 +29,7 @@ public sealed class AppService : IDisposable
     }
 
     public RecorderState RecorderState => _engine?.State ?? RecorderState.Stopped;
+    public IReadOnlyList<CollectorHealth> CollectorHealth => _engine?.CollectorHealth ?? [];
     public bool IsStopping => RecorderState == RecorderState.Stopping;
     public string? RecorderError => _engine?.LastError;
     public string? RecoveryError { get; private set; }
@@ -126,10 +130,19 @@ public sealed class AppService : IDisposable
 
             try
             {
-                var json = File.ReadAllText(analysisPath);
-                var analysis = JsonSerializer.Deserialize<IncidentAnalysis>(json,
-                    new JsonSerializerOptions(JsonSerializerDefaults.Web));
-                if (analysis is null) continue;
+                var info = new FileInfo(analysisPath);
+                IncidentAnalysis analysis;
+                if (_incidentCache.TryGetValue(analysisPath, out var cached)
+                    && cached.Modified == info.LastWriteTimeUtc && cached.Length == info.Length)
+                    analysis = cached.Analysis;
+                else
+                {
+                    var stored = JsonSerializer.Deserialize<IncidentAnalysis>(File.ReadAllText(analysisPath),
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                    if (stored is null) continue;
+                    analysis = IncidentAnalyzer.ReevaluateReadOnly(stored, dir);
+                    _incidentCache[analysisPath] = (info.LastWriteTimeUtc, info.Length, analysis);
+                }
 
                 var leading = analysis.Hypotheses.FirstOrDefault(h => h.Score > 0);
                 var dirName = Path.GetFileName(dir);

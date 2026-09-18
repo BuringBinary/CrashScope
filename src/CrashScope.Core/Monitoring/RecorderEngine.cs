@@ -19,6 +19,7 @@ public sealed class RecorderEngine : IDisposable
     private readonly string _stateDirectory;
     private readonly string _incidentsRoot;
 
+    private CollectorHealthTracker? _collectorHealth;
     private HardwareMonitor? _hardware;
     private SessionJournal? _journal;
     private ProcessTracker? _processTracker;
@@ -82,6 +83,7 @@ public sealed class RecorderEngine : IDisposable
     internal RecorderEngine(string sessionDirectory, string stateDirectory, string incidentsRoot, RecorderRuntimeHooks hooks)
         : this(sessionDirectory, stateDirectory, incidentsRoot) => _hooks = hooks;
 
+    public IReadOnlyList<CollectorHealth> CollectorHealth => _collectorHealth?.Snapshot() ?? [];
     public RecorderState State => _state;
     public bool IsRecording => _state == RecorderState.Recording;
     public bool HasActiveResources => _owner is not null;
@@ -129,6 +131,7 @@ public sealed class RecorderEngine : IDisposable
             LastError = null;
             RecoveryError = null;
             _journal = null;
+            _collectorHealth = null;
             SampleCount = 0;
             Interlocked.Exchange(ref _lastSampleTicks, 0);
             try
@@ -169,7 +172,10 @@ public sealed class RecorderEngine : IDisposable
 
     private void InitializeCollectors()
     {
+        _collectorHealth = new CollectorHealthTracker(Path.Combine(_sessionDirectory, "collector-health.json"));
         _hardware = new HardwareMonitor();
+        _collectorHealth.Set("Sensors", _hardware.Catalog.Count > 0 ? "AwaitingSample" : "Unavailable",
+            _hardware.Catalog.Count > 0 ? "Catalog loaded; waiting for readings." : "No supported sensors detected.");
 
         File.WriteAllText(
             Path.Combine(_sessionDirectory, "sensor-catalog.json"),
@@ -196,16 +202,22 @@ public sealed class RecorderEngine : IDisposable
         _displayTracker = new DisplayTopologyTracker();
         _powerTracker = new PowerTracker();
         _storageTracker = new StorageTracker();
+        _collectorHealth.Set("Storage", _storageTracker.IsAvailable ? "AwaitingSample" : "Unavailable",
+            _storageTracker.IsAvailable ? "Waiting for disk metrics." : "Storage collector is unavailable.");
         _gpuMemoryTracker = new GpuMemoryTracker();
         _memoryPressureTracker = new MemoryPressureTracker();
         _dwmTracker = new DwmStateTracker();
 
         _etwMonitor = new EtwDxgKrnlMonitor();
-        _etwMonitor.EventReceived += e => Notify(EtwEventReceived, e);
-        try { _etwMonitor.Start(_sessionDirectory); }
+        try
+        {
+            _etwMonitor.Start(_sessionDirectory);
+            RefreshEtwHealth();
+        }
         catch (Exception ex)
         {
-            System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW GPU session start failed (admin required): {ex.Message}");
+            RefreshEtwHealth();
+            System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW GPU session start failed: {ex.Message}");
         }
 
         var kernelPowerCfg = new ProviderConfig(
@@ -223,12 +235,26 @@ public sealed class RecorderEngine : IDisposable
             OutputFile: "etw-whea.jsonl",
             IsInteresting: _ => true);
         _etwSystemMonitor = new EtwRealTimeMonitor(kernelPowerCfg, wheaCfg);
-        _etwSystemMonitor.EventReceived += e => Notify(EtwSystemEventReceived, e);
-        try { _etwSystemMonitor.Start(_sessionDirectory); }
+        try
+        {
+            _etwSystemMonitor.Start(_sessionDirectory);
+            RefreshEtwHealth();
+        }
         catch (Exception ex)
         {
-            System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW system session start failed (admin required): {ex.Message}");
+            RefreshEtwHealth();
+            System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW system session start failed: {ex.Message}");
         }
+    }
+
+    private void RefreshEtwHealth()
+    {
+        void Set(string name, EtwCoverageSnapshot coverage) => _collectorHealth?.Set(name,
+            EtwCoverageTracker.Status(coverage), EtwCoverageTracker.Detail(coverage), coverage);
+        if (_etwMonitor is not null) Set("ETW GPU", _etwMonitor.Coverage);
+        if (_etwSystemMonitor is not null)
+            foreach (var coverage in _etwSystemMonitor.Coverage)
+                Set(coverage.Provider == "Microsoft-Windows-Kernel-Power" ? "ETW Power" : "ETW WHEA", coverage);
     }
 
     private async Task RunLoopAsync(CancellationToken token)
@@ -300,6 +326,12 @@ public sealed class RecorderEngine : IDisposable
 
         var foreground = WindowsActivity.CaptureForeground();
         var sensorValues = _hardware!.CaptureValues();
+        var suspect = SensorValueQuality.HasSuspectReadings(SensorCatalog, sensorValues);
+        _collectorHealth?.Set("Sensors", suspect ? "Degraded" : sensorValues.Any(v => v.HasValue) ? "Collecting" : "NoData",
+            suspect ? "Some CPU readings are zero/non-finite and suspect; shown as unavailable. Raw telemetry is retained. Check permissions/driver support."
+                : sensorValues.Any(v => v.HasValue) ? "Sensor readings received; unsupported values remain unavailable." : "No sensor readings available.");
+        var cpuHealth = CpuSensorAssessment.Assess(SensorCatalog, sensorValues);
+        _collectorHealth?.Set("CPU", cpuHealth.Status, cpuHealth.Detail);
         _telemetryWriter!.Write(new TelemetrySnapshot(now, foreground, sensorValues));
         SampleCount++;
         Interlocked.Exchange(ref _lastSampleTicks, now.UtcTicks);
@@ -352,9 +384,10 @@ public sealed class RecorderEngine : IDisposable
                 Notify(RemoteSessionChanged, remoteChange);
             }
 
-            if (_storageTracker is { IsAvailable: true })
+            if (_storageTracker is not null)
             {
                 var storageSample = _storageTracker.Capture(now);
+                _collectorHealth?.Set("Storage", _storageTracker.HealthStatus, _storageTracker.HealthDetail);
                 _storageWriter!.Write(storageSample);
                 Notify(StorageUpdated, storageSample);
             }
@@ -407,6 +440,7 @@ public sealed class RecorderEngine : IDisposable
         {
             _heartbeatCounter = 0;
             _journal!.Heartbeat(now);
+            RefreshEtwHealth();
             Notify(StatusChanged);
         }
 
@@ -416,18 +450,18 @@ public sealed class RecorderEngine : IDisposable
             EnforceRetention();
         }
 
-        if (_etwMonitor is { IsRunning: true } && ++_etwDrainCounter >= 3)
+        if (++_etwDrainCounter >= 3)
         {
             _etwDrainCounter = 0;
             try
                 {
-                    var etwEvents = _etwMonitor.DrainBuffer();
+                    var etwEvents = _etwMonitor?.DrainBuffer() ?? [];
                     foreach (var e in etwEvents)
                         Notify(EtwEventReceived, e);
                 }
                 catch { }
 
-                if (_etwSystemMonitor is { IsRunning: true })
+                if (_etwSystemMonitor is not null)
                 {
                     foreach (var file in new[] { "etw-kernel-power.jsonl", "etw-whea.jsonl" })
                     {
@@ -500,8 +534,11 @@ public sealed class RecorderEngine : IDisposable
             try { resource?.Dispose(); }
             catch (Exception ex) { ReportFault(ex); }
         }
-        Release(_etwMonitor); _etwMonitor = null;
-        Release(_etwSystemMonitor); _etwSystemMonitor = null;
+        Release(_etwMonitor);
+        Release(_etwSystemMonitor);
+        try { RefreshEtwHealth(); } catch (Exception ex) { ReportFault(ex); }
+        _etwMonitor = null;
+        _etwSystemMonitor = null;
         Release(_hardware); _hardware = null;
         Release(_telemetryWriter); _telemetryWriter = null;
         Release(_foregroundWriter); _foregroundWriter = null;

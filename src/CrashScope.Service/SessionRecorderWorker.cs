@@ -48,7 +48,7 @@ public sealed class SessionRecorderWorker : BackgroundService
         {
             var leading = previousIncident.Hypotheses.FirstOrDefault(h => h.Score > 0);
             _logger.LogWarning(
-                "Previous unclean session detected. Mode: {Mode}, Confidence: {Confidence:P0}",
+                "Previous unclean session detected. Candidate: {Mode}, HeuristicEvidenceSupport: {Confidence:P0} (not probability)",
                 leading?.Mode.ToString() ?? "Unclassified",
                 leading?.Confidence ?? 0);
         }

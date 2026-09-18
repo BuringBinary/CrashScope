@@ -36,10 +36,15 @@
         <Setter Property="Foreground" Value="#8B8BA0"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
+        <!-- WindowChrome.CaptionHeight=40 makes the whole 40px title strip a non-client
+             caption area: without this the OS swallows the click and Minimize/Maximize/Close
+             never raise Click. Must stay on every interactive element inside the caption. -->
+        <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}">
+                    <Border Background="{TemplateBinding Background}"
+                            SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                 </ControlTemplate>

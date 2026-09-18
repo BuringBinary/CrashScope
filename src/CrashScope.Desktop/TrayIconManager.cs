@@ -94,7 +94,7 @@ public sealed class TrayIconManager : IDisposable
         _notifyIcon.ShowBalloonTip(
             5000,
             "CrashScope",
-            $"Previous unclean shutdown detected.\nTop cause: {mode} ({confidence:P0} confidence)\nClick to view incident.",
+            $"Previous unclean recording detected.\nCandidate: {mode} ({confidence:P0} evidence support, not probability)\nClick to view incident.",
             ToolTipIcon.Warning);
         _blinkTimer.Start();
     }

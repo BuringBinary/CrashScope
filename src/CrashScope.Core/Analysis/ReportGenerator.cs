@@ -61,13 +61,15 @@ public static class ReportGenerator
             sb.AppendLine("> This is an interrupted recording, not proof of a system crash. Telemetry gaps and the ranking below may reflect recorder failure.");
             sb.AppendLine();
         }
+        sb.AppendLine("> Evidence support is a heuristic index, not a calibrated probability or a confirmed cause. An unclean recording is not proof of a system crash.");
+        sb.AppendLine();
         sb.AppendLine("## Top Hypothesis");
         sb.AppendLine();
 
         var leading = analysis.Hypotheses.FirstOrDefault(h => h.Score > 0);
         if (leading is not null)
         {
-            sb.AppendLine($"**{leading.Mode}** (confidence: {leading.Confidence:P0}, score: {leading.Score})");
+            sb.AppendLine($"**{leading.Mode}** (evidence support: {leading.Confidence:P0}, score: {leading.Score})");
             sb.AppendLine();
             sb.AppendLine("### Supporting Evidence");
             foreach (var evidence in leading.Evidence.Where(e => e.Supports))
@@ -86,7 +88,7 @@ public static class ReportGenerator
         sb.AppendLine();
         sb.AppendLine("## All Hypotheses");
         sb.AppendLine();
-        sb.AppendLine("| Mode | Score | Confidence |");
+        sb.AppendLine("| Mode | Score | Evidence support (heuristic) |");
         sb.AppendLine("|------|-------|------------|");
         foreach (var h in analysis.Hypotheses)
             sb.AppendLine($"| {h.Mode} | {h.Score:+0;-#} | {h.Confidence:P0} |");

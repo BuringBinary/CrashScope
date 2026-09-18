@@ -18,6 +18,7 @@ public partial class SettingsPage : UserControl
     private readonly RetentionService _retention;
     private readonly LocalizationService _localization;
     private readonly ThemeService _theme;
+    private readonly UiSettingsService _uiSettings;
     private bool _initialized;
     private DispatcherTimer? _statusTimer;
 
@@ -28,6 +29,7 @@ public partial class SettingsPage : UserControl
         _retention = new RetentionService(_service.RootDirectory);
         _localization = App.Current.Localization;
         _theme = App.Current.Theme;
+        _uiSettings = App.Current.UiSettings;
 
         Loaded += OnLoaded;
     }
@@ -40,6 +42,11 @@ public partial class SettingsPage : UserControl
         RetentionDaysSlider.Value = _retention.Settings.MaxRetentionDays;
         MaxSizeSlider.Value = _retention.Settings.MaxTotalSizeMb;
         RedactByDefaultCheckBox.IsChecked = true;
+
+        // Reflect the persisted tray behaviour instead of the XAML default, so the boxes
+        // always show what the app will actually do.
+        MinimizeToTrayCheckBox.IsChecked = _uiSettings.MinimizeToTray;
+        CloseToTrayCheckBox.IsChecked = _uiSettings.CloseToTray;
 
         DataDirText.Text = _service.RootDirectory;
         RuntimeText.Text = $".NET {Environment.Version}";
@@ -237,6 +244,24 @@ public partial class SettingsPage : UserControl
             ShowStatus($"开机启动设置失败: {ex.Message}", "#FF6B6B");
             RefreshStartupState();
         }
+    }
+
+    /// <summary>
+    /// Applies the tray behaviour toggles immediately, matching AutoStartCheckBox.
+    /// </summary>
+    /// <remarks>
+    /// These two boxes used to be decorative: nothing read them, so unticking
+    /// "close to tray" and pressing Save still hid the window to the tray. They are applied
+    /// on change rather than on Save because Save owns retention settings only.
+    /// </remarks>
+    private void TrayBehaviourCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_initialized) return;
+
+        _uiSettings.MinimizeToTray = MinimizeToTrayCheckBox.IsChecked == true;
+        _uiSettings.CloseToTray = CloseToTrayCheckBox.IsChecked == true;
+
+        ShowStatus("托盘行为已更新", "#00D68F");
     }
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e)

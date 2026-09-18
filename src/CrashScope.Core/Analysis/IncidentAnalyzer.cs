@@ -1,5 +1,6 @@
 using System.Text.Json;
 using CrashScope.Core.Models;
+using CrashScope.Core.Monitoring;
 
 namespace CrashScope.Core.Analysis;
 
@@ -11,7 +12,8 @@ public static class IncidentAnalyzer
         SessionState previous,
         IReadOnlyList<WindowsEventEvidence> events,
         IReadOnlyList<ExternalEvidenceFile> external,
-        string incidentDirectory)
+        string incidentDirectory,
+        bool writeOutputs = true)
     {
         var catalog = ReadJsonFile<SensorCatalogEntry[]>(Path.Combine(incidentDirectory, "sensor-catalog.json"));
         var telemetry = ReadJsonLines<TelemetrySnapshot>(Path.Combine(incidentDirectory, "telemetry-tail.jsonl"));
@@ -33,6 +35,9 @@ public static class IncidentAnalyzer
         var timeline = TimelineBuilder.Build(
             previous, catalog, telemetry, foreground, processEvents, events, external, transitions, graphics, etwEvents, etwKernelPower, etwWhea, gpuMemoryEvents, memoryPressureEvents, dwmStateEvents);
 
+        var questions = evaluation.OpenQuestions.ToList();
+        AddCollectionQuestions(questions, incidentDirectory, catalog ?? [], telemetry);
+
         var analysis = new IncidentAnalysis(
             previous,
             facts.LastTelemetrySampleAt,
@@ -42,11 +47,48 @@ public static class IncidentAnalyzer
             transitions,
             timeline,
             evaluation.Hypotheses,
-            evaluation.OpenQuestions,
+            questions,
             graphics);
 
-        WriteOutputs(analysis, incidentDirectory);
+        if (writeOutputs) WriteOutputs(analysis, incidentDirectory);
         return analysis;
+    }
+
+    private static void AddCollectionQuestions(List<string> questions, string directory,
+        IReadOnlyList<SensorCatalogEntry> catalog, IReadOnlyList<TelemetrySnapshot> telemetry)
+    {
+        var health = ReadJsonFile<CollectorHealth[]>(Path.Combine(directory, "collector-health.json"));
+        if (health is null)
+            questions.Add("Collector health was not recorded (legacy bundle or unreadable metadata). Empty event files do not establish that collection succeeded.");
+        else
+            foreach (var item in health.Where(h => h.Status != "Collecting"))
+                questions.Add($"Collection {item.Collector}: {item.Status}. {item.Detail}");
+        if (telemetry.Any(t => SensorValueQuality.HasSuspectReadings(catalog, t.SensorValues)))
+            questions.Add("Some recorded CPU temperature/power/clock readings are zero or non-finite and suspect. Do not interpret them as normal hardware readings; verify permissions and sensor support.");
+    }
+
+    public static IncidentAnalysis ReevaluateReadOnly(IncidentAnalysis stored, string incidentDirectory)
+    {
+        try
+        {
+            var events = JsonSerializer.Deserialize<WindowsEventEvidence[]>(
+                File.ReadAllText(Path.Combine(incidentDirectory, "windows-events.json")), JsonOptions)
+                ?? throw new InvalidDataException("Missing Windows event array.");
+            var external = JsonSerializer.Deserialize<ExternalEvidenceFile[]>(
+                File.ReadAllText(Path.Combine(incidentDirectory, "external-evidence.json")), JsonOptions)
+                ?? throw new InvalidDataException("Missing external evidence array.");
+            return Analyze(stored.PreviousSession, events, external, incidentDirectory, writeOutputs: false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return stored with
+            {
+                Hypotheses = [new FailureHypothesis(FailureMode.Unclassified, 0, 0, [])],
+                OpenQuestions = stored.OpenQuestions.Concat(new[] {
+                    "Saved ranking was not reused: raw evidence could not be revalidated. Original files are unchanged. " + ex.GetType().Name
+                }).ToArray()
+            };
+        }
     }
 
     private static SessionFacts BuildFacts(

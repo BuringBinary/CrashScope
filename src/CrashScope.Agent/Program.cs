@@ -86,7 +86,7 @@ if (previousIncident is not null)
     Console.WriteLine("Detected previous unclean session; incident evidence collected.");
     var leading = previousIncident.Hypotheses.FirstOrDefault(h => h.Score > 0);
     Console.WriteLine($"Preliminary ranking: {leading?.Mode.ToString() ?? "Unclassified"} " +
-                      $"(confidence {leading?.Confidence ?? 0:P0}). Details: summary.md");
+                      $"(heuristic evidence support {leading?.Confidence ?? 0:P0}; not probability). Details: summary.md");
 }
 
 engine.StatusChanged += () =>

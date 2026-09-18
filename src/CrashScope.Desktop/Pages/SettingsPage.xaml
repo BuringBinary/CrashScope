@@ -71,12 +71,12 @@
                     <TextBlock Text="仅启动 Desktop，不自动开始录制；录制需手动开始或由 Agent 负责" FontSize="11"
                                Foreground="{StaticResource TextSecondary}" Margin="24,0,0,12" TextWrapping="Wrap"/>
 
-                    <CheckBox x:Name="MinimizeToTrayCheckBox" Content="最小化到托盘"
+                    <CheckBox x:Name="MinimizeToTrayCheckBox" Content="最小化时隐藏到托盘（默认最小化到任务栏）"
                               Foreground="{StaticResource TextPrimary}" FontSize="13" Margin="0,0,0,8"
-                              IsChecked="True"/>
+                              Checked="TrayBehaviourCheckBox_Changed" Unchecked="TrayBehaviourCheckBox_Changed"/>
                     <CheckBox x:Name="CloseToTrayCheckBox" Content="关闭时最小化到托盘而非退出"
                               Foreground="{StaticResource TextPrimary}" FontSize="13" Margin="0,0,0,12"
-                              IsChecked="True"/>
+                              Checked="TrayBehaviourCheckBox_Changed" Unchecked="TrayBehaviourCheckBox_Changed"/>
 
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <Button Content="打开数据目录" Width="120" Height="32" FontSize="12"

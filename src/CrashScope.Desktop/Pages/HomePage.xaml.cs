@@ -18,7 +18,6 @@ public partial class HomePage : UserControl
     private int _cpuModelIdx = -1;
     private int _gpuModelIdx = -1;
     private int _ramUsedIdx = -1;
-    private int _ramTotalIdx = -1;
 
     public event Action<string>? NavigateRequested;
 
@@ -26,15 +25,16 @@ public partial class HomePage : UserControl
     {
         InitializeComponent();
         _service = App.Current.Service;
-        _service.StatusChanged += OnStatusChanged;
-        _service.SensorUpdated += OnSensorUpdated;
-        BuildSensorMap();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _service.StatusChanged -= OnStatusChanged;
+        _service.StatusChanged += OnStatusChanged;
+        _service.SensorUpdated -= OnSensorUpdated;
+        _service.SensorUpdated += OnSensorUpdated;
         RefreshAll();
     }
 
@@ -46,26 +46,26 @@ public partial class HomePage : UserControl
 
     private void BuildSensorMap()
     {
-        var catalog = _service.SensorCatalog;
-        for (int i = 0; i < catalog.Count; i++)
-        {
-            var sensorName = catalog[i].SensorName.ToLowerInvariant();
-            var hwType = catalog[i].HardwareType.ToLowerInvariant();
-            if (hwType.Contains("cpu") && sensorName.Contains("temperature")) _cpuModelIdx = i;
-            else if (hwType.Contains("gpu")) _gpuModelIdx = i;
-            else if (sensorName.ToLower().Contains("memory") && sensorName.ToLower().Contains("used")) _ramUsedIdx = i;
-            else if (sensorName.ToLower().Contains("memory") && sensorName.ToLower().Contains("total")) _ramTotalIdx = i;
-        }
+        var map = DesktopSensorMap.Build(_service.SensorCatalog);
+        _cpuModelIdx = map.CpuModel;
+        _gpuModelIdx = map.GpuModel;
+        _ramUsedIdx = map.RamUsed;
     }
 
     private void OnStatusChanged()
     {
-        Dispatcher.InvokeAsync(RefreshAll);
+        Dispatcher.InvokeAsync(() => { if (IsLoaded) RefreshAll(); });
     }
 
     private void OnSensorUpdated(IReadOnlyList<float?> values)
     {
-        Dispatcher.InvokeAsync(() => RefreshHardware(values));
+        var catalog = _service.SensorCatalog;
+        var session = _service.CurrentSession?.SessionId;
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (IsLoaded && ReferenceEquals(catalog, _service.SensorCatalog) && session == _service.CurrentSession?.SessionId)
+                RefreshHardware(values);
+        });
     }
 
     private void RefreshAll()
@@ -116,36 +116,32 @@ public partial class HomePage : UserControl
 
     private void RefreshHardware(IReadOnlyList<float?>? values)
     {
-        if (_service.SensorCatalog.Count == 0)
-        {
-            CpuText.Text = "CPU: Detecting...";
-            GpuText.Text = "GPU: Detecting...";
-            RamText.Text = "RAM: --";
-            return;
-        }
+        BuildSensorMap();
+        var catalog = _service.SensorCatalog;
+        var missing = _service.IsRecording ? "Unavailable" : "Not recording";
+        CpuText.Text = "CPU: " + (_cpuModelIdx >= 0 ? catalog[_cpuModelIdx].HardwareName : missing);
+        GpuText.Text = "GPU: " + (_gpuModelIdx >= 0 ? catalog[_gpuModelIdx].HardwareName : missing);
+        if (values is not null && _ramUsedIdx >= 0 && _ramUsedIdx < values.Count && values[_ramUsedIdx] is { } used)
+            RamText.Text = $"RAM Used: {used:F1} GiB";
+        else if (!_service.IsRecording || _ramUsedIdx < 0)
+            RamText.Text = "RAM: " + missing;
+        RefreshCollectionHealth();
+    }
 
-        if (_cpuModelIdx >= 0)
-            CpuText.Text = $"CPU: {_service.SensorCatalog[_cpuModelIdx].HardwareName} - {_service.SensorCatalog[_cpuModelIdx].SensorName}";
-        else
-            CpuText.Text = $"CPU: {_service.SensorCatalog.Count} sensors detected";
-
-        if (_gpuModelIdx >= 0)
-            GpuText.Text = $"GPU: {_service.SensorCatalog[_gpuModelIdx].HardwareName} - {_service.SensorCatalog[_gpuModelIdx].SensorName}";
-        else
-            GpuText.Text = "GPU: Detecting...";
-
-        if (values != null && _ramUsedIdx >= 0 && _ramUsedIdx < values.Count)
-        {
-            var used = values[_ramUsedIdx];
-            if (used.HasValue)
-                RamText.Text = $"RAM Used: {used.Value:F0} MB";
-        }
+    private void RefreshCollectionHealth()
+    {
+        var health = _service.CollectorHealth;
+        CollectionHealthText.Text = !_service.IsRecording ? "Collection: stopped (no live readings)"
+            : health.Count == 0 ? "Collection: status not yet available"
+            : "Collection: " + string.Join(" · ", health.Select(h => $"{h.Collector}: {h.Status}"));
+        CollectionHealthText.ToolTip = health.Count == 0 ? "Start recording to inspect collector health."
+            : string.Join("\n", health.Select(h => $"{h.Collector}: {h.Detail}"));
     }
 
     private void RefreshDataRoot()
     {
         DataRootText.Text = $"Data: {_service.RootDirectory}";
-        ElevationText.Text = $"Privilege: {(_service.IsElevated ? "Administrator" : "Standard user")} | Ver: {Environment.Version}";
+        ElevationText.Text = $"Privilege: {(_service.IsElevated ? "Administrator" : "Standard user")} | App: {typeof(AppService).Assembly.GetName().Version} | Runtime: {Environment.Version}";
     }
 
     private void RefreshIncidents()
@@ -179,9 +175,21 @@ public partial class HomePage : UserControl
     {
         CheckButton.IsEnabled = false;
         CheckButton.Content = "检查中...";
-        var analysis = await Task.Run(_service.CheckPreviousUncleanSession);
-        CheckButton.Content = "检查上次异常";
-        CheckButton.IsEnabled = true;
+
+        IncidentAnalysis? analysis;
+        try
+        {
+            analysis = await Task.Run(_service.CheckPreviousUncleanSession);
+        }
+        finally
+        {
+            // Without finally a throw would strand the button greyed out at "检查中..."
+            // until the page is rebuilt. AppService swallows today, but the guarantee
+            // belongs here, next to the code that disabled the button.
+            CheckButton.Content = "检查上次异常";
+            CheckButton.IsEnabled = true;
+        }
+
         if (analysis != null)
         {
             NavigateRequested?.Invoke("Incidents");

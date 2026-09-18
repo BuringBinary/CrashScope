@@ -175,6 +175,7 @@ public static class CrashEvidenceCollector
         CopyTailFile(Path.Combine(previousSessionDirectory, "etw-whea.jsonl"), Path.Combine(incidentDirectory, "etw-whea-tail.jsonl"), 500);
         CopyFileIfExists(Path.Combine(previousSessionDirectory, "sensor-catalog.json"), Path.Combine(incidentDirectory, "sensor-catalog.json"));
         CopyFileIfExists(Path.Combine(previousSessionDirectory, "driver-inventory.json"), Path.Combine(incidentDirectory, "driver-inventory.json"));
+        CopyFileIfExists(Path.Combine(previousSessionDirectory, "collector-health.json"), Path.Combine(incidentDirectory, "collector-health.json"));
     }
 
     private static void CopyTailFile(string source, string destination, int lines)

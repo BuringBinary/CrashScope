@@ -79,7 +79,8 @@ public sealed class DiagnosticExportService
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         sb.AppendLine($"Incident: {incident.Timestamp:yyyy-MM-dd HH:mm:ss}");
         sb.AppendLine($"Classification: {incident.Mode}");
-        sb.AppendLine($"Confidence: {incident.Confidence:P0}");
+        sb.AppendLine("The UI ranking is re-evaluated read-only. Original evidence files may retain an older saved ranking; they are preserved for provenance.");
+        sb.AppendLine($"Evidence support (heuristic, not probability): {incident.Confidence:P0}");
         sb.AppendLine();
 
         if (redact)
@@ -93,7 +94,7 @@ public sealed class DiagnosticExportService
         sb.AppendLine("--- Hypothesis Ranking ---");
         foreach (var h in incident.Analysis.Hypotheses.OrderByDescending(h => h.Score))
         {
-            sb.AppendLine($"  {h.Mode}: Score={h.Score:+0;-#}, Confidence={h.Confidence:P0}");
+            sb.AppendLine($"  {h.Mode}: Score={h.Score:+0;-#}, EvidenceSupport={h.Confidence:P0}");
             foreach (var evidence in h.Evidence)
             {
                 var prefix = evidence.Supports ? "+" : "-";

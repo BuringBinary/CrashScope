@@ -97,4 +97,48 @@ public sealed class SensorHistoryBufferTests
             Assert.True(series[i].Y > series[i - 1].Y);
         }
     }
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(int.MinValue)]
+    [InlineData(2)]
+    [InlineData(int.MaxValue)]
+    public void GetSeries_InvalidIndexWithData_ReturnsEmpty(int index)
+    {
+        var buffer = new SensorHistoryBuffer();
+        buffer.Push([1f, 2f]);
+        Assert.Empty(buffer.GetSeries(index));
+    }
+
+    [Fact]
+    public void GetSeries_MixedLengthsAndNonFiniteValues_SkipsUnavailable()
+    {
+        var buffer = new SensorHistoryBuffer();
+        buffer.Push([]);
+        buffer.Push([1f]);
+        buffer.Push([1f, null]);
+        buffer.Push([1f, float.NaN]);
+        buffer.Push([1f, float.PositiveInfinity]);
+        buffer.Push([1f, 5f]);
+        Assert.Equal(5, Assert.Single(buffer.GetSeries(1)).Y);
+    }
+
+    [Fact]
+    public void Push_CopiesInput_AndClearDiscardsPriorSession()
+    {
+        var buffer = new SensorHistoryBuffer();
+        float?[] values = [1f];
+        buffer.Push(values);
+        values[0] = 99f;
+        Assert.Equal(1, Assert.Single(buffer.GetSeries(0)).Y);
+        buffer.Clear();
+        Assert.Empty(buffer.GetHistory());
+        buffer.Push([2f]);
+        Assert.Equal(2, Assert.Single(buffer.GetSeries(0)).Y);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Constructor_RejectsNonPositiveCapacity(int capacity)
+        => Assert.Throws<ArgumentOutOfRangeException>(() => new SensorHistoryBuffer(capacity));
 }

@@ -244,74 +244,23 @@ public sealed class HypothesisEvaluatorEtwTests
 
     // ───── v0.9 GPU VRAM ─────
 
-    [Fact]
-    public void VramExhaustion_Over10GB_GetsStrongEvidence()
+    [Theory]
+    [InlineData(11, 0.5)]
+    [InlineData(8, 0.5)]
+    [InlineData(2, 11)]
+    [InlineData(30.8, 0.012)]
+    public void UnvalidatedProcessGpuMemory_DoesNotScoreHardFreeze(double dedicatedGiB, double sharedGiB)
     {
-        var gpuMemoryEvents = new GpuMemorySample[]
-        {
-            new(Now.AddSeconds(-30),
-            [
-                new ProcessGpuMemory(1234, "game.exe", 11L * 1024 * 1024 * 1024, 512L * 1024 * 1024),
-                new ProcessGpuMemory(5678, "chrome.exe", 1L * 1024 * 1024 * 1024, 256L * 1024 * 1024)
-            ])
-        };
-
-        var result = HypothesisEvaluator.Evaluate(
-            [], [], [], DefaultFacts, GraphicsContext.Empty,
-            null, null, null, null, gpuMemoryEvents, null, null);
-
-        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
-        Assert.NotNull(freeze);
-        var vramEvidence = freeze.Evidence.FirstOrDefault(e =>
-            e.Description.Contains("VRAM exhaustion") && e.Supports);
-        Assert.NotNull(vramEvidence);
-        Assert.Equal(3, vramEvidence.Weight);
-    }
-
-    [Fact]
-    public void VramHigh_Over7GB_GetsModerateEvidence()
-    {
-        var gpuMemoryEvents = new GpuMemorySample[]
-        {
-            new(Now.AddSeconds(-30),
-            [
-                new ProcessGpuMemory(1234, "game.exe", 8L * 1024 * 1024 * 1024, 512L * 1024 * 1024)
-            ])
-        };
-
-        var result = HypothesisEvaluator.Evaluate(
-            [], [], [], DefaultFacts, GraphicsContext.Empty,
-            null, null, null, null, gpuMemoryEvents, null, null);
-
-        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
-        Assert.NotNull(freeze);
-        var vramEvidence = freeze.Evidence.FirstOrDefault(e =>
-            e.Description.Contains("approaching VRAM limit") && e.Supports);
-        Assert.NotNull(vramEvidence);
-        Assert.Equal(2, vramEvidence.Weight);
-    }
-
-    [Fact]
-    public void VramTotalMemory_Over12GB_GetsEvidence()
-    {
-        var gpuMemoryEvents = new GpuMemorySample[]
-        {
-            new(Now.AddSeconds(-30),
-            [
-                new ProcessGpuMemory(1234, "game.exe", 2L * 1024 * 1024 * 1024, 11L * 1024 * 1024 * 1024)
-            ])
-        };
-
-        var result = HypothesisEvaluator.Evaluate(
-            [], [], [], DefaultFacts, GraphicsContext.Empty,
-            null, null, null, null, gpuMemoryEvents, null, null);
-
-        var freeze = result.Hypotheses.FirstOrDefault(h => h.Mode == FailureMode.HardFreeze);
-        Assert.NotNull(freeze);
-        var vramEvidence = freeze.Evidence.FirstOrDefault(e =>
-            e.Description.Contains("shared memory spillover") && e.Supports);
-        Assert.NotNull(vramEvidence);
-        Assert.Equal(2, vramEvidence.Weight);
+        var samples = new[] { new GpuMemorySample(Now, [
+            new ProcessGpuMemory(20572, "GameViewerServer", (long)(dedicatedGiB * 1073741824), (long)(sharedGiB * 1073741824))
+        ]) };
+        var result = HypothesisEvaluator.Evaluate([], [], [], DefaultFacts, GraphicsContext.Empty,
+            gpuMemoryEvents: samples);
+        Assert.Equal(FailureMode.Unclassified, result.Hypotheses[0].Mode);
+        var freeze = result.Hypotheses.Single(h => h.Mode == FailureMode.HardFreeze);
+        Assert.True(freeze.Score <= 0);
+        Assert.Equal(0, freeze.Confidence);
+        Assert.DoesNotContain(freeze.Evidence, e => e.Supports && e.Description.Contains("VRAM"));
     }
 
     [Fact]
