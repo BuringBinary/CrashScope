@@ -190,3 +190,22 @@ VRAM 耗尽、系统内存压力、DWM 渲染回退——这些都是 AMD 显卡
 - [x] `TimelineBuilder` 新增 DWM 类别
 - [x] `BuildOpenQuestions` 新增 DWM 诊断问题
 - [ ] validate on the target AMD machine
+
+## v0.10 — Toolbox T1: Raw Sensors & Hardware Overview (in progress)
+
+- [x] `RawSensorView` (Core)：共享展示逻辑 — 按 Id 取值、搜索/类型过滤、传感器类型单位提示
+- [x] `RawSensorWindow` (Desktop)：独立原始传感器窗口 — 分组/搜索/Topmost/滚动保持/录制状态语义
+- [x] Hardware Overview 深化：WMI 处理器/多 GPU 驱动/内存条/主板 BIOS 标识（缓存、best-effort）
+- [x] 修复 Hardware Overview 内嵌列表过滤下标错位 bug
+- [x] RawSensorViewTests 8 项；发布门禁 237 → 245
+- [x] 磁盘健康只读页：DiskHealthView + DiskHealthPage + StorageUpdated 事件接线；门禁 245 → 252
+- [x] 桌面悬浮信息条：FloatingBarView + FloatingBarWindow + 位置记忆；网速自适应单位；门禁 252 → 261
+- [x] 网速测试页：SpeedTestView + SpeedTestPage（延迟/下载/上传，诚实口径）；门禁 261 → 273
+- [ ] FPS 调研（T1 其余）
+- [ ] validate on the target AMD machine
+
+## v0.9.2-test 测试包（2026-09-18）
+
+- [x] 第二份独立测试包 0.9.2-test.20260918195240：261 门禁 + 975 文件核验 + 54 受保护文件未变
+- [x] 第三份独立测试包 0.9.2-test.20260918203700（含网速测试页）：273 门禁 + 975 文件核验 + 54 受保护文件未变；W3 部署用这一份
+- [ ] 实机切换与 5-10 分钟验收（W3，进行中）

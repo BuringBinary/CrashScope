@@ -112,13 +112,14 @@ try {
         'SensorIndicesTests','ReliabilityConvergenceTests','TimelineTelemetryTests','CrossIncidentAnalyzerTests','IncidentAccessTests',
         'SessionJournalTests','RetentionServiceTests','CrashSafeJsonlWriterTests','DiagnosticExportRedactionTests',
         'DisplayTopologyTrackerTests','EtwModelJsonRoundtripTests','GpuTransitionDetectorTests','GraphicsContextBuilderTests',
-        'ModelsJsonRoundtripTests','RpcFramingTests','TimelineBuilderEtwTests','CollectionChainTests')
+        'ModelsJsonRoundtripTests','RpcFramingTests','TimelineBuilderEtwTests','CollectionChainTests','ProcessTrackerTests',
+        'P0CollectionSafetyTests','P1DiagnosticReliabilityTests','RawSensorViewTests','DiskHealthViewTests','FloatingBarViewTests','SpeedTestViewTests')
     $filter = ($classes | ForEach-Object { 'FullyQualifiedName~' + $_ }) -join '|'
     Invoke-Dotnet @('test',(Join-Path $repo 'test\CrashScope.Core.Tests\CrashScope.Core.Tests.csproj'),'-c','Release',
         '--filter',$filter,'--results-directory',$logs,'--logger','trx;LogFileName=package-regression.trx') 'regression.log'
     [xml]$trx = Get-Content (Join-Path $logs 'package-regression.trx') -Raw
     $counts = $trx.SelectSingleNode('//*[local-name()="Counters"]')
-    if (-not $counts -or [int]$counts.failed -ne 0 -or [int]$counts.total -lt 237 -or [int]$counts.passed -ne [int]$counts.total) {
+    if (-not $counts -or [int]$counts.failed -ne 0 -or [int]$counts.total -lt 282 -or [int]$counts.passed -ne [int]$counts.total) {
         throw 'Regression counts are missing, failing, skipped, or unexpectedly incomplete.'
     }
 
