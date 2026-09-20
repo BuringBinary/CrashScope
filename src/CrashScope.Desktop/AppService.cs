@@ -45,6 +45,7 @@ public sealed class AppService : IDisposable
 
     public event Action? StatusChanged;
     public event Action<IReadOnlyList<float?>>? SensorUpdated;
+    public event Action<StorageSample>? StorageUpdated;
     public event Action<ForegroundEvent>? ForegroundChanged;
     public event Action<ProcessEvent>? ProcessEventReceived;
     public event Action<GpuEngineSample>? GpuEngineUpdated;
@@ -69,6 +70,7 @@ public sealed class AppService : IDisposable
             _engine = new RecorderEngine(sessionDirectory, _stateDirectory, _incidentsRoot);
             _engine.StatusChanged += () => StatusChanged?.Invoke();
             _engine.SensorUpdated += v => SensorUpdated?.Invoke(v);
+            _engine.StorageUpdated += s => StorageUpdated?.Invoke(s);
             _engine.ForegroundChanged += e => ForegroundChanged?.Invoke(e);
             _engine.ProcessEventReceived += e => ProcessEventReceived?.Invoke(e);
             _engine.GpuEngineUpdated += e => GpuEngineUpdated?.Invoke(e);

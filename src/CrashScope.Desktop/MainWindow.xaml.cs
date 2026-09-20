@@ -304,6 +304,8 @@ public partial class MainWindow : Window
             "Dashboard" => new DashboardPage(),
             "LiveMonitor" => new LiveMonitorPage(),
             "Hardware" => new HardwareOverviewPage(),
+            "DiskHealth" => new DiskHealthPage(),
+            "SpeedTest" => new SpeedTestPage(),
             "AgentMonitor" => new AgentMonitorPage(),
             "AgentIncidents" => new AgentIncidentsPage(),
             "AgentActions" => new AgentActionsPage(),

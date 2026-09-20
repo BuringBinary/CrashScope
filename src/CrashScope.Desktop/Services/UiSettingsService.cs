@@ -20,6 +20,8 @@ public class UiSettingsService
     private const string MinimizeToTrayKey = "minimizeToTray";
     private const string CloseToTrayKey = "closeToTray";
     private const string SchemaKey = "uiSettingsSchema";
+    private const string FloatingBarLeftKey = "floatingBarLeft";
+    private const string FloatingBarTopKey = "floatingBarTop";
 
     /// <summary>
     /// Schema 2 changed the <see cref="MinimizeToTray"/> default from true to false.
@@ -60,6 +62,33 @@ public class UiSettingsService
         }
     }
 
+    /// <summary>Last remembered floating-bar X position; null until the bar is moved once.</summary>
+    public double? FloatingBarLeft
+    {
+        get => _floatingBarLeft;
+        set
+        {
+            if (_floatingBarLeft == value) return;
+            _floatingBarLeft = value;
+            Save();
+        }
+    }
+
+    /// <summary>Last remembered floating-bar Y position; null until the bar is moved once.</summary>
+    public double? FloatingBarTop
+    {
+        get => _floatingBarTop;
+        set
+        {
+            if (_floatingBarTop == value) return;
+            _floatingBarTop = value;
+            Save();
+        }
+    }
+
+    private double? _floatingBarLeft;
+    private double? _floatingBarTop;
+
     public UiSettingsService()
     {
         _settingsDir = Path.Combine(
@@ -81,6 +110,11 @@ public class UiSettingsService
 
             if (settings[CloseToTrayKey]?.GetValue<bool>() is bool close)
                 _closeToTray = close;
+
+            if (settings[FloatingBarLeftKey]?.GetValue<double>() is double left)
+                _floatingBarLeft = left;
+            if (settings[FloatingBarTopKey]?.GetValue<double>() is double top)
+                _floatingBarTop = top;
 
             var schema = settings[SchemaKey]?.GetValue<int>() ?? 1;
             if (schema >= CurrentSchema)
@@ -126,6 +160,8 @@ public class UiSettingsService
 
             settings[MinimizeToTrayKey] = _minimizeToTray;
             settings[CloseToTrayKey] = _closeToTray;
+            if (_floatingBarLeft.HasValue) settings[FloatingBarLeftKey] = _floatingBarLeft.Value;
+            if (_floatingBarTop.HasValue) settings[FloatingBarTopKey] = _floatingBarTop.Value;
             // Stamping the schema is what makes the migration in Load() run exactly once.
             settings[SchemaKey] = CurrentSchema;
 

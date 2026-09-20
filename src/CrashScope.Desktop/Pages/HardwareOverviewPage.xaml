@@ -4,10 +4,22 @@
              Background="Transparent">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="0,0,0,24">
-            <TextBlock Text="Hardware Overview" FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}" Margin="0,0,0,4"/>
-            <TextBlock Text="CPU / GPU / RAM / Disk / Mainboard / Display / Network - 只读展示，不修改系统"
-                       FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,20"/>
+            <Grid Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="Hardware Overview" FontSize="24" FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimary}"/>
+                    <TextBlock Text="CPU / GPU / RAM / Disk / Mainboard / Display / Network - 只读展示，不修改系统"
+                               FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="OpenRawSensorsButton" Content="Open Raw Sensor Window"
+                            Style="{StaticResource SecondaryButton}" Height="30" Padding="14,0" Margin="0,0,8,0"
+                            Click="OpenRawSensorsButton_Click"/>
+                    <Button x:Name="OpenFloatingBarButton" Content="Floating Bar"
+                            Style="{StaticResource SecondaryButton}" Height="30" Padding="14,0"
+                            Click="OpenFloatingBarButton_Click"/>
+                </StackPanel>
+            </Grid>
 
             <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>
@@ -68,13 +80,17 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBox x:Name="SearchBox" Width="200" Height="28" Margin="0,0,8,0" TextChanged="SearchBox_TextChanged" />
                         <TextBlock Text="搜索传感器" FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                        <Button x:Name="OpenInWindowButton" Content="Open in window" Height="28" Padding="10,0"
+                                Style="{StaticResource SecondaryButton}" Margin="12,0,0,0"
+                                Click="OpenRawSensorsButton_Click"/>
                     </StackPanel>
                     <ListView x:Name="SensorList" Background="Transparent" BorderThickness="0" Height="300">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Name" Width="300" DisplayMemberBinding="{Binding Name}"/>
-                                <GridViewColumn Header="Value" Width="120" DisplayMemberBinding="{Binding ValueText}"/>
-                                <GridViewColumn Header="Type" Width="100" DisplayMemberBinding="{Binding Type}"/>
+                                <GridViewColumn Header="Sensor" Width="220" DisplayMemberBinding="{Binding Sensor}"/>
+                                <GridViewColumn Header="Value" Width="100" DisplayMemberBinding="{Binding ValueText}"/>
+                                <GridViewColumn Header="Type" Width="90" DisplayMemberBinding="{Binding SensorType}"/>
+                                <GridViewColumn Header="Hardware" Width="150" DisplayMemberBinding="{Binding Group}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
