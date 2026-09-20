@@ -317,6 +317,7 @@ public partial class MainWindow : Window
         };
         _currentPage = content;
         ContentArea.Children.Add(content);
-        StatusBarText.Text = Loc.F("statusbar.pageLoaded", page);
+        var navLabel = Loc.T("nav." + char.ToLowerInvariant(page[0]) + page[1..]);
+        StatusBarText.Text = Loc.F("statusbar.pageLoaded", Converters.IconTextPartConverter.Split(navLabel).Label);
     }
 }
