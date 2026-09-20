@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Reflection;
+using CrashScope.Core.Models;
 using CrashScope.Core.Monitoring;
 using Xunit;
 
@@ -39,19 +39,47 @@ public sealed class ProcessTrackerTests
     [Fact]
     public void Poll_RenamedPid_EmitsStopThenStart()
     {
-        var tracker = new ProcessTracker();
-        tracker.Poll(DateTimeOffset.Now); // establish baseline
-
-        var ourPid = Process.GetCurrentProcess().Id;
-        var previousField = typeof(ProcessTracker).GetField("_previous", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(previousField);
-        var previous = (Dictionary<int, string>)previousField!.GetValue(tracker)!;
-        previous[ourPid] = "DefinitelyNotOurName";
+        IReadOnlyList<ProcessInfo> current = [new(42, "old", DateTimeOffset.Parse("2026-09-19T00:00:00Z"), 100, 80, 5)];
+        var tracker = new ProcessTracker(() => current);
+        tracker.Poll(DateTimeOffset.Now);
+        current = [new(42, "new", DateTimeOffset.Parse("2026-09-19T00:00:00Z"), 200, 90, 6)];
 
         var events = tracker.Poll(DateTimeOffset.Now);
 
-        Assert.Contains(events, e => e.Event == "stop" && e.ProcessId == ourPid && e.ProcessName == "DefinitelyNotOurName");
-        Assert.Contains(events, e => e.Event == "start" && e.ProcessId == ourPid && e.ProcessName != "DefinitelyNotOurName");
+        Assert.Contains(events, e => e.Event == "stop" && e.ProcessId == 42 && e.ProcessName == "old" && e.PrivateBytes == 100);
+        Assert.Contains(events, e => e.Event == "start" && e.ProcessId == 42 && e.ProcessName == "new" && e.PrivateBytes == 200);
+    }
+
+    [Fact]
+    public void Poll_SameNamePidReuse_UsesCreationTimeAndPreservesLastMetrics()
+    {
+        var first = DateTimeOffset.Parse("2026-09-19T00:00:00Z");
+        IReadOnlyList<ProcessInfo> current = [new(42, "game", first, 8L << 30, 2L << 30, 100)];
+        var tracker = new ProcessTracker(() => current);
+        tracker.Poll(DateTimeOffset.Now);
+        current = [new(42, "game", first.AddMinutes(1), 1L << 30, 512L << 20, 30)];
+
+        var events = tracker.Poll(DateTimeOffset.Now);
+
+        var stopped = Assert.Single(events, e => e.Event == "stop");
+        Assert.Equal("pid-reused", stopped.State);
+        Assert.Equal(8L << 30, stopped.PrivateBytes);
+        Assert.Single(events, e => e.Event == "start");
+    }
+
+    [Fact]
+    public void Poll_DisappearedProcess_EmitsLastKnownMemoryAndHandleState()
+    {
+        IReadOnlyList<ProcessInfo> current = [new(7, "game", DateTimeOffset.Now, 1234, 567, 9)];
+        var tracker = new ProcessTracker(() => current);
+        tracker.Poll(DateTimeOffset.Now);
+        current = [];
+
+        var stopped = Assert.Single(tracker.Poll(DateTimeOffset.Now));
+        Assert.Equal("exited-or-inaccessible", stopped.State);
+        Assert.Equal(1234, stopped.PrivateBytes);
+        Assert.Equal(567, stopped.WorkingSetBytes);
+        Assert.Equal(9, stopped.HandleCount);
     }
 }
 

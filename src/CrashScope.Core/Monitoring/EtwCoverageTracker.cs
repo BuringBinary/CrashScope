@@ -4,7 +4,7 @@ public sealed record EtwCoverageSnapshot(
     string Provider, Guid ProviderId, bool Enabled, bool Processing, bool Stopped,
     long ReceivedEvents, long MatchedEvents, long WrittenEvents, long BufferDroppedEvents,
     DateTimeOffset? LastEventAt, DateTimeOffset? LastWrittenAt,
-    string? ErrorKind, string? LastError);
+    string? ErrorKind, string? LastError, long OsLostEvents = 0);
 
 /// <summary>Cumulative coverage, not a claim that absent events establish a healthy machine.</summary>
 internal sealed class EtwCoverageTracker(string provider, Guid providerId)
@@ -21,6 +21,7 @@ internal sealed class EtwCoverageTracker(string provider, Guid providerId)
     public void Matched() { lock (_gate) _state = _state with { MatchedEvents = _state.MatchedEvents + 1 }; }
     public void Written(DateTimeOffset at) { lock (_gate) _state = _state with { WrittenEvents = _state.WrittenEvents + 1, LastWrittenAt = at }; }
     public void Dropped() { lock (_gate) _state = _state with { BufferDroppedEvents = _state.BufferDroppedEvents + 1 }; }
+    public void OsLost(long value) { lock (_gate) _state = _state with { OsLostEvents = Math.Max(0, value) }; }
     public void Error(string operation, Exception ex)
     {
         var denied = ex is UnauthorizedAccessException || ex.HResult == unchecked((int)0x80070005)
@@ -40,8 +41,8 @@ internal sealed class EtwCoverageTracker(string provider, Guid providerId)
     public static string Detail(EtwCoverageSnapshot s) =>
         $"{s.Provider}: enabled={s.Enabled}, processing={s.Processing}, stopped={s.Stopped}; " +
         $"received={s.ReceivedEvents}, matched={s.MatchedEvents}, written={s.WrittenEvents}, " +
-        $"handoffDropped={s.BufferDroppedEvents}. " +
+        $"handoffDropped={s.BufferDroppedEvents}, osLost={s.OsLostEvents}. " +
         (s.LastError ?? (s.WrittenEvents == 0 ? "No matching event was persisted; coverage is not verified." :
             "Matching events were persisted; this does not establish complete event coverage.")) +
-        " Handoff drops are not OS ETW losses; OS loss count is not measured.";
+        " Handoff drops are separate from OS ETW losses.";
 }

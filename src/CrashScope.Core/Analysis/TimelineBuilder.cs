@@ -101,7 +101,13 @@ public static class TimelineBuilder
                     .ToList();
                 foreach (var p in topProcesses)
                 {
-                    var engines = string.Join(", ", p.Engines.Select(e => $"{e.EngineType}:{e.UtilizationPercent:F0}%"));
+                    var engines = string.Join(", ", p.Engines.Select(e =>
+                    {
+                        var adapter = e.AdapterName ?? e.AdapterLuid;
+                        var identity = adapter is null && e.PhysicalAdapterIndex is null ? "unattributed" :
+                            $"{adapter ?? "adapter"}/phys{e.PhysicalAdapterIndex?.ToString() ?? "?"}/eng{e.EngineIndex?.ToString() ?? "?"}";
+                        return $"{e.EngineType}@{identity}:{e.UtilizationPercent:F0}%";
+                    }));
                     entries.Add((graphics.FinalGpuEngines.Timestamp, "GPUEngines",
                         $"{p.ProcessName ?? $"PID {p.ProcessId}"}: {engines}"));
                 }
@@ -119,8 +125,11 @@ public static class TimelineBuilder
                 {
                     var dedicatedGb = p.DedicatedBytes / (1024.0 * 1024.0 * 1024.0);
                     var sharedMb = p.SharedBytes / (1024.0 * 1024.0);
+                    var scope = p.Adapters is { Count: > 0 }
+                        ? $" across {p.Adapters.Count} adapter segment(s)"
+                        : " (legacy/unattributed aggregate)";
                     entries.Add((gm.Timestamp, "GPU-VRAM",
-                        $"{p.ProcessName ?? $"PID {p.ProcessId}"}: {dedicatedGb:F2} GB dedicated + {sharedMb:F0} MB shared"));
+                        $"{p.ProcessName ?? $"PID {p.ProcessId}"}: {dedicatedGb:F2} GB dedicated + {sharedMb:F0} MB shared{scope}"));
                 }
             }
         }

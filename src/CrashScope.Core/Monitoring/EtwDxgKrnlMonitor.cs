@@ -18,7 +18,10 @@ public sealed class EtwDxgKrnlMonitor : IDisposable
     private volatile bool _running;
     public bool IsRunning { get => _running; private set => _running = value; }
     public string? LastError => Coverage.LastError;
-    public EtwCoverageSnapshot Coverage => _coverage.Snapshot();
+    public EtwCoverageSnapshot Coverage
+    {
+        get { RefreshOsLoss(); return _coverage.Snapshot(); }
+    }
     public int BufferedEventCount => _sink?.Count ?? 0;
     public int DroppedEventCount => (int)Math.Min(int.MaxValue, Coverage.BufferDroppedEvents);
     public event Action<EtwDxgKrnlEvent>? EventReceived;
@@ -80,6 +83,7 @@ public sealed class EtwDxgKrnlMonitor : IDisposable
         _cts?.Cancel();
         // Join the processing task before closing its writer. Never mark clean while a callback can still write.
         try { if (_processingTask is not null) _session?.Source.StopProcessing(); } catch (Exception ex) { _coverage.Error("Stop processing failed", ex); }
+        RefreshOsLoss();
         try { _session?.Dispose(); } catch (Exception ex) { _coverage.Error("Session disposal failed", ex); }
         _processingTask?.GetAwaiter().GetResult();
         _session = null;
@@ -89,6 +93,12 @@ public sealed class EtwDxgKrnlMonitor : IDisposable
         _sink?.Dispose();
         _cts?.Dispose();
         _cts = null;
+    }
+
+    private void RefreshOsLoss()
+    {
+        try { if (_session is not null) _coverage.OsLost(_session.EventsLost); }
+        catch { }
     }
 
     private static bool IsInteresting(string taskName, int eventId)

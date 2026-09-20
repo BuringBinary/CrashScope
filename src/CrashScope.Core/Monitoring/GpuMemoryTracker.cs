@@ -1,10 +1,9 @@
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using CrashScope.Core.Models;
 
 namespace CrashScope.Core.Monitoring;
 
-public sealed partial class GpuMemoryTracker : IDisposable
+public sealed class GpuMemoryTracker : IDisposable
 {
     private const string CategoryName = "GPU Process Memory";
     private const string DedicatedCounter = "Dedicated Usage";
@@ -14,6 +13,7 @@ public sealed partial class GpuMemoryTracker : IDisposable
     private readonly Dictionary<string, PerformanceCounter> _dedicatedCounters = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PerformanceCounter> _sharedCounters = new(StringComparer.Ordinal);
     private readonly Dictionary<int, string?> _processNames = new();
+    private readonly GpuAdapterIdentityResolver _adapterResolver = new();
     private int _nameCacheAge;
 
     public bool IsAvailable { get; }
@@ -52,14 +52,11 @@ public sealed partial class GpuMemoryTracker : IDisposable
             _processNames.Clear();
         }
 
-        var byProcess = new Dictionary<int, (long Dedicated, long Shared)>();
+        var byProcess = new Dictionary<int, Dictionary<AdapterKey, AdapterTotals>>();
         foreach (var (instance, dedicatedCtr) in _dedicatedCounters)
         {
-            var match = InstancePattern().Match(instance);
-            if (!match.Success)
+            if (!GpuCounterInstanceParser.TryParse(instance, out var identity))
                 continue;
-
-            var pid = int.Parse(match.Groups[1].Value);
 
             float dedicatedRaw;
             try
@@ -88,26 +85,29 @@ public sealed partial class GpuMemoryTracker : IDisposable
             if (totalBytes <= 0)
                 continue;
 
-            if (byProcess.TryGetValue(pid, out var existing))
-            {
-                byProcess[pid] = (existing.Dedicated + dedicatedBytes, existing.Shared + sharedBytes);
-            }
-            else
-            {
-                byProcess[pid] = (dedicatedBytes, sharedBytes);
-            }
+            if (!byProcess.TryGetValue(identity.ProcessId, out var adapters))
+                byProcess[identity.ProcessId] = adapters = new();
+            var key = new AdapterKey(identity.AdapterLuid, identity.PhysicalAdapterIndex);
+            var existing = adapters.GetValueOrDefault(key);
+            adapters[key] = new AdapterTotals(existing.Dedicated + dedicatedBytes, existing.Shared + sharedBytes);
         }
 
         if (byProcess.Count == 0)
             return null;
 
         var processes = byProcess
-            .Where(kv => kv.Value.Dedicated + kv.Value.Shared > 0)
-            .Select(kv => new ProcessGpuMemory(
-                kv.Key,
-                ResolveProcessName(kv.Key),
-                kv.Value.Dedicated,
-                kv.Value.Shared))
+            .Select(kv =>
+            {
+                var adapters = kv.Value
+                    .Select(a => new GpuAdapterMemory(a.Key.Luid, a.Key.PhysicalAdapterIndex,
+                        _adapterResolver.Resolve(a.Key.Luid), a.Value.Dedicated, a.Value.Shared))
+                    .OrderBy(a => a.PhysicalAdapterIndex ?? int.MaxValue)
+                    .ThenBy(a => a.AdapterLuid, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                return new ProcessGpuMemory(kv.Key, ResolveProcessName(kv.Key),
+                    adapters.Sum(a => a.DedicatedBytes), adapters.Sum(a => a.SharedBytes), adapters);
+            })
+            .Where(p => p.DedicatedBytes + p.SharedBytes > 0)
             .OrderByDescending(p => p.DedicatedBytes + p.SharedBytes)
             .ToList();
 
@@ -131,7 +131,7 @@ public sealed partial class GpuMemoryTracker : IDisposable
 
         foreach (var instance in instances)
         {
-            if (_dedicatedCounters.ContainsKey(instance) || !InstancePattern().IsMatch(instance))
+            if (_dedicatedCounters.ContainsKey(instance) || !GpuCounterInstanceParser.TryParse(instance, out _))
                 continue;
 
             try
@@ -174,6 +174,6 @@ public sealed partial class GpuMemoryTracker : IDisposable
         _processNames.Clear();
     }
 
-    [GeneratedRegex(@"^pid_(\d+)_.+$")]
-    private static partial Regex InstancePattern();
+    private readonly record struct AdapterKey(string? Luid, int? PhysicalAdapterIndex);
+    private readonly record struct AdapterTotals(long Dedicated, long Shared);
 }

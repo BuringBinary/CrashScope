@@ -1,10 +1,9 @@
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using CrashScope.Core.Models;
 
 namespace CrashScope.Core.Monitoring;
 
-public sealed partial class GpuEngineTracker : IDisposable
+public sealed class GpuEngineTracker : IDisposable
 {
     private const string CategoryName = "GPU Engine";
     private const string CounterName = "Utilization Percentage";
@@ -12,10 +11,13 @@ public sealed partial class GpuEngineTracker : IDisposable
 
     private readonly Dictionary<string, PerformanceCounter> _counters = new(StringComparer.Ordinal);
     private readonly Dictionary<int, string?> _processNames = new();
+    private readonly GpuAdapterIdentityResolver _adapterResolver = new();
     private int _nameCacheAge;
     private bool _disposed;
 
     public bool IsAvailable { get; }
+    public string HealthStatus { get; private set; } = "AwaitingSample";
+    public string HealthDetail { get; private set; } = "Waiting for GPU engine counters.";
 
     public GpuEngineTracker()
     {
@@ -29,22 +31,22 @@ public sealed partial class GpuEngineTracker : IDisposable
         }
     }
 
-    public GpuEngineSample? Capture(DateTimeOffset now)
+    public GpuEngineSample Capture(DateTimeOffset now)
     {
         if (_disposed)
-            return null;
+            return Status(now, "Stopped", 0, "Tracker is disposed.");
 
         if (!IsAvailable)
-            return null;
+            return Status(now, "Unavailable", 0, "GPU Engine performance-counter category is unavailable.");
 
         string[] instances;
         try
         {
             instances = new PerformanceCounterCategory(CategoryName).GetInstanceNames();
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            return Status(now, "Error", 0, $"Counter enumeration failed: {ex.GetType().Name}: {ex.Message}");
         }
 
         SyncCounters(instances);
@@ -54,11 +56,11 @@ public sealed partial class GpuEngineTracker : IDisposable
             _processNames.Clear();
         }
 
-        var byProcess = new Dictionary<int, Dictionary<string, float>>();
+        var byProcess = new Dictionary<int, Dictionary<EngineKey, float>>();
         foreach (var (instance, counter) in _counters)
         {
-            var match = InstancePattern().Match(instance);
-            if (!match.Success)
+            if (!GpuCounterInstanceParser.TryParse(instance, out var identity)
+                || string.IsNullOrWhiteSpace(identity.EngineType))
                 continue;
 
             float value;
@@ -75,18 +77,21 @@ public sealed partial class GpuEngineTracker : IDisposable
             if (value < 0.5f)
                 continue;
 
-            var pid = int.Parse(match.Groups[1].Value);
-            var engineType = match.Groups[2].Value;
-            if (!byProcess.TryGetValue(pid, out var engines))
+            if (!byProcess.TryGetValue(identity.ProcessId, out var engines))
             {
-                engines = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
-                byProcess[pid] = engines;
+                engines = new Dictionary<EngineKey, float>();
+                byProcess[identity.ProcessId] = engines;
             }
-            engines[engineType] = engines.GetValueOrDefault(engineType) + value;
+            var key = new EngineKey(identity.AdapterLuid, identity.PhysicalAdapterIndex,
+                identity.EngineIndex, identity.EngineType);
+            // Duplicate instances for the same physical engine are an enumeration
+            // artifact. Preserve one engine percentage instead of summing adapters.
+            engines[key] = Math.Max(engines.GetValueOrDefault(key), value);
         }
 
         if (byProcess.Count == 0)
-            return null;
+            return Status(now, "Idle", instances.Length,
+                $"Enumerated {instances.Length} counter instance(s); no engine exceeded the 0.5% activity threshold.");
 
         var processes = byProcess
             .Select(kv => new ProcessGpuUsage(
@@ -94,12 +99,22 @@ public sealed partial class GpuEngineTracker : IDisposable
                 ResolveProcessName(kv.Key),
                 kv.Value
                     .OrderByDescending(e => e.Value)
-                    .Select(e => new EngineUsage(e.Key, e.Value))
+                    .Select(e => new EngineUsage(e.Key.EngineType, e.Value, e.Key.Luid,
+                        e.Key.PhysicalAdapterIndex, e.Key.EngineIndex, _adapterResolver.Resolve(e.Key.Luid)))
                     .ToList()))
             .OrderByDescending(p => p.Engines.Sum(e => e.UtilizationPercent))
             .ToList();
 
-        return new GpuEngineSample(now, processes);
+        HealthStatus = "Observed";
+        HealthDetail = $"Captured {processes.Count} active process(es) from {instances.Length} counter instance(s).";
+        return new GpuEngineSample(now, processes, HealthStatus, instances.Length);
+    }
+
+    private GpuEngineSample Status(DateTimeOffset now, string status, int instances, string detail)
+    {
+        HealthStatus = status;
+        HealthDetail = detail;
+        return new GpuEngineSample(now, [], status, instances, status == "Error" ? detail : null);
     }
 
     private void SyncCounters(string[] instances)
@@ -114,7 +129,8 @@ public sealed partial class GpuEngineTracker : IDisposable
 
         foreach (var instance in instances)
         {
-            if (_counters.ContainsKey(instance) || !InstancePattern().IsMatch(instance))
+            if (_counters.ContainsKey(instance) || !GpuCounterInstanceParser.TryParse(instance, out var identity)
+                || string.IsNullOrWhiteSpace(identity.EngineType))
                 continue;
 
             try
@@ -160,6 +176,9 @@ public sealed partial class GpuEngineTracker : IDisposable
         _processNames.Clear();
     }
 
-    [GeneratedRegex(@"^pid_(\d+)_.+engtype_(.+)$")]
-    private static partial Regex InstancePattern();
+    private readonly record struct EngineKey(
+        string? Luid,
+        int? PhysicalAdapterIndex,
+        int? EngineIndex,
+        string EngineType);
 }

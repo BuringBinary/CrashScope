@@ -17,7 +17,14 @@ public sealed class EtwRealTimeMonitor : IDisposable
     private bool _started;
     private volatile bool _running;
     public bool IsRunning { get => _running; private set => _running = value; }
-    public IReadOnlyList<EtwCoverageSnapshot> Coverage => _providers.Select(p => _coverage[p.ProviderGuid].Snapshot()).ToArray();
+    public IReadOnlyList<EtwCoverageSnapshot> Coverage
+    {
+        get
+        {
+            RefreshOsLoss();
+            return _providers.Select(p => _coverage[p.ProviderGuid].Snapshot()).ToArray();
+        }
+    }
     public string? LastError => Coverage.FirstOrDefault(c => c.LastError is not null)?.LastError;
     public int DroppedEventCount => (int)Math.Min(int.MaxValue, Coverage.Sum(c => c.BufferDroppedEvents));
     public event Action<EtwProviderEvent>? EventReceived;
@@ -113,6 +120,7 @@ public sealed class EtwRealTimeMonitor : IDisposable
     {
         _cts?.Cancel();
         try { if (_processingTask is not null) _session?.Source.StopProcessing(); } catch (Exception ex) { ProcessingError(ex); }
+        RefreshOsLoss();
         try { _session?.Dispose(); } catch (Exception ex) { ProcessingError(ex); }
         _processingTask?.GetAwaiter().GetResult();
         _session = null;
@@ -122,6 +130,17 @@ public sealed class EtwRealTimeMonitor : IDisposable
         foreach (var sink in _sinks.Values) sink.Dispose();
         _cts?.Dispose();
         _cts = null;
+    }
+
+    private void RefreshOsLoss()
+    {
+        try
+        {
+            if (_session is null) return;
+            var lost = _session.EventsLost;
+            foreach (var coverage in _coverage.Values) coverage.OsLost(lost);
+        }
+        catch { }
     }
 
     private static string? BuildDetail(TraceEvent traceEvent)

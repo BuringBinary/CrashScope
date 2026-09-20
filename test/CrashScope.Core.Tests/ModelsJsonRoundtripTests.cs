@@ -156,7 +156,8 @@ public sealed class ModelsJsonRoundtripTests
     [Fact]
     public void ProcessGpuMemory_SerializationRoundtrip()
     {
-        var proc = new ProcessGpuMemory(1234, "game.exe", 8L * 1024 * 1024 * 1024, 512L * 1024 * 1024);
+        var proc = new ProcessGpuMemory(1234, "game.exe", 8L * 1024 * 1024 * 1024, 512L * 1024 * 1024,
+            [new GpuAdapterMemory("0x00000000_0x0000D67B", 1, "Radeon", 8L << 30, 512L << 20)]);
         var json = JsonSerializer.Serialize(proc, _json);
         var roundtrip = JsonSerializer.Deserialize<ProcessGpuMemory>(json, _json);
 
@@ -165,6 +166,9 @@ public sealed class ModelsJsonRoundtripTests
         Assert.Equal("game.exe", roundtrip.ProcessName);
         Assert.Equal(8L * 1024 * 1024 * 1024, roundtrip.DedicatedBytes);
         Assert.Equal(512L * 1024 * 1024, roundtrip.SharedBytes);
+        var adapter = Assert.Single(roundtrip.Adapters!);
+        Assert.Equal("0x00000000_0x0000D67B", adapter.AdapterLuid);
+        Assert.Equal("Radeon", adapter.AdapterName);
     }
 
     [Fact]

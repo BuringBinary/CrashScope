@@ -63,6 +63,28 @@ public sealed class HardwareMonitor : IDisposable
         return values;
     }
 
+    /// <summary>Critical-pressure path: update only GPU devices and retain temperature sensors.</summary>
+    public IReadOnlyList<float?> CaptureGpuTemperatureValues()
+    {
+        var gpuHardware = _bindings
+            .Where(b => b.Hardware.HardwareType.ToString().StartsWith("Gpu", StringComparison.OrdinalIgnoreCase))
+            .Select(b => b.Hardware)
+            .Distinct()
+            .ToArray();
+        foreach (var hardware in gpuHardware)
+            hardware.Update();
+
+        var values = new float?[_bindings.Count];
+        for (var i = 0; i < _bindings.Count; i++)
+        {
+            var binding = _bindings[i];
+            if (binding.Sensor.SensorType == SensorType.Temperature
+                && binding.Hardware.HardwareType.ToString().StartsWith("Gpu", StringComparison.OrdinalIgnoreCase))
+                values[i] = binding.Sensor.Value;
+        }
+        return values;
+    }
+
     private void BindSensors(IHardware hardware)
     {
         foreach (var sensor in hardware.Sensors)

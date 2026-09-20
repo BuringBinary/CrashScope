@@ -18,6 +18,7 @@ public sealed class RecorderEngine : IDisposable
     private long _lastSampleTicks;
     private readonly string _stateDirectory;
     private readonly string _incidentsRoot;
+    private readonly RecorderOptions _options;
 
     private CollectorHealthTracker? _collectorHealth;
     private HardwareMonitor? _hardware;
@@ -30,6 +31,10 @@ public sealed class RecorderEngine : IDisposable
     private GpuMemoryTracker? _gpuMemoryTracker;
     private MemoryPressureTracker? _memoryPressureTracker;
     private DwmStateTracker? _dwmTracker;
+    private ResourceExhaustionEventTracker? _resourceExhaustionTracker;
+    private SelfOverheadTracker? _selfOverheadTracker;
+    private PageFileTracker? _pageFileTracker;
+    private CpuFallbackTracker? _cpuFallbackTracker;
     private EtwDxgKrnlMonitor? _etwMonitor;
     private EtwRealTimeMonitor? _etwSystemMonitor;
 
@@ -45,6 +50,10 @@ public sealed class RecorderEngine : IDisposable
     private CrashSafeJsonlWriter? _gpuMemoryWriter;
     private CrashSafeJsonlWriter? _memoryPressureWriter;
     private CrashSafeJsonlWriter? _dwmStateWriter;
+    private CrashSafeJsonlWriter? _resourceExhaustionWriter;
+    private CrashSafeJsonlWriter? _selfOverheadWriter;
+    private CrashSafeJsonlWriter? _pageFileWriter;
+    private CrashSafeJsonlWriter? _cpuFallbackWriter;
 
     private CancellationTokenSource? _cts;
     private Task? _recordingTask;
@@ -57,6 +66,10 @@ public sealed class RecorderEngine : IDisposable
     private int _powerCounter;
     private int _etwDrainCounter;
     private int _retentionCounter;
+    private int _selfOverheadCounter;
+    private int _pageFileCounter;
+    private CommitPressureLevel _commitPressureLevel;
+    private bool _etwStoppedForPressure;
 
     /// <summary>
     /// Set by Stop() before anything is disposed so an in-flight Tick() bails out instead
@@ -71,17 +84,20 @@ public sealed class RecorderEngine : IDisposable
     public RecorderEngine(
         string sessionDirectory,
         string stateDirectory,
-        string incidentsRoot)
+        string incidentsRoot,
+        RecorderOptions? options = null)
     {
         _sessionDirectoryPrefix = Path.GetFullPath(sessionDirectory);
         _sessionDirectory = _sessionDirectoryPrefix;
         _stateDirectory = stateDirectory;
         _incidentsRoot = incidentsRoot;
+        _options = options ?? new RecorderOptions();
+        _options.Validate();
     }
 
     // Injection seam for deterministic lifecycle tests; production always uses the real collectors.
     internal RecorderEngine(string sessionDirectory, string stateDirectory, string incidentsRoot, RecorderRuntimeHooks hooks)
-        : this(sessionDirectory, stateDirectory, incidentsRoot) => _hooks = hooks;
+        : this(sessionDirectory, stateDirectory, incidentsRoot, options: null) => _hooks = hooks;
 
     public IReadOnlyList<CollectorHealth> CollectorHealth => _collectorHealth?.Snapshot() ?? [];
     public RecorderState State => _state;
@@ -115,6 +131,7 @@ public sealed class RecorderEngine : IDisposable
     public event Action<GpuMemorySample>? GpuMemoryUpdated;
     public event Action<MemoryPressureSample>? MemoryPressureUpdated;
     public event Action<DwmStateEvent>? DwmStateChanged;
+    public event Action<ResourceExhaustionEvent>? ResourceExhaustionObserved;
     public event Action<EtwDxgKrnlEvent>? EtwEventReceived;
     public event Action<EtwProviderEvent>? EtwSystemEventReceived;
 
@@ -150,7 +167,9 @@ public sealed class RecorderEngine : IDisposable
 
                 _previousForeground = null;
                 _processPollCounter = _processSnapshotCounter = _heartbeatCounter = 0;
-                _displayCounter = _powerCounter = _etwDrainCounter = _retentionCounter = 0;
+                _displayCounter = _powerCounter = _etwDrainCounter = _retentionCounter = _selfOverheadCounter = _pageFileCounter = 0;
+                _commitPressureLevel = CommitPressureLevel.Normal;
+                _etwStoppedForPressure = false;
                 _stopping = false;
                 _cts = new CancellationTokenSource();
                 var token = _cts.Token;
@@ -196,9 +215,15 @@ public sealed class RecorderEngine : IDisposable
         _gpuMemoryWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "gpu-memory.jsonl"));
         _memoryPressureWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "memory-pressure.jsonl"));
         _dwmStateWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "dwm-state.jsonl"));
+        _resourceExhaustionWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "resource-exhaustion.jsonl"));
+        _selfOverheadWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "collector-overhead.jsonl"));
+        _pageFileWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "pagefile.jsonl"));
+        _cpuFallbackWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "cpu-fallback.jsonl"));
 
         _processTracker = new ProcessTracker();
         _gpuEngineTracker = new GpuEngineTracker();
+        _collectorHealth.Set("GPU Engines", _gpuEngineTracker.IsAvailable ? "AwaitingSample" : "Unavailable",
+            _gpuEngineTracker.IsAvailable ? "Waiting for the first GPU engine heartbeat." : "GPU Engine counter category is unavailable.");
         _displayTracker = new DisplayTopologyTracker();
         _powerTracker = new PowerTracker();
         _storageTracker = new StorageTracker();
@@ -207,17 +232,44 @@ public sealed class RecorderEngine : IDisposable
         _gpuMemoryTracker = new GpuMemoryTracker();
         _memoryPressureTracker = new MemoryPressureTracker();
         _dwmTracker = new DwmStateTracker();
+        var dwmBaseline = _dwmTracker.Poll(DateTimeOffset.Now);
+        _collectorHealth.Set("DWM", _dwmTracker.HealthStatus, _dwmTracker.HealthDetail);
+        if (dwmBaseline is not null)
+            _dwmStateWriter.Write(dwmBaseline);
+        _resourceExhaustionTracker = new ResourceExhaustionEventTracker();
+        _selfOverheadTracker = new SelfOverheadTracker();
+        _pageFileTracker = new PageFileTracker();
+        var pageFileBaseline = _pageFileTracker.Capture(DateTimeOffset.Now, commitLimitBytes: null, "Baseline");
+        _pageFileWriter!.Write(pageFileBaseline);
+        _collectorHealth.Set("Page File", _pageFileTracker.HealthStatus, _pageFileTracker.HealthDetail);
+        _cpuFallbackTracker = new CpuFallbackTracker();
+        _collectorHealth.Set("CPU Fallback", _cpuFallbackTracker.HealthStatus, _cpuFallbackTracker.HealthDetail);
+        _resourceExhaustionTracker.Start();
+        RefreshResourceExhaustionHealth();
 
-        _etwMonitor = new EtwDxgKrnlMonitor();
-        try
+        var elevated = _journal?.Current.Elevated == true;
+        _collectorHealth.Set("Permission Preflight", elevated ? "Elevated" : "StandardUser",
+            elevated ? "Administrator token is active; privileged ETW may be attempted."
+                : "Standard token: privileged System ETW is disabled before provider startup; core counters and event-log watchers remain available.");
+
+        if (_options.EnableDxgKrnlEtw)
         {
-            _etwMonitor.Start(_sessionDirectory);
-            RefreshEtwHealth();
+            _etwMonitor = new EtwDxgKrnlMonitor();
+            try
+            {
+                _etwMonitor.Start(_sessionDirectory);
+                RefreshEtwHealth();
+            }
+            catch (Exception ex)
+            {
+                RefreshEtwHealth();
+                System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW GPU session start failed: {ex.Message}");
+            }
         }
-        catch (Exception ex)
+        else
         {
-            RefreshEtwHealth();
-            System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW GPU session start failed: {ex.Message}");
+            _collectorHealth.Set("ETW GPU", "Disabled",
+                "Disabled by the safe default. EnableDxgKrnlEtw is an explicit diagnostic opt-in.");
         }
 
         var kernelPowerCfg = new ProviderConfig(
@@ -234,27 +286,50 @@ public sealed class RecorderEngine : IDisposable
             ProviderName: "Microsoft-Windows-WHEA-Logger",
             OutputFile: "etw-whea.jsonl",
             IsInteresting: _ => true);
-        _etwSystemMonitor = new EtwRealTimeMonitor(kernelPowerCfg, wheaCfg);
-        try
+        if (_options.EnableSystemEtw && elevated)
         {
-            _etwSystemMonitor.Start(_sessionDirectory);
-            RefreshEtwHealth();
+            _etwSystemMonitor = new EtwRealTimeMonitor(kernelPowerCfg, wheaCfg);
+            try
+            {
+                _etwSystemMonitor.Start(_sessionDirectory);
+                RefreshEtwHealth();
+            }
+            catch (Exception ex)
+            {
+                RefreshEtwHealth();
+                System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW system session start failed: {ex.Message}");
+            }
         }
-        catch (Exception ex)
+        else
         {
-            RefreshEtwHealth();
-            System.Diagnostics.Trace.WriteLine($"[CrashScope] ETW system session start failed: {ex.Message}");
+            var status = _options.EnableSystemEtw ? "PermissionRequired" : "Disabled";
+            var detail = _options.EnableSystemEtw
+                ? "Not started: administrator elevation is required for the real-time System ETW session."
+                : "Disabled by RecorderOptions.EnableSystemEtw.";
+            _collectorHealth.Set("ETW Power", status, detail);
+            _collectorHealth.Set("ETW WHEA", status, detail);
         }
     }
 
     private void RefreshEtwHealth()
     {
         void Set(string name, EtwCoverageSnapshot coverage) => _collectorHealth?.Set(name,
-            EtwCoverageTracker.Status(coverage), EtwCoverageTracker.Detail(coverage), coverage);
+            _etwStoppedForPressure ? "StoppedByPressure" : EtwCoverageTracker.Status(coverage),
+            (_etwStoppedForPressure ? "Stopped after system commit crossed the throttle threshold. " : "")
+                + EtwCoverageTracker.Detail(coverage), coverage);
         if (_etwMonitor is not null) Set("ETW GPU", _etwMonitor.Coverage);
         if (_etwSystemMonitor is not null)
             foreach (var coverage in _etwSystemMonitor.Coverage)
                 Set(coverage.Provider == "Microsoft-Windows-Kernel-Power" ? "ETW Power" : "ETW WHEA", coverage);
+    }
+
+    private void RefreshResourceExhaustionHealth()
+    {
+        if (_resourceExhaustionTracker is null) return;
+        var error = _resourceExhaustionTracker.LastError;
+        _collectorHealth?.Set("Resource Exhaustion 2004", error is not null ? "Degraded" :
+            _resourceExhaustionTracker.IsRunning ? "Watching" : "Stopped",
+            error ?? "Watching the System event log for Resource-Exhaustion-Detector event 2004.");
     }
 
     private async Task RunLoopAsync(CancellationToken token)
@@ -324,14 +399,46 @@ public sealed class RecorderEngine : IDisposable
         token.ThrowIfCancellationRequested();
         var now = DateTimeOffset.Now;
 
+        var memPressure = _memoryPressureTracker!.Capture(now);
+        if (memPressure is not null)
+        {
+            _memoryPressureWriter!.Write(memPressure);
+            Notify(MemoryPressureUpdated, memPressure);
+            ApplyCommitPressure(memPressure);
+            var limitChange = _pageFileTracker!.ObserveCommitLimit(now, memPressure.CommitLimitBytes);
+            if (limitChange is not null)
+                _pageFileWriter!.Write(limitChange);
+        }
+        var criticalPressure = _commitPressureLevel == CommitPressureLevel.Critical;
+        var throttled = _commitPressureLevel == CommitPressureLevel.Throttled;
+
+        var cpuFallback = criticalPressure
+            ? new CpuFallbackSample(now, null, "WindowsPdhProcessorTotal", "SuppressedByPressure",
+                "CPU fallback polling is intentionally suspended at critical commit pressure.")
+            : _cpuFallbackTracker!.Capture(now);
+        _cpuFallbackWriter!.Write(cpuFallback);
+        _collectorHealth?.Set("CPU Fallback", cpuFallback.Status, cpuFallback.Error ?? _cpuFallbackTracker!.HealthDetail);
+
         var foreground = WindowsActivity.CaptureForeground();
-        var sensorValues = _hardware!.CaptureValues();
-        var suspect = SensorValueQuality.HasSuspectReadings(SensorCatalog, sensorValues);
-        _collectorHealth?.Set("Sensors", suspect ? "Degraded" : sensorValues.Any(v => v.HasValue) ? "Collecting" : "NoData",
-            suspect ? "Some CPU readings are zero/non-finite and suspect; shown as unavailable. Raw telemetry is retained. Check permissions/driver support."
-                : sensorValues.Any(v => v.HasValue) ? "Sensor readings received; unsupported values remain unavailable." : "No sensor readings available.");
-        var cpuHealth = CpuSensorAssessment.Assess(SensorCatalog, sensorValues);
-        _collectorHealth?.Set("CPU", cpuHealth.Status, cpuHealth.Detail);
+        var sensorValues = criticalPressure ? _hardware!.CaptureGpuTemperatureValues() : _hardware!.CaptureValues();
+        if (criticalPressure)
+        {
+            _collectorHealth?.Set("Sensors", "Throttled", "Critical commit pressure: only GPU temperature readings are retained.");
+            _collectorHealth?.Set("CPU", "Throttled", "Critical commit pressure: CPU sensor polling is suspended.");
+        }
+        else
+        {
+            var suspect = SensorValueQuality.HasSuspectReadings(SensorCatalog, sensorValues);
+            _collectorHealth?.Set("Sensors", suspect ? "Degraded" : sensorValues.Any(v => v.HasValue) ? "Collecting" : "NoData",
+                suspect ? "Some CPU readings are zero/non-finite and suspect; shown as unavailable. Raw telemetry is retained. Check permissions/driver support."
+                    : sensorValues.Any(v => v.HasValue) ? "Sensor readings received; unsupported values remain unavailable." : "No sensor readings available.");
+            var cpuHealth = CpuSensorAssessment.Assess(SensorCatalog, sensorValues);
+            if (cpuHealth.Status != "Collecting" && cpuFallback.TotalUtilizationPercent.HasValue)
+                _collectorHealth?.Set("CPU", "FallbackActive",
+                    cpuHealth.Detail + $" Windows PDH fallback total utilization={cpuFallback.TotalUtilizationPercent:F1}%.");
+            else
+                _collectorHealth?.Set("CPU", cpuHealth.Status, cpuHealth.Detail);
+        }
         _telemetryWriter!.Write(new TelemetrySnapshot(now, foreground, sensorValues));
         SampleCount++;
         Interlocked.Exchange(ref _lastSampleTicks, now.UtcTicks);
@@ -350,7 +457,13 @@ public sealed class RecorderEngine : IDisposable
             _previousForeground = foreground;
         }
 
-        if (++_processPollCounter >= 2)
+        foreach (var resourceEvent in _resourceExhaustionTracker?.Drain() ?? [])
+        {
+            _resourceExhaustionWriter!.Write(resourceEvent);
+            Notify(ResourceExhaustionObserved, resourceEvent);
+        }
+
+        if (!criticalPressure && ++_processPollCounter >= (throttled ? 5 : 2))
         {
             _processPollCounter = 0;
             foreach (var processEvent in _processTracker!.Poll(now))
@@ -360,14 +473,20 @@ public sealed class RecorderEngine : IDisposable
             }
 
             var engineSample = _gpuEngineTracker!.Capture(now);
-            if (engineSample is not null)
-            {
-                _gpuEngineWriter!.Write(engineSample);
-                Notify(GpuEngineUpdated, engineSample);
-            }
+            _gpuEngineWriter!.Write(engineSample);
+            _collectorHealth?.Set("GPU Engines", _gpuEngineTracker.HealthStatus, _gpuEngineTracker.HealthDetail);
+            Notify(GpuEngineUpdated, engineSample);
+        }
+        else if (criticalPressure && SampleCount % 5 == 0)
+        {
+            var suppressed = new GpuEngineSample(now, [], "SuppressedByPressure", 0,
+                "GPU engine counters were intentionally not queried at critical commit pressure.");
+            _gpuEngineWriter!.Write(suppressed);
+            _collectorHealth?.Set("GPU Engines", suppressed.Status, suppressed.Error!);
+            Notify(GpuEngineUpdated, suppressed);
         }
 
-        if (++_displayCounter >= 5)
+        if (!criticalPressure && ++_displayCounter >= (throttled ? 10 : 5))
         {
             _displayCounter = 0;
             var displayChange = _displayTracker!.Poll(now);
@@ -402,16 +521,8 @@ public sealed class RecorderEngine : IDisposable
                 }
             }
 
-            {
-                var memPressure = _memoryPressureTracker!.Capture(now);
-                if (memPressure is not null)
-                {
-                    _memoryPressureWriter!.Write(memPressure);
-                    Notify(MemoryPressureUpdated, memPressure);
-                }
-            }
-
             var dwmChange = _dwmTracker!.Poll(now);
+            _collectorHealth?.Set("DWM", _dwmTracker.HealthStatus, _dwmTracker.HealthDetail);
             if (dwmChange is not null)
             {
                 _dwmStateWriter!.Write(dwmChange);
@@ -419,7 +530,7 @@ public sealed class RecorderEngine : IDisposable
             }
         }
 
-        if (++_powerCounter >= 10)
+        if (!criticalPressure && ++_powerCounter >= (throttled ? 20 : 10))
         {
             _powerCounter = 0;
             var schemeChange = _powerTracker!.PollScheme(now);
@@ -430,10 +541,31 @@ public sealed class RecorderEngine : IDisposable
             }
         }
 
-        if (++_processSnapshotCounter >= 30)
+        if (!criticalPressure && ++_processSnapshotCounter >= 5)
         {
             _processSnapshotCounter = 0;
             _processSnapshotWriter!.Write(_processTracker!.CaptureSnapshot(now));
+        }
+
+        if (++_selfOverheadCounter >= 5)
+        {
+            _selfOverheadCounter = 0;
+            var overhead = _selfOverheadTracker!.Capture(now, CurrentEtwCoverage());
+            _selfOverheadWriter!.Write(overhead);
+            var cpu = overhead.TotalCpuPercent is float value ? $"{value:F2}%" : "warming up";
+            var maxEtwRate = overhead.Etw.Where(e => e.ReceivedPerSecond.HasValue)
+                .Select(e => e.ReceivedPerSecond!.Value).DefaultIfEmpty(0).Max();
+            _collectorHealth?.Set("Collector Overhead", "Collecting",
+                $"hosts={overhead.Processes.Count}, cpu={cpu}, private={overhead.TotalPrivateBytes / 1048576.0:F1} MiB, " +
+                $"workingSet={overhead.TotalWorkingSetBytes / 1048576.0:F1} MiB, maxEtwReceived={maxEtwRate:F1}/s.");
+        }
+
+        if (!criticalPressure && ++_pageFileCounter >= 30)
+        {
+            _pageFileCounter = 0;
+            var pageFile = _pageFileTracker!.Capture(now, memPressure?.CommitLimitBytes, "Periodic");
+            _pageFileWriter!.Write(pageFile);
+            _collectorHealth?.Set("Page File", _pageFileTracker.HealthStatus, _pageFileTracker.HealthDetail);
         }
 
         if (++_heartbeatCounter >= 5)
@@ -441,6 +573,7 @@ public sealed class RecorderEngine : IDisposable
             _heartbeatCounter = 0;
             _journal!.Heartbeat(now);
             RefreshEtwHealth();
+            RefreshResourceExhaustionHealth();
             Notify(StatusChanged);
         }
 
@@ -475,6 +608,41 @@ public sealed class RecorderEngine : IDisposable
                     }
                 }
             }
+    }
+
+    private IReadOnlyList<EtwCoverageSnapshot> CurrentEtwCoverage()
+    {
+        var result = new List<EtwCoverageSnapshot>();
+        if (_etwMonitor is not null) result.Add(_etwMonitor.Coverage);
+        if (_etwSystemMonitor is not null) result.AddRange(_etwSystemMonitor.Coverage);
+        return result;
+    }
+
+    private void ApplyCommitPressure(MemoryPressureSample sample)
+    {
+        _commitPressureLevel = CommitPressurePolicy.Classify(sample.CommittedPercent, _options);
+        var status = _commitPressureLevel.ToString();
+        var detail = $"Commit is {sample.CommittedPercent:F2}% ({sample.CommitBytes}/{sample.CommitLimitBytes} bytes). "
+            + (_commitPressureLevel switch
+            {
+                CommitPressureLevel.Normal => "Normal collection policy.",
+                CommitPressureLevel.Warning => "Warning threshold crossed; collection remains active.",
+                CommitPressureLevel.Throttled => "High-cost collectors are slowed and ETW is stopped.",
+                _ => "Only commit, GPU temperatures, foreground changes and critical Windows events are retained."
+            });
+        _collectorHealth?.Set("Commit Pressure", status, detail);
+
+        if (_commitPressureLevel < CommitPressureLevel.Throttled || _etwStoppedForPressure)
+            return;
+        if (_etwMonitor?.IsRunning != true && _etwSystemMonitor?.IsRunning != true)
+            return;
+
+        _etwStoppedForPressure = true;
+        try { _etwMonitor?.Stop(); }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[CrashScope] pressure stop for GPU ETW failed: {ex.Message}"); }
+        try { _etwSystemMonitor?.Stop(); }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine($"[CrashScope] pressure stop for system ETW failed: {ex.Message}"); }
+        RefreshEtwHealth();
     }
 
     /// <summary>
@@ -536,9 +704,14 @@ public sealed class RecorderEngine : IDisposable
         }
         Release(_etwMonitor);
         Release(_etwSystemMonitor);
+        Release(_resourceExhaustionTracker);
         try { RefreshEtwHealth(); } catch (Exception ex) { ReportFault(ex); }
         _etwMonitor = null;
         _etwSystemMonitor = null;
+        _resourceExhaustionTracker = null;
+        _selfOverheadTracker = null;
+        _pageFileTracker = null;
+        Release(_cpuFallbackTracker); _cpuFallbackTracker = null;
         Release(_hardware); _hardware = null;
         Release(_telemetryWriter); _telemetryWriter = null;
         Release(_foregroundWriter); _foregroundWriter = null;
@@ -552,6 +725,10 @@ public sealed class RecorderEngine : IDisposable
         Release(_gpuMemoryWriter); _gpuMemoryWriter = null;
         Release(_memoryPressureWriter); _memoryPressureWriter = null;
         Release(_dwmStateWriter); _dwmStateWriter = null;
+        Release(_resourceExhaustionWriter); _resourceExhaustionWriter = null;
+        Release(_selfOverheadWriter); _selfOverheadWriter = null;
+        Release(_pageFileWriter); _pageFileWriter = null;
+        Release(_cpuFallbackWriter); _cpuFallbackWriter = null;
         Release(_storageTracker); _storageTracker = null;
         Release(_gpuMemoryTracker); _gpuMemoryTracker = null;
         Release(_gpuEngineTracker); _gpuEngineTracker = null;

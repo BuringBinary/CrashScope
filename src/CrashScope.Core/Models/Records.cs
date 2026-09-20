@@ -22,13 +22,27 @@ public sealed record ProcessEvent(
     DateTimeOffset Timestamp,
     string Event,
     int ProcessId,
-    string ProcessName);
+    string ProcessName,
+    DateTimeOffset? StartTime = null,
+    long? PrivateBytes = null,
+    long? WorkingSetBytes = null,
+    int? HandleCount = null,
+    int? ExitCode = null,
+    string? State = null);
 
 public sealed record ProcessSnapshot(
     DateTimeOffset Timestamp,
     IReadOnlyList<ProcessInfo> Processes);
 
-public sealed record ProcessInfo(int ProcessId, string ProcessName);
+public sealed record ProcessInfo(
+    int ProcessId,
+    string ProcessName,
+    DateTimeOffset? StartTime = null,
+    long? PrivateBytes = null,
+    long? WorkingSetBytes = null,
+    int? HandleCount = null,
+    bool? HasExited = null,
+    int? ExitCode = null);
 
 public sealed record ForegroundEvent(
     DateTimeOffset Timestamp,
@@ -57,7 +71,13 @@ public sealed record WindowsEventEvidence(
     string? Message,
     IReadOnlyDictionary<string, string?>? EventData = null);
 
-public sealed record EngineUsage(string EngineType, float UtilizationPercent);
+public sealed record EngineUsage(
+    string EngineType,
+    float UtilizationPercent,
+    string? AdapterLuid = null,
+    int? PhysicalAdapterIndex = null,
+    int? EngineIndex = null,
+    string? AdapterName = null);
 
 public sealed record ProcessGpuUsage(
     int ProcessId,
@@ -66,7 +86,10 @@ public sealed record ProcessGpuUsage(
 
 public sealed record GpuEngineSample(
     DateTimeOffset Timestamp,
-    IReadOnlyList<ProcessGpuUsage> Processes);
+    IReadOnlyList<ProcessGpuUsage> Processes,
+    string Status = "Observed",
+    int InstanceCount = 0,
+    string? Error = null);
 
 public sealed record DisplayInfo(
     string DeviceName,
@@ -141,6 +164,14 @@ public sealed record ProcessGpuMemory(
     int ProcessId,
     string? ProcessName,
     long DedicatedBytes,
+    long SharedBytes,
+    IReadOnlyList<GpuAdapterMemory>? Adapters = null);
+
+public sealed record GpuAdapterMemory(
+    string? AdapterLuid,
+    int? PhysicalAdapterIndex,
+    string? AdapterName,
+    long DedicatedBytes,
     long SharedBytes);
 
 public sealed record GpuMemorySample(
@@ -159,3 +190,86 @@ public sealed record DwmStateEvent(
     bool IsHardwareRendering,
     bool IsCompositionEnabled,
     string Description);
+
+public sealed record ResourceExhaustionProcess(
+    string? Name,
+    int ProcessId,
+    DateTimeOffset? CreationTime,
+    long CommitBytes,
+    int HandleCount,
+    string? Version,
+    int? TypeInfo);
+
+public sealed record ResourceExhaustionEvent(
+    DateTimeOffset Timestamp,
+    long? RecordId,
+    long? SystemCommitLimitBytes,
+    long? SystemCommitChargeBytes,
+    long? ProcessCommitChargeBytes,
+    long? PagedPoolUsageBytes,
+    long? PhysicalMemorySizeBytes,
+    long? PhysicalMemoryUsageBytes,
+    long? NonPagedPoolUsageBytes,
+    int? ProcessCount,
+    IReadOnlyList<ResourceExhaustionProcess> TopProcesses,
+    string? Message,
+    string RawXml);
+
+public sealed record CollectorProcessMetrics(
+    int ProcessId,
+    string ProcessName,
+    DateTimeOffset? StartTime,
+    float? CpuPercent,
+    long? PrivateBytes,
+    long? WorkingSetBytes,
+    int? HandleCount,
+    int? ThreadCount);
+
+public sealed record EtwRateMetrics(
+    string Provider,
+    Guid ProviderId,
+    double? ReceivedPerSecond,
+    double? MatchedPerSecond,
+    double? WrittenPerSecond,
+    long ReceivedEvents,
+    long MatchedEvents,
+    long WrittenEvents,
+    long HandoffDroppedEvents,
+    long OsLostEvents);
+
+public sealed record CollectorOverheadSample(
+    DateTimeOffset Timestamp,
+    IReadOnlyList<CollectorProcessMetrics> Processes,
+    float? TotalCpuPercent,
+    long TotalPrivateBytes,
+    long TotalWorkingSetBytes,
+    long ManagedHeapBytes,
+    int LogicalProcessorCount,
+    IReadOnlyList<EtwRateMetrics> Etw);
+
+public sealed record PageFileInfo(
+    string Name,
+    string? Volume,
+    long? AllocatedBytes,
+    long? CurrentUsageBytes,
+    long? PeakUsageBytes,
+    long? ConfiguredInitialBytes,
+    long? ConfiguredMaximumBytes,
+    long? VolumeFreeBytes,
+    bool? IsTemporary);
+
+public sealed record PageFileSnapshot(
+    DateTimeOffset Timestamp,
+    string Reason,
+    bool? AutomaticManagedPagefile,
+    long? CommitLimitBytes,
+    long? PreviousCommitLimitBytes,
+    IReadOnlyList<PageFileInfo> PageFiles,
+    string? Error = null);
+
+public sealed record CpuFallbackSample(
+    DateTimeOffset Timestamp,
+    float? TotalUtilizationPercent,
+    string Source,
+    string Status,
+    string? Error = null);

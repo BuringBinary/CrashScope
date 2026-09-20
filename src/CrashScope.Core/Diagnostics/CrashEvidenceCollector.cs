@@ -17,6 +17,7 @@ public static class CrashEvidenceCollector
                 ["Microsoft-Windows-Kernel-Power"] = [41, 42, 107, 109, 506, 507],
                 ["Microsoft-Windows-Power-Troubleshooter"] = [1],
                 ["Microsoft-Windows-WHEA-Logger"] = [17, 18, 19, 20, 46, 47],
+                ["Microsoft-Windows-Resource-Exhaustion-Detector"] = [2004],
                 ["Display"] = [4101],
                 ["EventLog"] = [6008],
                 ["Microsoft-Windows-WER-SystemErrorReporting"] = [1001],
@@ -169,6 +170,10 @@ public static class CrashEvidenceCollector
         CopyTailFile(Path.Combine(previousSessionDirectory, "storage.jsonl"), Path.Combine(incidentDirectory, "storage-tail.jsonl"), 60);
         CopyTailFile(Path.Combine(previousSessionDirectory, "gpu-memory.jsonl"), Path.Combine(incidentDirectory, "gpu-memory-tail.jsonl"), 60);
         CopyTailFile(Path.Combine(previousSessionDirectory, "memory-pressure.jsonl"), Path.Combine(incidentDirectory, "memory-pressure-tail.jsonl"), 60);
+        CopyTailFile(Path.Combine(previousSessionDirectory, "resource-exhaustion.jsonl"), Path.Combine(incidentDirectory, "resource-exhaustion-tail.jsonl"), 50);
+        CopyTailFile(Path.Combine(previousSessionDirectory, "collector-overhead.jsonl"), Path.Combine(incidentDirectory, "collector-overhead-tail.jsonl"), 120);
+        CopyTailFile(Path.Combine(previousSessionDirectory, "pagefile.jsonl"), Path.Combine(incidentDirectory, "pagefile-tail.jsonl"), 120);
+        CopyTailFile(Path.Combine(previousSessionDirectory, "cpu-fallback.jsonl"), Path.Combine(incidentDirectory, "cpu-fallback-tail.jsonl"), 300);
         CopyTailFile(Path.Combine(previousSessionDirectory, "dwm-state.jsonl"), Path.Combine(incidentDirectory, "dwm-state-tail.jsonl"), 50);
         CopyTailFile(Path.Combine(previousSessionDirectory, "etw-gpu.jsonl"), Path.Combine(incidentDirectory, "etw-gpu-tail.jsonl"), 500);
         CopyTailFile(Path.Combine(previousSessionDirectory, "etw-kernel-power.jsonl"), Path.Combine(incidentDirectory, "etw-kernel-power-tail.jsonl"), 500);

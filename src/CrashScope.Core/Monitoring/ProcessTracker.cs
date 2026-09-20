@@ -5,8 +5,14 @@ namespace CrashScope.Core.Monitoring;
 
 public sealed class ProcessTracker
 {
-    private Dictionary<int, string> _previous = new();
+    private readonly Func<IReadOnlyList<ProcessInfo>> _capture;
+    private Dictionary<int, ProcessInfo> _previous = new();
     private bool _initialized;
+
+    public ProcessTracker() : this(CaptureProcesses) { }
+
+    internal ProcessTracker(Func<IReadOnlyList<ProcessInfo>> capture)
+        => _capture = capture ?? throw new ArgumentNullException(nameof(capture));
 
     public IReadOnlyList<ProcessEvent> Poll(DateTimeOffset now)
     {
@@ -15,28 +21,28 @@ public sealed class ProcessTracker
 
         if (_initialized)
         {
-            foreach (var (pid, name) in current)
+            foreach (var (pid, process) in current)
             {
-                if (_previous.TryGetValue(pid, out var oldName))
+                if (_previous.TryGetValue(pid, out var previous))
                 {
-                    // Same PID, different image: rename or PID reuse. Emit the closing
-                    // stop for the old name so the start is not orphaned.
-                    if (!string.Equals(oldName, name, StringComparison.OrdinalIgnoreCase))
+                    // Creation time is the stable generation identity. Keep the name
+                    // fallback for protected processes where StartTime is unavailable.
+                    if (!SameGeneration(previous, process))
                     {
-                        events.Add(new ProcessEvent(now, "stop", pid, oldName));
-                        events.Add(new ProcessEvent(now, "start", pid, name));
+                        events.Add(ToEvent(now, "stop", previous, "pid-reused"));
+                        events.Add(ToEvent(now, "start", process, "running"));
                     }
                 }
                 else
                 {
-                    events.Add(new ProcessEvent(now, "start", pid, name));
+                    events.Add(ToEvent(now, "start", process, "running"));
                 }
             }
 
-            foreach (var (pid, name) in _previous)
+            foreach (var (pid, process) in _previous)
             {
                 if (!current.ContainsKey(pid))
-                    events.Add(new ProcessEvent(now, "stop", pid, name));
+                    events.Add(ToEvent(now, "stop", process, "exited-or-inaccessible"));
             }
         }
 
@@ -47,23 +53,43 @@ public sealed class ProcessTracker
 
     public ProcessSnapshot CaptureSnapshot(DateTimeOffset now)
     {
-        var map = CaptureMap();
-        var items = map
-            .Select(kv => new ProcessInfo(kv.Key, kv.Value))
+        var items = _capture()
             .OrderBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(p => p.ProcessId)
             .ToArray();
         return new ProcessSnapshot(now, items);
     }
 
-    private static Dictionary<int, string> CaptureMap()
+    private Dictionary<int, ProcessInfo> CaptureMap()
+        => _capture().GroupBy(p => p.ProcessId).ToDictionary(g => g.Key, g => g.First());
+
+    internal static bool SameGeneration(ProcessInfo previous, ProcessInfo current)
     {
-        var result = new Dictionary<int, string>();
+        if (!string.Equals(previous.ProcessName, current.ProcessName, StringComparison.OrdinalIgnoreCase))
+            return false;
+        return previous.StartTime is null || current.StartTime is null || previous.StartTime == current.StartTime;
+    }
+
+    private static ProcessEvent ToEvent(DateTimeOffset now, string kind, ProcessInfo process, string state)
+        => new(now, kind, process.ProcessId, process.ProcessName, process.StartTime, process.PrivateBytes,
+            process.WorkingSetBytes, process.HandleCount, process.ExitCode, state);
+
+    private static IReadOnlyList<ProcessInfo> CaptureProcesses()
+    {
+        var result = new List<ProcessInfo>();
         foreach (var process in Process.GetProcesses())
         {
             try
             {
-                result[process.Id] = process.ProcessName;
+                var name = process.ProcessName;
+                DateTimeOffset? startTime = Try(() => new DateTimeOffset(process.StartTime));
+                var privateBytes = Try(() => process.PrivateMemorySize64);
+                var workingSetBytes = Try(() => process.WorkingSet64);
+                var handleCount = Try(() => process.HandleCount);
+                var hasExited = Try(() => process.HasExited);
+                int? exitCode = hasExited == true ? Try(() => process.ExitCode) : null;
+                result.Add(new ProcessInfo(process.Id, name, startTime, privateBytes, workingSetBytes,
+                    handleCount, hasExited, exitCode));
             }
             catch
             {
@@ -75,5 +101,11 @@ public sealed class ProcessTracker
             }
         }
         return result;
+    }
+
+    private static T? Try<T>(Func<T> read) where T : struct
+    {
+        try { return read(); }
+        catch { return null; }
     }
 }

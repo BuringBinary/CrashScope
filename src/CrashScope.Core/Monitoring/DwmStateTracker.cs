@@ -22,13 +22,30 @@ namespace CrashScope.Core.Monitoring;
 /// </remarks>
 public sealed class DwmStateTracker
 {
+    private readonly Func<(int HResult, bool Enabled)> _probe;
     private bool? _lastCompositionEnabled;
 
-    public bool IsAvailable { get; } = true;
+    public bool IsAvailable { get; private set; } = true;
+    public string HealthStatus { get; private set; } = "AwaitingSample";
+    public string HealthDetail { get; private set; } = "Waiting for DWM composition baseline.";
+
+    public DwmStateTracker() : this(Probe) { }
+    internal DwmStateTracker(Func<(int HResult, bool Enabled)> probe) => _probe = probe;
 
     public DwmStateEvent? Poll(DateTimeOffset now)
     {
-        var compositionEnabled = DwmIsCompositionEnabled(out var pfEnabled) == 0 && pfEnabled;
+        var result = _probe();
+        if (result.HResult != 0)
+        {
+            IsAvailable = false;
+            HealthStatus = "Unavailable";
+            HealthDetail = $"DwmIsCompositionEnabled failed with HRESULT 0x{result.HResult:X8}.";
+            return null;
+        }
+        IsAvailable = true;
+        var compositionEnabled = result.Enabled;
+        HealthStatus = "Collecting";
+        HealthDetail = compositionEnabled ? "DWM composition is enabled." : "DWM composition is disabled.";
 
         if (_lastCompositionEnabled is bool previous)
         {
@@ -51,4 +68,10 @@ public sealed class DwmStateTracker
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmIsCompositionEnabled([MarshalAs(UnmanagedType.Bool)] out bool pfEnabled);
+
+    private static (int HResult, bool Enabled) Probe()
+    {
+        var result = DwmIsCompositionEnabled(out var enabled);
+        return (result, enabled);
+    }
 }
