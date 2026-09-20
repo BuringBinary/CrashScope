@@ -12,21 +12,21 @@
 
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="{DynamicResource L.diskHealth.title}" FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}"/>
+                       Foreground="{DynamicResource TextPrimary}"/>
             <TextBlock Text="{DynamicResource L.diskHealth.subtitle}"
-                       FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
+                       FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,4,0,0"/>
         </StackPanel>
 
-        <Border Grid.Row="1" Background="{StaticResource CardBg}" CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
+        <Border Grid.Row="1" Background="{DynamicResource CardBg}" CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
             <StackPanel>
-                <TextBlock x:Name="StatusText" FontSize="12" Foreground="{StaticResource TextSecondary}" Text="{DynamicResource L.diskHealth.noReadings}"/>
-                <TextBlock x:Name="CollectorText" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
+                <TextBlock x:Name="StatusText" FontSize="12" Foreground="{DynamicResource TextSecondary}" Text="{DynamicResource L.diskHealth.noReadings}"/>
+                <TextBlock x:Name="CollectorText" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="2" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16">
+        <Border Grid.Row="2" Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16">
             <ListView x:Name="DiskList" Background="Transparent" BorderThickness="0"
-                      Foreground="{StaticResource TextPrimary}"
+                      Foreground="{DynamicResource TextPrimary}"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <ListView.View>
                     <GridView>
@@ -45,11 +45,12 @@
             </ListView>
         </Border>
 
-        <Border Grid.Row="3" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="0,12,0,0">
+        <Border Grid.Row="3" Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16" Margin="0,12,0,0">
             <StackPanel>
-                <TextBlock Text="{DynamicResource L.diskHealth.volumes}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
-                <TextBlock x:Name="VolumesText" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+                <TextBlock Text="{DynamicResource L.diskHealth.volumes}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
+                <TextBlock x:Name="VolumesText" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
     </Grid>
 </UserControl>
+

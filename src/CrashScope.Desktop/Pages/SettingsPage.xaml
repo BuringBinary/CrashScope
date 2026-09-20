@@ -6,24 +6,24 @@
         <StackPanel Margin="0,0,0,24">
             <TextBlock Text="{DynamicResource L.settings.title}"
                        FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}"
+                       Foreground="{DynamicResource TextPrimary}"
                        Margin="0,0,0,8"/>
             <TextBlock Text="{DynamicResource L.settings.subtitle}"
                        FontSize="13"
-                       Foreground="{StaticResource TextSecondary}"
+                       Foreground="{DynamicResource TextSecondary}"
                        Margin="0,0,0,24"/>
 
             <!-- Appearance -->
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.settings.appearance.title}"
                                FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,4"/>
                     <TextBlock Text="{DynamicResource L.settings.appearance.subtitle}"
                                FontSize="12"
-                               Foreground="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextSecondary}"
                                Margin="0,0,0,16"/>
 
                     <Grid>
@@ -35,7 +35,7 @@
                         <!-- Language -->
                         <StackPanel Grid.Column="0" Margin="0,0,12,0">
                             <TextBlock Text="{DynamicResource L.settings.appearance.language}"
-                                       FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                       FontSize="13" Foreground="{DynamicResource TextPrimary}"
                                        Margin="0,0,0,6"/>
                             <ComboBox x:Name="LanguageComboBox"
                                       Width="200"
@@ -45,7 +45,7 @@
                         <!-- Theme -->
                         <StackPanel Grid.Column="1" Margin="12,0,0,0">
                             <TextBlock Text="{DynamicResource L.settings.appearance.theme}"
-                                       FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                       FontSize="13" Foreground="{DynamicResource TextPrimary}"
                                        Margin="0,0,0,6"/>
                             <ComboBox x:Name="ThemeComboBox"
                                       Width="200"
@@ -57,25 +57,25 @@
 
 
             <!-- Startup & Tray -->
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.settings.startup.title}" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}" Margin="0,0,0,4"/>
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,4"/>
                     <TextBlock Text="{DynamicResource L.settings.startup.subtitle}" FontSize="12"
-                               Foreground="{StaticResource TextSecondary}" Margin="0,0,0,16" TextWrapping="Wrap"/>
+                               Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,16" TextWrapping="Wrap"/>
 
                     <CheckBox x:Name="AutoStartCheckBox" Content="{DynamicResource L.settings.startup.autoStart}"
-                              Foreground="{StaticResource TextPrimary}" FontSize="13" Margin="0,0,0,8"
+                              Foreground="{DynamicResource TextPrimary}" FontSize="13" Margin="0,0,0,8"
                               Checked="AutoStartCheckBox_Changed" Unchecked="AutoStartCheckBox_Changed"/>
                     <TextBlock Text="{DynamicResource L.settings.startup.autoStartHint}" FontSize="11"
-                               Foreground="{StaticResource TextSecondary}" Margin="24,0,0,12" TextWrapping="Wrap"/>
+                               Foreground="{DynamicResource TextSecondary}" Margin="24,0,0,12" TextWrapping="Wrap"/>
 
                     <CheckBox x:Name="MinimizeToTrayCheckBox" Content="{DynamicResource L.settings.startup.minimizeToTray}"
-                              Foreground="{StaticResource TextPrimary}" FontSize="13" Margin="0,0,0,8"
+                              Foreground="{DynamicResource TextPrimary}" FontSize="13" Margin="0,0,0,8"
                               Checked="TrayBehaviourCheckBox_Changed" Unchecked="TrayBehaviourCheckBox_Changed"/>
                     <CheckBox x:Name="CloseToTrayCheckBox" Content="{DynamicResource L.settings.startup.closeToTray}"
-                              Foreground="{StaticResource TextPrimary}" FontSize="13" Margin="0,0,0,12"
+                              Foreground="{DynamicResource TextPrimary}" FontSize="13" Margin="0,0,0,12"
                               Checked="TrayBehaviourCheckBox_Changed" Unchecked="TrayBehaviourCheckBox_Changed"/>
 
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -91,16 +91,16 @@
 
             <!-- Retention -->
 
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.settings.dataRetention.title}"
                                FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,4"/>
                     <TextBlock Text="{DynamicResource L.settings.dataRetention.subtitle}"
                                FontSize="12"
-                               Foreground="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextSecondary}"
                                Margin="0,0,0,16"/>
 
                     <!-- Max Retention Days -->
@@ -111,7 +111,7 @@
                             <ColumnDefinition Width="60"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{DynamicResource L.settings.dataRetention.maxRetentionDays}"
-                                   FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                   FontSize="13" Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center"/>
                         <Slider x:Name="RetentionDaysSlider"
                                 Grid.Column="1"
@@ -123,7 +123,7 @@
                         <TextBlock x:Name="RetentionDaysText"
                                    Grid.Column="2"
                                    Text="30 days"
-                                   FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                   FontSize="13" Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center"/>
                     </Grid>
 
@@ -135,7 +135,7 @@
                             <ColumnDefinition Width="60"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{DynamicResource L.settings.dataRetention.maxTotalSize}"
-                                   FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                   FontSize="13" Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center"/>
                         <Slider x:Name="MaxSizeSlider"
                                 Grid.Column="1"
@@ -147,7 +147,7 @@
                         <TextBlock x:Name="MaxSizeText"
                                    Grid.Column="2"
                                    Text="512 MB"
-                                   FontSize="13" Foreground="{StaticResource TextPrimary}"
+                                   FontSize="13" Foreground="{DynamicResource TextPrimary}"
                                    VerticalAlignment="Center"/>
                     </Grid>
 
@@ -159,13 +159,13 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{DynamicResource L.settings.dataRetention.currentUsage}"
-                                       FontSize="12" Foreground="{StaticResource TextSecondary}"
+                                       FontSize="12" Foreground="{DynamicResource TextSecondary}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBlock x:Name="CurrentUsageText"
                                        Grid.Column="1"
                                        Text="{DynamicResource L.common.calculating}"
                                        FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AccentColor}"
+                                       Foreground="{DynamicResource AccentColor}"
                                        VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
@@ -173,16 +173,16 @@
             </Border>
 
             <!-- Privacy -->
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.settings.privacy.title}"
                                FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,4"/>
                     <TextBlock Text="{DynamicResource L.settings.privacy.subtitle}"
                                FontSize="12"
-                               Foreground="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextSecondary}"
                                Margin="0,0,0,16"
                                TextWrapping="Wrap"/>
 
@@ -190,11 +190,11 @@
                         <StackPanel>
                             <CheckBox x:Name="RedactByDefaultCheckBox"
                                       Content="{DynamicResource L.settings.privacy.redactByDefault}"
-                                      Foreground="{StaticResource TextPrimary}"
+                                      Foreground="{DynamicResource TextPrimary}"
                                       FontSize="13"/>
                             <TextBlock Text="{DynamicResource L.settings.privacy.redactDesc}"
                                        FontSize="11"
-                                       Foreground="{StaticResource TextSecondary}"
+                                       Foreground="{DynamicResource TextSecondary}"
                                        Margin="24,4,0,0"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
@@ -203,12 +203,12 @@
             </Border>
 
             <!-- Recording -->
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.settings.recording.title}"
                                FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,12"/>
 
                     <Grid>
@@ -223,50 +223,50 @@
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="0,0,6,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.telemetry}"
-                                           FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock Text="1 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.processes}"
-                                           FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock Text="0.5 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.gpuEngines}"
-                                           FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock Text="0.5 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.display}"
-                                           FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock Text="0.2 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="6,0,0,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.snapshot}"
-                                           FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock Text="1/30 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -274,12 +274,12 @@
             </Border>
 
             <!-- About -->
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.settings.about.title}"
                                FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,12"/>
 
                     <Grid>
@@ -295,17 +295,17 @@
                         </Grid.RowDefinitions>
 
                         <TextBlock Text="{DynamicResource L.settings.about.version}" Grid.Row="0" Grid.Column="0"
-                                   FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                                   FontSize="13" Foreground="{DynamicResource TextSecondary}"/>
                         <TextBlock Text="v0.5.0-dev" Grid.Row="0" Grid.Column="1"
                                    FontSize="13" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimary}"/>
+                                   Foreground="{DynamicResource TextPrimary}"/>
 
                         <TextBlock Text="{DynamicResource L.settings.about.dataDir}" Grid.Row="1" Grid.Column="0"
-                                   FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                                   FontSize="13" Foreground="{DynamicResource TextSecondary}"/>
                         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
                             <TextBlock x:Name="DataDirText"
                                        FontSize="13"
-                                       Foreground="{StaticResource TextPrimary}"
+                                       Foreground="{DynamicResource TextPrimary}"
                                        VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis"
                                        MaxWidth="380"/>
@@ -319,18 +319,18 @@
                         </StackPanel>
 
                         <TextBlock Text="{DynamicResource L.settings.about.runtime}" Grid.Row="2" Grid.Column="0"
-                                   FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                                   FontSize="13" Foreground="{DynamicResource TextSecondary}"/>
                         <TextBlock x:Name="RuntimeText" Grid.Row="2" Grid.Column="1"
                                    Text=".NET 8.0"
                                    FontSize="13"
-                                   Foreground="{StaticResource TextPrimary}"/>
+                                   Foreground="{DynamicResource TextPrimary}"/>
 
                         <TextBlock Text="{DynamicResource L.settings.about.elevation}" Grid.Row="3" Grid.Column="0"
-                                   FontSize="13" Foreground="{StaticResource TextSecondary}"/>
+                                   FontSize="13" Foreground="{DynamicResource TextSecondary}"/>
                         <TextBlock x:Name="ElevationText" Grid.Row="3" Grid.Column="1"
                                    Text="{DynamicResource L.common.checking}"
                                    FontSize="13"
-                                   Foreground="{StaticResource TextPrimary}"/>
+                                   Foreground="{DynamicResource TextPrimary}"/>
                     </Grid>
                 </StackPanel>
             </Border>
@@ -343,7 +343,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="SaveStatusText"
                            FontSize="13"
-                           Foreground="{StaticResource GpuColor}"
+                           Foreground="{DynamicResource GpuColor}"
                            VerticalAlignment="Center"
                            Margin="0,0,16,0"
                            Visibility="Collapsed"/>

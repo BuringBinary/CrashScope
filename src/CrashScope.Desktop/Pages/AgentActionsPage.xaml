@@ -12,18 +12,18 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
             <TextBlock Text="{DynamicResource L.agentActions.title}"
                        FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}"/>
+                       Foreground="{DynamicResource TextPrimary}"/>
             <TextBlock Text="{DynamicResource L.agentActions.subtitle}"
                        FontSize="13"
-                       Foreground="{StaticResource TextSecondary}"
+                       Foreground="{DynamicResource TextSecondary}"
                        Margin="0,4,0,0"/>
         </StackPanel>
 
-        <Border Grid.Row="1" Background="{StaticResource CardBg}"
+        <Border Grid.Row="1" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{DynamicResource L.common.stateDir}" VerticalAlignment="Center"
-                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="320" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
                 <Button x:Name="ConnectButton" Content="{DynamicResource L.common.connect}" ContentTemplate="{StaticResource IconTextTemplate}"
@@ -32,7 +32,7 @@
                         Click="ConnectButton_Click"/>
                 <TextBlock x:Name="StatusText" Text="{DynamicResource L.common.notConnected}"
                            VerticalAlignment="Center" FontSize="12"
-                           Foreground="{StaticResource TextSecondary}" Margin="14,0,0,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="14,0,0,0"/>
             </StackPanel>
         </Border>
 
@@ -47,7 +47,7 @@
             </Grid.RowDefinitions>
 
             <!-- Power plans -->
-            <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource CardBg}"
+            <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="12" Margin="0,0,6,12">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -56,16 +56,16 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="{DynamicResource L.agentActions.powerPlans}" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
                     <ListBox Grid.Row="1" x:Name="PlanList"
                              ItemsSource="{Binding Plans}"
                              Background="Transparent" BorderThickness="0"
-                             Foreground="{StaticResource TextPrimary}">
+                             Foreground="{DynamicResource TextPrimary}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Margin="0,2">
                                     <TextBlock Text="{Binding Name}" FontSize="12"
-                                               Foreground="{StaticResource TextPrimary}"/>
+                                               Foreground="{DynamicResource TextPrimary}"/>
                                     <TextBlock Text="{DynamicResource L.agentActions.active}" FontSize="11"
                                                Foreground="#00D68F"
                                                Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}"/>
@@ -84,7 +84,7 @@
             </Border>
 
             <!-- Process priority -->
-            <Border Grid.Row="0" Grid.Column="1" Background="{StaticResource CardBg}"
+            <Border Grid.Row="0" Grid.Column="1" Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="12" Margin="6,0,0,12">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -93,21 +93,21 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="{DynamicResource L.agentActions.processPriority}" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
                     <ListBox Grid.Row="1" x:Name="ProcessList"
                              ItemsSource="{Binding Processes}"
                              Background="Transparent" BorderThickness="0"
-                             Foreground="{StaticResource TextPrimary}">
+                             Foreground="{DynamicResource TextPrimary}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Margin="0,2">
                                     <TextBlock Text="{Binding Name}" FontSize="12" Width="160"
-                                               Foreground="{StaticResource TextPrimary}"
+                                               Foreground="{DynamicResource TextPrimary}"
                                                TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Text="{Binding Pid, StringFormat={}{0} - }" FontSize="11"
-                                               Foreground="{StaticResource TextSecondary}"/>
+                                               Foreground="{DynamicResource TextSecondary}"/>
                                     <TextBlock Text="{Binding Priority}" FontSize="11"
-                                               Foreground="{StaticResource TextSecondary}"/>
+                                               Foreground="{DynamicResource TextSecondary}"/>
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -131,7 +131,7 @@
             </Border>
 
             <!-- Journal -->
-            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="{StaticResource CardBg}"
+            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="12" Margin="0,0,0,0">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -140,26 +140,26 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Text="{DynamicResource L.agentActions.journal}" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+                               Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
                     <ListBox Grid.Row="1" x:Name="ActionList"
                              ItemsSource="{Binding Actions}"
                              Background="Transparent" BorderThickness="0"
-                             Foreground="{StaticResource TextPrimary}"
+                             Foreground="{DynamicResource TextPrimary}"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Margin="0,2">
                                     <TextBlock Text="{Binding Timestamp}" FontSize="11" Width="130"
-                                               Foreground="{StaticResource TextSecondary}" FontFamily="Consolas"/>
+                                               Foreground="{DynamicResource TextSecondary}" FontFamily="Consolas"/>
                                     <TextBlock Text="{Binding Action}" FontSize="11" Width="150"
-                                               Foreground="{StaticResource TextPrimary}"/>
+                                               Foreground="{DynamicResource TextPrimary}"/>
                                     <TextBlock Text="{Binding Target}" FontSize="11" Width="200"
-                                               Foreground="{StaticResource TextPrimary}"
+                                               Foreground="{DynamicResource TextPrimary}"
                                                TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Text="{Binding Status}" FontSize="11" Width="70"
-                                               Foreground="{StaticResource TextSecondary}"/>
+                                               Foreground="{DynamicResource TextSecondary}"/>
                                     <TextBlock Text="{Binding Reason}" FontSize="11"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </DataTemplate>
@@ -178,3 +178,4 @@
         </Grid>
     </Grid>
 </UserControl>
+

@@ -14,15 +14,15 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
             <TextBlock Text="{DynamicResource L.incidents.title}"
                        FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}"/>
+                       Foreground="{DynamicResource TextPrimary}"/>
             <TextBlock Text="{DynamicResource L.incidents.subtitle}"
                        FontSize="13"
-                       Foreground="{StaticResource TextSecondary}"
+                       Foreground="{DynamicResource TextSecondary}"
                        Margin="0,4,0,0"/>
         </StackPanel>
 
         <!-- Summary bar -->
-        <Border Grid.Row="1" Background="{StaticResource CardBg}"
+        <Border Grid.Row="1" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -34,26 +34,26 @@
 
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.incidents.summary.totalIncidents}" FontSize="11"
-                               Foreground="{StaticResource TextSecondary}"/>
+                               Foreground="{DynamicResource TextSecondary}"/>
                     <TextBlock x:Name="TotalIncidentsText" Text="0"
                                FontSize="20" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimary}"/>
+                               Foreground="{DynamicResource TextPrimary}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1">
                     <TextBlock Text="{DynamicResource L.incidents.summary.lastIncident}" FontSize="11"
-                               Foreground="{StaticResource TextSecondary}"/>
+                               Foreground="{DynamicResource TextSecondary}"/>
                     <TextBlock x:Name="LastIncidentText" Text="--"
                                FontSize="20" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimary}"/>
+                               Foreground="{DynamicResource TextPrimary}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2">
                     <TextBlock Text="{DynamicResource L.incidents.summary.topCause}" FontSize="11"
-                               Foreground="{StaticResource TextSecondary}"/>
+                               Foreground="{DynamicResource TextSecondary}"/>
                     <TextBlock x:Name="TopCauseText" Text="--"
                                FontSize="20" FontWeight="Bold"
-                               Foreground="{StaticResource AccentColor}"/>
+                               Foreground="{DynamicResource AccentColor}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
@@ -78,7 +78,7 @@
         </Border>
 
         <!-- Incident list -->
-        <Border Grid.Row="2" Background="{StaticResource CardBg}"
+        <Border Grid.Row="2" Background="{DynamicResource CardBg}"
                 CornerRadius="12" Padding="16">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -89,7 +89,7 @@
                 <!-- Left: incident list -->
                 <ListBox x:Name="IncidentListBox"
                          Background="Transparent" BorderThickness="0"
-                         Foreground="{StaticResource TextPrimary}"
+                         Foreground="{DynamicResource TextPrimary}"
                          SelectionMode="Extended"
                          SelectionChanged="IncidentListBox_SelectionChanged">
                     <ListBox.ItemTemplate>
@@ -98,18 +98,18 @@
                                     Padding="12" Margin="0,0,8,6">
                                 <StackPanel>
                                     <TextBlock Text="{Binding Timestamp}" FontSize="12"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                FontFamily="Consolas"/>
                                     <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold"
-                                               Foreground="{StaticResource TextPrimary}" Margin="0,4,0,0"/>
+                                               Foreground="{DynamicResource TextPrimary}" Margin="0,4,0,0"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                                         <Border CornerRadius="4" Padding="4,2"
                                                 Background="{Binding ModeBackground}">
                                             <TextBlock Text="{Binding Mode}" FontSize="10"
-                                                       Foreground="{StaticResource TextPrimary}"/>
+                                                       Foreground="{DynamicResource TextPrimary}"/>
                                         </Border>
                                         <TextBlock Text="{Binding Confidence}" FontSize="10"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Margin="8,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -131,16 +131,16 @@
                             <StackPanel>
                             <TextBlock x:Name="DetailTitle" Text="{DynamicResource L.incidents.detail.selectIncident}"
                                        FontSize="18" FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextPrimary}"
+                                       Foreground="{DynamicResource TextPrimary}"
                                        Margin="0,0,0,16"/>
 
                             <TextBlock Text="{DynamicResource L.incidents.detail.hypotheses}" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextSecondary}"
+                                       Foreground="{DynamicResource TextSecondary}"
                                        Margin="0,0,0,8"/>
                             <ItemsControl x:Name="HypothesesList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="{StaticResource CardBg}"
+                                        <Border Background="{DynamicResource CardBg}"
                                                 CornerRadius="6" Padding="10" Margin="0,0,0,4">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
@@ -148,11 +148,11 @@
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding Name}" FontSize="12"
-                                                           Foreground="{StaticResource TextPrimary}"/>
+                                                           Foreground="{DynamicResource TextPrimary}"/>
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding ScoreDisplay}"
                                                            FontSize="12" FontWeight="Bold"
-                                                           Foreground="{StaticResource AccentColor}"/>
+                                                           Foreground="{DynamicResource AccentColor}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -161,14 +161,14 @@
 
                             <TextBlock Text="{DynamicResource L.incidents.detail.openQuestions}"
                                        FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{StaticResource TextSecondary}"
+                                       Foreground="{DynamicResource TextSecondary}"
                                        Margin="0,16,0,8"/>
                             <ItemsControl x:Name="QuestionsList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding}"
                                                    FontSize="12"
-                                                   Foreground="{StaticResource WarningColor}"
+                                                   Foreground="{DynamicResource WarningColor}"
                                                    Margin="0,0,0,4"/>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -178,7 +178,7 @@
 
                     <!-- Export button bar -->
                     <Border Grid.Row="1"
-                            BorderBrush="{StaticResource CardBg}"
+                            BorderBrush="{DynamicResource CardBg}"
                             BorderThickness="0,1,0,0"
                             Padding="0,12,0,0"
                             Margin="0,4,0,0">
@@ -186,7 +186,7 @@
                             <CheckBox x:Name="RedactCheckBox"
                                       Content="{DynamicResource L.incidents.export.redactData}"
                                       IsChecked="True"
-                                      Foreground="{StaticResource TextSecondary}"
+                                      Foreground="{DynamicResource TextSecondary}"
                                       FontSize="11"
                                       VerticalAlignment="Center"
                                       Margin="0,0,12,0"/>
@@ -203,7 +203,7 @@
         </Border>
 
         <!-- Cross-Incident Analysis Panel -->
-        <Border Grid.Row="3" Background="{StaticResource CardBg}"
+        <Border Grid.Row="3" Background="{DynamicResource CardBg}"
                 CornerRadius="12" Padding="20" Margin="0,12,0,0"
                 x:Name="CrossAnalysisPanel" Visibility="Collapsed">
             <Grid>
@@ -217,7 +217,7 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{DynamicResource L.incidents.crossAnalysis.title}"
                                    FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource AccentColor}"
+                                   Foreground="{DynamicResource AccentColor}"
                                    VerticalAlignment="Center"/>
                         <Button x:Name="CloseAnalysisButton"
                                 Content="&#xE711;"
@@ -225,7 +225,7 @@
                                 Width="28" Height="28"
                                 FontSize="12"
                                 Background="Transparent"
-                                Foreground="{StaticResource TextSecondary}"
+                                Foreground="{DynamicResource TextSecondary}"
                                 BorderThickness="0"
                                 Click="CloseAnalysisButton_Click"
                                 Margin="12,0,0,0"
@@ -248,15 +248,15 @@
 
                                 <StackPanel>
                                     <TextBlock Text="{DynamicResource L.common.systemHealth}"
-                                               FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                               FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock x:Name="StabilityScoreText"
                                                    Text="--"
                                                    FontSize="36" FontWeight="Bold"
-                                                   Foreground="{StaticResource AccentColor}"/>
+                                                   Foreground="{DynamicResource AccentColor}"/>
                                         <TextBlock Text="/100"
                                                    FontSize="18"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    VerticalAlignment="Bottom" Margin="4,0,0,8"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -265,15 +265,15 @@
                                     <TextBlock x:Name="MtbfText"
                                                Text="{DynamicResource L.common.mtbfPlaceholder}"
                                                FontSize="14"
-                                               Foreground="{StaticResource TextPrimary}"/>
+                                               Foreground="{DynamicResource TextPrimary}"/>
                                     <TextBlock x:Name="TrendText"
                                                Text="{DynamicResource L.common.trendPlaceholder}"
                                                FontSize="14"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,2,0,0"/>
                                     <TextBlock x:Name="AnalysisSummaryText"
                                                FontSize="12"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,4,0,0"
                                                TextWrapping="Wrap"/>
                                 </StackPanel>
@@ -288,7 +288,7 @@
 
                         <!-- Patterns Section -->
                         <TextBlock FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimary}"
+                                   Foreground="{DynamicResource TextPrimary}"
                                    Margin="0,0,0,8">
                                    <Run Text="&#xE8F1;" FontFamily="{StaticResource IconTextFont}"/><Run Text="{DynamicResource L.incidents.crossAnalysis.patternsFound}"/>
                         </TextBlock>
@@ -304,10 +304,10 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding Description}"
                                                        FontSize="12"
-                                                       Foreground="{StaticResource TextPrimary}"
+                                                       Foreground="{DynamicResource TextPrimary}"
                                                        TextWrapping="Wrap"/>
                                             <Border Grid.Column="1"
-                                                    Background="{StaticResource AccentColor}"
+                                                    Background="{DynamicResource AccentColor}"
                                                     CornerRadius="4" Padding="6,2"
                                                     Margin="8,0,0,0"
                                                     VerticalAlignment="Center">
@@ -323,7 +323,7 @@
 
                         <!-- Drivers Section -->
                         <TextBlock FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimary}"
+                                   Foreground="{DynamicResource TextPrimary}"
                                    Margin="0,16,0,8">
                                    <Run Text="&#xE7C5;" FontFamily="{StaticResource IconTextFont}"/><Run Text="{DynamicResource L.incidents.crossAnalysis.drivers}"/>
                         </TextBlock>
@@ -340,15 +340,15 @@
                                             <StackPanel>
                                                 <TextBlock Text="{Binding DriverDisplay}"
                                                            FontSize="12" FontWeight="SemiBold"
-                                                           Foreground="{StaticResource TextPrimary}"/>
+                                                           Foreground="{DynamicResource TextPrimary}"/>
                                                 <TextBlock Text="{Binding FailuresDisplay}"
                                                            FontSize="11"
-                                                           Foreground="{StaticResource TextSecondary}"/>
+                                                           Foreground="{DynamicResource TextSecondary}"/>
                                             </StackPanel>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding RateDisplay}"
                                                        FontSize="12" FontWeight="Bold"
-                                                       Foreground="{StaticResource GpuColor}"
+                                                       Foreground="{DynamicResource GpuColor}"
                                                        VerticalAlignment="Center"/>
                                         </Grid>
                                     </Border>
@@ -358,7 +358,7 @@
 
                         <!-- Recommendations Section -->
                         <TextBlock FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimary}"
+                                   Foreground="{DynamicResource TextPrimary}"
                                    Margin="0,16,0,8">
                                    <Run Text="&#xEA4B;" FontFamily="{StaticResource IconTextFont}"/><Run Text="{DynamicResource L.incidents.crossAnalysis.recommendations}"/>
                         </TextBlock>
@@ -384,12 +384,12 @@
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding Title}"
                                                            FontSize="13" FontWeight="SemiBold"
-                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Foreground="{DynamicResource TextPrimary}"
                                                            TextWrapping="Wrap"/>
                                             </Grid>
                                             <TextBlock Text="{Binding Description}"
                                                        FontSize="11"
-                                                       Foreground="{StaticResource TextSecondary}"
+                                                       Foreground="{DynamicResource TextSecondary}"
                                                        Margin="0,4,0,0"
                                                        TextWrapping="Wrap"/>
                                         </StackPanel>
@@ -404,7 +404,7 @@
         </Border>
 
         <!-- Incident Comparison Panel -->
-        <Border Grid.Row="4" Background="{StaticResource CardBg}"
+        <Border Grid.Row="4" Background="{DynamicResource CardBg}"
                 CornerRadius="12" Padding="20" Margin="0,12,0,0"
                 x:Name="ComparisonPanel" Visibility="Collapsed">
             <Grid>
@@ -418,7 +418,7 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{DynamicResource L.incidents.comparison.title}"
                                    FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource AccentColor}"
+                                   Foreground="{DynamicResource AccentColor}"
                                    VerticalAlignment="Center"/>
                         <Button x:Name="CloseComparisonButton"
                                 Content="&#xE711;"
@@ -426,7 +426,7 @@
                                 Width="28" Height="28"
                                 FontSize="12"
                                 Background="Transparent"
-                                Foreground="{StaticResource TextSecondary}"
+                                Foreground="{DynamicResource TextSecondary}"
                                 BorderThickness="0"
                                 Click="CloseComparisonButton_Click"
                                 Margin="12,0,0,0"
@@ -435,7 +435,7 @@
                     <TextBlock x:Name="ComparisonSubtitle"
                                Text="{DynamicResource L.incidents.comparison.subtitle}"
                                FontSize="12"
-                               Foreground="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextSecondary}"
                                Margin="0,4,0,0"/>
                 </StackPanel>
 
@@ -454,12 +454,12 @@
                                 <StackPanel>
                                     <TextBlock x:Name="LeftHeader"
                                                FontSize="14" FontWeight="Bold"
-                                               Foreground="{StaticResource TextPrimary}"
+                                               Foreground="{DynamicResource TextPrimary}"
                                                Margin="0,0,0,12"/>
 
                                     <!-- Basic Info -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.basicInfo}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,0,0,6"/>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
@@ -467,11 +467,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.mode}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftMode"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
@@ -479,16 +479,16 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.support}" ToolTip="{DynamicResource L.incidents.comparison.supportTip}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftConfidence"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
 
                                     <!-- GPU State -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.gpuState}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -496,11 +496,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.finalLoad}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftGpuLoad"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource GpuColor}"/>
+                                                   Foreground="{DynamicResource GpuColor}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -508,16 +508,16 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.transitions}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftGpuTransitions"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
 
                                     <!-- ETW -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.etwEvents}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -525,11 +525,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.gpuTdr}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftEtwGpu"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -537,11 +537,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.power}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftEtwPower"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -549,16 +549,16 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.whea}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftEtwWhea"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource DangerColor}"/>
+                                                   Foreground="{DynamicResource DangerColor}"/>
                                     </Grid>
 
                                     <!-- Display -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.display}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -566,11 +566,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.monitors}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftMonitors"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -578,23 +578,23 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.virtual}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="LeftVirtualDisplay"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource WarningColor}"/>
+                                                   Foreground="{DynamicResource WarningColor}"/>
                                     </Grid>
 
                                     <!-- Drivers -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.drivers}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <ItemsControl x:Name="LeftDrivers">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}"
                                                            FontSize="11"
-                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Foreground="{DynamicResource TextPrimary}"
                                                            Margin="0,0,0,2"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -602,14 +602,14 @@
 
                                     <!-- Processes -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.graphicsApps}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <ItemsControl x:Name="LeftApps">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}"
                                                            FontSize="11"
-                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Foreground="{DynamicResource TextPrimary}"
                                                            Margin="0,0,0,2"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -617,14 +617,14 @@
 
                                     <!-- Hypotheses -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.hypotheses}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <ItemsControl x:Name="LeftHypotheses">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}"
                                                            FontSize="11"
-                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Foreground="{DynamicResource TextPrimary}"
                                                            Margin="0,0,0,2"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -635,7 +635,7 @@
 
                         <!-- Divider -->
                         <Border Grid.Column="1"
-                                Background="{StaticResource CardBg}"
+                                Background="{DynamicResource CardBg}"
                                 Width="2" Margin="4,0"/>
 
                         <!-- Right Incident -->
@@ -644,12 +644,12 @@
                                 <StackPanel>
                                     <TextBlock x:Name="RightHeader"
                                                FontSize="14" FontWeight="Bold"
-                                               Foreground="{StaticResource TextPrimary}"
+                                               Foreground="{DynamicResource TextPrimary}"
                                                Margin="0,0,0,12"/>
 
                                     <!-- Basic Info -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.basicInfo}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,0,0,6"/>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
@@ -657,11 +657,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.mode}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightMode"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
@@ -669,16 +669,16 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.support}" ToolTip="{DynamicResource L.incidents.comparison.supportTip}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightConfidence"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
 
                                     <!-- GPU State -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.gpuState}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -686,11 +686,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.finalLoad}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightGpuLoad"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource GpuColor}"/>
+                                                   Foreground="{DynamicResource GpuColor}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -698,16 +698,16 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.transitions}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightGpuTransitions"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
 
                                     <!-- ETW -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.etwEvents}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -715,11 +715,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.gpuTdr}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightEtwGpu"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -727,11 +727,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.power}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightEtwPower"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -739,16 +739,16 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.whea}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightEtwWhea"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource DangerColor}"/>
+                                                   Foreground="{DynamicResource DangerColor}"/>
                                     </Grid>
 
                                     <!-- Display -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.display}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -756,11 +756,11 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.monitors}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightMonitors"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextPrimary}"/>
+                                                   Foreground="{DynamicResource TextPrimary}"/>
                                     </Grid>
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
@@ -768,23 +768,23 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{DynamicResource L.incidents.comparison.virtual}" FontSize="11"
-                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Foreground="{DynamicResource TextSecondary}"
                                                    Width="70"/>
                                         <TextBlock Grid.Column="1" x:Name="RightVirtualDisplay"
                                                    FontSize="11" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource WarningColor}"/>
+                                                   Foreground="{DynamicResource WarningColor}"/>
                                     </Grid>
 
                                     <!-- Drivers -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.drivers}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <ItemsControl x:Name="RightDrivers">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}"
                                                            FontSize="11"
-                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Foreground="{DynamicResource TextPrimary}"
                                                            Margin="0,0,0,2"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -792,14 +792,14 @@
 
                                     <!-- Processes -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.graphicsApps}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <ItemsControl x:Name="RightApps">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}"
                                                            FontSize="11"
-                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Foreground="{DynamicResource TextPrimary}"
                                                            Margin="0,0,0,2"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -807,14 +807,14 @@
 
                                     <!-- Hypotheses -->
                                     <TextBlock Text="{DynamicResource L.incidents.comparison.hypotheses}" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Margin="0,8,0,6"/>
                                     <ItemsControl x:Name="RightHypotheses">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}"
                                                            FontSize="11"
-                                                           Foreground="{StaticResource TextPrimary}"
+                                                           Foreground="{DynamicResource TextPrimary}"
                                                            Margin="0,0,0,2"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

@@ -6,15 +6,15 @@
         <StackPanel Margin="0,0,0,24">
             <TextBlock Text="{DynamicResource L.recorder.title}"
                        FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}"
+                       Foreground="{DynamicResource TextPrimary}"
                        Margin="0,0,0,8"/>
             <TextBlock Text="{DynamicResource L.recorder.subtitle}"
                        FontSize="13"
-                       Foreground="{StaticResource TextSecondary}"
+                       Foreground="{DynamicResource TextSecondary}"
                        Margin="0,0,0,24"/>
 
             <!-- Status Card -->
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -25,11 +25,11 @@
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
                         <Ellipse x:Name="StatusDot" Width="12" Height="12"
-                                 Fill="{StaticResource DangerColor}" Margin="0,0,8,0"/>
+                                 Fill="{DynamicResource DangerColor}" Margin="0,0,8,0"/>
                         <TextBlock x:Name="RecorderStatusLabel"
                                    Text="{DynamicResource L.recorder.status.stopped}"
                                    FontSize="18" FontWeight="Bold"
-                                   Foreground="{StaticResource TextPrimary}"/>
+                                   Foreground="{DynamicResource TextPrimary}"/>
                     </StackPanel>
 
                     <Grid Grid.Row="1" Margin="0,0,0,16">
@@ -43,10 +43,10 @@
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.recorder.cards.session}"
                                            FontSize="11"
-                                           Foreground="{StaticResource TextSecondary}"/>
+                                           Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock x:Name="SessionIdText" Text="--"
                                            FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimary}"/>
+                                           Foreground="{DynamicResource TextPrimary}"/>
                             </StackPanel>
                         </Border>
 
@@ -54,10 +54,10 @@
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.recorder.cards.uptime}"
                                            FontSize="11"
-                                           Foreground="{StaticResource TextSecondary}"/>
+                                           Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock x:Name="UptimeText" Text="--"
                                            FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimary}"/>
+                                           Foreground="{DynamicResource TextPrimary}"/>
                             </StackPanel>
                         </Border>
 
@@ -65,10 +65,10 @@
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.recorder.cards.samples}"
                                            FontSize="11"
-                                           Foreground="{StaticResource TextSecondary}"/>
+                                           Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock x:Name="SampleCountText" Text="0"
                                            FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimary}"/>
+                                           Foreground="{DynamicResource TextPrimary}"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -90,12 +90,12 @@
             </Border>
 
             <!-- Session Info Card -->
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.recorder.sessionDetails}"
                                FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,12"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -110,39 +110,39 @@
                         </Grid.RowDefinitions>
 
                         <TextBlock Text="{DynamicResource L.recorder.dataDirectory}" Grid.Row="0" Grid.Column="0"
-                                   Foreground="{StaticResource TextSecondary}" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondary}" FontSize="12"
                                    Margin="0,0,16,0"/>
                         <TextBlock x:Name="DataDirText" Grid.Row="0" Grid.Column="1"
-                                   Text="--" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
+                                   Text="--" Foreground="{DynamicResource TextPrimary}" FontSize="12"/>
 
                         <TextBlock Text="{DynamicResource L.recorder.elevated}" Grid.Row="1" Grid.Column="0"
-                                   Foreground="{StaticResource TextSecondary}" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondary}" FontSize="12"
                                    Margin="0,0,16,0"/>
                         <TextBlock x:Name="ElevatedText" Grid.Row="1" Grid.Column="1"
-                                   Text="--" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
+                                   Text="--" Foreground="{DynamicResource TextPrimary}" FontSize="12"/>
 
                         <TextBlock Text="{DynamicResource L.recorder.previousSession}" Grid.Row="2" Grid.Column="0"
-                                   Foreground="{StaticResource TextSecondary}" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondary}" FontSize="12"
                                    Margin="0,0,16,0"/>
                         <TextBlock x:Name="PreviousSessionText" Grid.Row="2" Grid.Column="1"
-                                   Text="--" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
+                                   Text="--" Foreground="{DynamicResource TextPrimary}" FontSize="12"/>
 
                         <TextBlock Text="{DynamicResource L.recorder.agentVersion}" Grid.Row="3" Grid.Column="0"
-                                   Foreground="{StaticResource TextSecondary}" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondary}" FontSize="12"
                                    Margin="0,0,16,0"/>
                         <TextBlock x:Name="AgentVersionText" Grid.Row="3" Grid.Column="1"
-                                   Text="v0.5.0-dev" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
+                                   Text="v0.5.0-dev" Foreground="{DynamicResource TextPrimary}" FontSize="12"/>
                     </Grid>
                 </StackPanel>
             </Border>
 
             <!-- Write-throughput Card -->
-            <Border Background="{StaticResource CardBg}"
+            <Border Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="24">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.recorder.writeThroughput}"
                                FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimary}"
+                               Foreground="{DynamicResource TextPrimary}"
                                Margin="0,0,0,12"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -156,50 +156,50 @@
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="0,0,6,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.telemetry}"
-                                           FontSize="10" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="10" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock x:Name="TelemetryHzText" Text="1 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.foreground}"
-                                           FontSize="10" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="10" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock x:Name="ForegroundHzText" Text="1 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.gpuEngines}"
-                                           FontSize="10" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="10" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock x:Name="GpuEngineHzText" Text="0.5 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.processes}"
-                                           FontSize="10" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="10" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock x:Name="ProcessHzText" Text="0.5 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="6,0,0,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.snapshot}"
-                                           FontSize="10" Foreground="{StaticResource TextSecondary}"/>
+                                           FontSize="10" Foreground="{DynamicResource TextSecondary}"/>
                                 <TextBlock x:Name="SnapshotHzText" Text="1/30 Hz"
                                            FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentColor}"/>
+                                           Foreground="{DynamicResource AccentColor}"/>
                             </StackPanel>
                         </Border>
                     </Grid>

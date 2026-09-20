@@ -12,19 +12,19 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
             <TextBlock Text="{DynamicResource L.agentIncidents.title}"
                        FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}"/>
+                       Foreground="{DynamicResource TextPrimary}"/>
             <TextBlock Text="{DynamicResource L.agentIncidents.subtitle}"
                        FontSize="13"
-                       Foreground="{StaticResource TextSecondary}"
+                       Foreground="{DynamicResource TextSecondary}"
                        Margin="0,4,0,0"/>
         </StackPanel>
 
         <!-- Connection bar -->
-        <Border Grid.Row="1" Background="{StaticResource CardBg}"
+        <Border Grid.Row="1" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{DynamicResource L.common.stateDir}" VerticalAlignment="Center"
-                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="330" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
                 <Button x:Name="ConnectButton" Content="{DynamicResource L.common.refresh}" ContentTemplate="{StaticResource IconTextTemplate}"
@@ -33,7 +33,7 @@
                         Click="RefreshButton_Click"/>
                 <TextBlock x:Name="ConnectionText" Text="{DynamicResource L.common.notConnected}"
                            VerticalAlignment="Center" FontSize="12"
-                           Foreground="{StaticResource TextSecondary}" Margin="14,0,0,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="14,0,0,0"/>
             </StackPanel>
         </Border>
 
@@ -44,13 +44,13 @@
             </Grid.ColumnDefinitions>
 
             <!-- Incident list -->
-            <Border Grid.Column="0" Background="{StaticResource CardBg}"
+            <Border Grid.Column="0" Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="8" Margin="0,0,12,0">
                 <ListBox x:Name="IncidentList"
                          ItemsSource="{Binding Incidents}"
                          Background="Transparent"
                          BorderThickness="0"
-                         Foreground="{StaticResource TextPrimary}"
+                         Foreground="{DynamicResource TextPrimary}"
                          SelectionChanged="IncidentList_SelectionChanged"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemTemplate>
@@ -59,12 +59,12 @@
                                     Padding="10,6" Margin="0,0,0,4">
                                 <StackPanel>
                                     <TextBlock Text="{Binding Timestamp}" FontSize="11"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                FontFamily="Consolas"/>
                                     <TextBlock Text="{Binding LeadingMode}" FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{StaticResource TextPrimary}"/>
+                                               Foreground="{DynamicResource TextPrimary}"/>
                                     <TextBlock FontSize="11"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                Text="{Binding Confidence, StringFormat=saved heuristic support {0:P0}}"/>
                                 </StackPanel>
                             </Border>
@@ -74,12 +74,12 @@
             </Border>
 
             <!-- Detail -->
-            <Border Grid.Column="1" Background="{StaticResource CardBg}"
+            <Border Grid.Column="1" Background="{DynamicResource CardBg}"
                     CornerRadius="12" Padding="12">
                 <TextBox x:Name="DetailBox"
                          Background="Transparent"
                          BorderThickness="0"
-                         Foreground="{StaticResource TextPrimary}"
+                         Foreground="{DynamicResource TextPrimary}"
                          FontFamily="Consolas" FontSize="12"
                          IsReadOnly="True" TextWrapping="Wrap"
                          VerticalScrollBarVisibility="Auto"/>
@@ -87,3 +87,4 @@
         </Grid>
     </Grid>
 </UserControl>
+

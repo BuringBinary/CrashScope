@@ -12,42 +12,42 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
             <TextBlock Text="{DynamicResource L.timeline.title}"
                        FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}"/>
+                       Foreground="{DynamicResource TextPrimary}"/>
             <TextBlock Text="{DynamicResource L.timeline.subtitle}"
                        FontSize="13"
-                       Foreground="{StaticResource TextSecondary}"
+                       Foreground="{DynamicResource TextSecondary}"
                        Margin="0,4,0,0"/>
         </StackPanel>
 
         <!-- Legend -->
-        <Border Grid.Row="1" Background="{StaticResource CardBg}"
+        <Border Grid.Row="1" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <Border Background="{StaticResource AccentColor}"
+                <Border Background="{DynamicResource AccentColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="{DynamicResource L.common.telemetry}" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.common.telemetry}" Foreground="{DynamicResource TextSecondary}"
                            FontSize="11" Margin="0,0,16,0"/>
-                <Border Background="{StaticResource GpuColor}"
+                <Border Background="{DynamicResource GpuColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="{DynamicResource L.timeline.legend.gpuTransition}" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.gpuTransition}" Foreground="{DynamicResource TextSecondary}"
                            FontSize="11" Margin="0,0,16,0"/>
-                <Border Background="{StaticResource CpuColor}"
+                <Border Background="{DynamicResource CpuColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="{DynamicResource L.timeline.legend.appProcess}" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.appProcess}" Foreground="{DynamicResource TextSecondary}"
                            FontSize="11" Margin="0,0,16,0"/>
-                <Border Background="{StaticResource RamColor}"
+                <Border Background="{DynamicResource RamColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="{DynamicResource L.timeline.legend.windowsEvent}" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.windowsEvent}" Foreground="{DynamicResource TextSecondary}"
                            FontSize="11" Margin="0,0,16,0"/>
-                <Border Background="{StaticResource DangerColor}"
+                <Border Background="{DynamicResource DangerColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="{DynamicResource L.timeline.legend.crashPoint}" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.crashPoint}" Foreground="{DynamicResource TextSecondary}"
                            FontSize="11"/>
             </StackPanel>
         </Border>
 
         <!-- Timeline -->
-        <Border Grid.Row="2" Background="{StaticResource CardBg}"
+        <Border Grid.Row="2" Background="{DynamicResource CardBg}"
                 CornerRadius="12" Padding="24">
             <Grid>
                 <Grid.RowDefinitions>
@@ -68,21 +68,21 @@
                                   Grid.Column="0"
                                   Width="280"
                                   Background="#1E1F3A"
-                                  Foreground="{StaticResource TextPrimary}"
+                                  Foreground="{DynamicResource TextPrimary}"
                                   BorderThickness="0"
                                   SelectionChanged="IncidentSelector_SelectionChanged">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding Title}" FontSize="12"
-                                               Foreground="{StaticResource TextPrimary}"/>
+                                               Foreground="{DynamicResource TextPrimary}"/>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
                         <TextBlock x:Name="TimelineStartText" Grid.Column="1" Text="T-5:00"
-                                   FontSize="12" Foreground="{StaticResource TextSecondary}"
+                                   FontSize="12" Foreground="{DynamicResource TextSecondary}"
                                    FontFamily="Consolas" HorizontalAlignment="Center"/>
                         <TextBlock Grid.Column="2" x:Name="TimelineEndText" Text="T+0:00"
-                                   FontSize="12" Foreground="{StaticResource DangerColor}"
+                                   FontSize="12" Foreground="{DynamicResource DangerColor}"
                                    FontFamily="Consolas"/>
                     </Grid>
                 </Border>
@@ -101,7 +101,7 @@
 
                                     <TextBlock Text="{Binding Time}"
                                                FontSize="11" FontFamily="Consolas"
-                                               Foreground="{StaticResource TextSecondary}"
+                                               Foreground="{DynamicResource TextSecondary}"
                                                VerticalAlignment="Top" Margin="0,4,0,0"/>
 
                                     <Grid Grid.Column="1" Width="24" Margin="4,0,8,0">
@@ -122,10 +122,10 @@
                                         <StackPanel>
                                             <TextBlock Text="{Binding Category}"
                                                        FontSize="11" FontWeight="SemiBold"
-                                                       Foreground="{StaticResource AccentColor}"/>
+                                                       Foreground="{DynamicResource AccentColor}"/>
                                             <TextBlock Text="{Binding Description}"
                                                        FontSize="12"
-                                                       Foreground="{StaticResource TextPrimary}"
+                                                       Foreground="{DynamicResource TextPrimary}"
                                                        TextWrapping="Wrap"
                                                        Margin="0,2,0,0"/>
                                         </StackPanel>

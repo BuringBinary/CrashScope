@@ -20,19 +20,19 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
             <TextBlock Text="{DynamicResource L.agentMonitor.title}"
                        FontSize="24" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimary}"/>
+                       Foreground="{DynamicResource TextPrimary}"/>
             <TextBlock Text="{DynamicResource L.agentMonitor.subtitle}"
                        FontSize="13"
-                       Foreground="{StaticResource TextSecondary}"
+                       Foreground="{DynamicResource TextSecondary}"
                        Margin="0,4,0,0"/>
         </StackPanel>
 
         <!-- Connection bar -->
-        <Border Grid.Row="1" Background="{StaticResource CardBg}"
+        <Border Grid.Row="1" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{DynamicResource L.common.stateDir}" VerticalAlignment="Center"
-                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="330" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
                 <Button x:Name="ConnectButton" Content="{DynamicResource L.common.connect}" ContentTemplate="{StaticResource IconTextTemplate}"
@@ -53,47 +53,47 @@
                         Click="StopButton_Click"/>
                 <TextBlock x:Name="ConnectionText" Text="{DynamicResource L.common.notConnected}"
                            VerticalAlignment="Center" FontSize="12"
-                           Foreground="{StaticResource TextSecondary}" Margin="14,0,0,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="14,0,0,0"/>
             </StackPanel>
         </Border>
 
         <!-- Status strip -->
-        <Border Grid.Row="2" Background="{StaticResource CardBg}"
+        <Border Grid.Row="2" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="14,8" Margin="0,0,0,12">
             <WrapPanel>
                 <TextBlock x:Name="RecordingText" Text="{DynamicResource L.agentMonitor.idleDot}" FontSize="13"
-                           Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="0,0,24,0"/>
                 <TextBlock x:Name="SamplesText" Text="{DynamicResource L.home.samplesPlaceholder}" FontSize="13"
-                           Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="0,0,24,0"/>
                 <TextBlock x:Name="UptimeText" Text="{DynamicResource L.agentMonitor.uptimePlaceholder}" FontSize="13"
-                           Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="0,0,24,0"/>
                 <TextBlock x:Name="GpuText" Text="{DynamicResource L.agentMonitor.gpuPlaceholder}" FontSize="13"
-                           Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="0,0,24,0"/>
                 <TextBlock x:Name="VersionText" Text="{DynamicResource L.agentMonitor.agentPlaceholder}" FontSize="13"
-                           Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="0,0,24,0"/>
                 <TextBlock x:Name="SessionText" Text="{DynamicResource L.agentMonitor.sessionPlaceholder}" FontSize="13"
-                           Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
+                           Foreground="{DynamicResource TextSecondary}" Margin="0,0,24,0"/>
                 <TextBlock x:Name="LastUpdateText" Text="" FontSize="13"
-                           Foreground="{StaticResource TextSecondary}"/>
+                           Foreground="{DynamicResource TextSecondary}"/>
             </WrapPanel>
         </Border>
 
         <!-- Live sensors -->
-        <Border Grid.Row="3" Background="{StaticResource CardBg}"
+        <Border Grid.Row="3" Background="{DynamicResource CardBg}"
                 CornerRadius="12" Padding="12">
             <ListBox x:Name="SensorList"
                      ItemsSource="{Binding Source={StaticResource GroupedRows}}"
                      VirtualizingPanel.IsVirtualizingWhenGrouping="True"
                      Background="Transparent"
                      BorderThickness="0"
-                     Foreground="{StaticResource TextPrimary}"
+                     Foreground="{DynamicResource TextPrimary}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.GroupStyle>
                     <GroupStyle>
                         <GroupStyle.HeaderTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimary}" Margin="0,8,0,4"/>
+                                           Foreground="{DynamicResource TextPrimary}" Margin="0,8,0,4"/>
                             </DataTemplate>
                         </GroupStyle.HeaderTemplate>
                     </GroupStyle>
@@ -107,12 +107,12 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding SensorName}" FontSize="12"
-                                       Foreground="{StaticResource TextPrimary}"
+                                       Foreground="{DynamicResource TextPrimary}"
                                        TextTrimming="CharacterEllipsis"/>
                             <TextBlock Grid.Column="1" Text="{Binding SensorType}" FontSize="11"
-                                       Foreground="{StaticResource TextSecondary}"/>
+                                       Foreground="{DynamicResource TextSecondary}"/>
                             <TextBlock Grid.Column="2" Text="{Binding ValueText}" FontSize="12"
-                                       Foreground="{StaticResource TextPrimary}"
+                                       Foreground="{DynamicResource TextPrimary}"
                                        FontFamily="Consolas"/>
                         </Grid>
                     </DataTemplate>
@@ -121,3 +121,4 @@
         </Border>
     </Grid>
 </UserControl>
+

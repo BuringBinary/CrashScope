@@ -6,7 +6,7 @@
         Width="1200" Height="750"
         MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource ContentBg}"
+        Background="{DynamicResource ContentBg}"
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="CanResizeWithGrip">
@@ -33,7 +33,7 @@
             </Grid.RowDefinitions>
 
             <!-- Title bar -->
-            <Grid Grid.Row="0" Background="{StaticResource SidebarBg}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid Grid.Row="0" Background="{DynamicResource SidebarBg}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="220"/>
                     <ColumnDefinition Width="*"/>
@@ -43,7 +43,7 @@
                 <TextBlock Grid.Column="1"
                            Text="{DynamicResource L.app.title}"
                            FontSize="13" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondary}"
+                           Foreground="{DynamicResource TextSecondary}"
                            VerticalAlignment="Center" Margin="12,0,0,0"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal"
@@ -72,7 +72,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Sidebar -->
-                <Border Grid.Column="0" Background="{StaticResource SidebarBg}">
+                <Border Grid.Column="0" Background="{DynamicResource SidebarBg}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -84,10 +84,10 @@
                         <StackPanel Grid.Row="0" Margin="20,24,20,16">
                             <TextBlock Text="{DynamicResource L.app.brand}"
                                        FontSize="18" FontWeight="Bold"
-                                       Foreground="{StaticResource AccentColor}"/>
+                                       Foreground="{DynamicResource AccentColor}"/>
                             <TextBlock Text="{DynamicResource L.app.subtitle}"
                                        FontSize="11"
-                                       Foreground="{StaticResource TextSecondary}"
+                                       Foreground="{DynamicResource TextSecondary}"
                                        Margin="0,2,0,0"/>
                         </StackPanel>
 
@@ -180,16 +180,16 @@
 
                         <!-- Bottom status -->
                         <StackPanel Grid.Row="2" Margin="20,0,20,20">
-                            <Border Background="{StaticResource CardBg}"
+                            <Border Background="{DynamicResource CardBg}"
                                     CornerRadius="8" Padding="12">
                                 <StackPanel>
                                     <TextBlock Text="v0.5.0-dev"
                                                FontSize="11"
-                                               Foreground="{StaticResource TextSecondary}"/>
+                                               Foreground="{DynamicResource TextSecondary}"/>
                                     <TextBlock x:Name="StatusText"
                                                Text="{DynamicResource L.titlebar.recorderStopped}"
                                                FontSize="11"
-                                               Foreground="{StaticResource DangerColor}"
+                                               Foreground="{DynamicResource DangerColor}"
                                                Margin="0,4,0,0"/>
                                 </StackPanel>
                             </Border>
@@ -198,18 +198,18 @@
                 </Border>
 
                 <!-- Content area -->
-                <Border Grid.Column="1" Background="{StaticResource ContentBg}">
+                <Border Grid.Column="1" Background="{DynamicResource ContentBg}">
                     <Grid x:Name="ContentArea" Margin="24"/>
                 </Border>
             </Grid>
 
             <!-- Status bar -->
-            <Border Grid.Row="2" Background="{StaticResource SidebarBg}" Padding="12,0">
+            <Border Grid.Row="2" Background="{DynamicResource SidebarBg}" Padding="12,0">
                 <Grid>
                     <TextBlock x:Name="StatusBarText"
                                Text="{DynamicResource L.statusbar.ready}"
                                FontSize="11"
-                               Foreground="{StaticResource TextSecondary}"
+                               Foreground="{DynamicResource TextSecondary}"
                                VerticalAlignment="Center"/>
                 </Grid>
             </Border>

@@ -7,9 +7,9 @@
             <Grid Margin="0,0,0,20">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource L.hardware.title}" FontSize="24" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimary}"/>
+                               Foreground="{DynamicResource TextPrimary}"/>
                     <TextBlock Text="{DynamicResource L.hardware.subtitle}"
-                               FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
+                               FontSize="12" Foreground="{DynamicResource TextSecondary}" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button x:Name="OpenRawSensorsButton" Content="{DynamicResource L.hardware.openRawSensors}"
@@ -32,54 +32,54 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
+                <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
                     <StackPanel>
-                        <TextBlock Text="CPU" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="CpuInfoText" Text="{DynamicResource L.common.detecting}" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+                        <TextBlock Text="CPU" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="CpuInfoText" Text="{DynamicResource L.common.detecting}" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
-                <Border Grid.Row="0" Grid.Column="1" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
+                <Border Grid.Row="0" Grid.Column="1" Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
                     <StackPanel>
-                        <TextBlock Text="GPU" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="GpuInfoText" Text="{DynamicResource L.common.detecting}" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource L.common.memory}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="MemoryInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource L.common.disk}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="DiskInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+                        <TextBlock Text="GPU" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="GpuInfoText" Text="{DynamicResource L.common.detecting}" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
 
-                <Border Grid.Row="2" Grid.Column="0" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
+                <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
                     <StackPanel>
-                        <TextBlock Text="{DynamicResource L.hardware.mainboard}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="BoardInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{DynamicResource L.common.memory}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="MemoryInfoText" Text="--" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
-                <Border Grid.Row="2" Grid.Column="1" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
+                <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
                     <StackPanel>
-                        <TextBlock Text="{DynamicResource L.hardware.displayNetwork}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="DisplayInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="NetworkInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{DynamicResource L.common.disk}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="DiskInfoText" Text="--" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="2" Grid.Column="0" Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource L.hardware.mainboard}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="BoardInfoText" Text="--" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="2" Grid.Column="1" Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource L.hardware.displayNetwork}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="DisplayInfoText" Text="--" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="NetworkInfoText" Text="--" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
             </Grid>
 
-            <Border Background="{StaticResource CardBg}" CornerRadius="12" Padding="16">
+            <Border Background="{DynamicResource CardBg}" CornerRadius="12" Padding="16">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource L.hardware.rawCatalog}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                    <TextBlock Text="{DynamicResource L.hardware.rawCatalogHint}" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{DynamicResource L.hardware.rawCatalog}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{DynamicResource L.hardware.rawCatalogHint}" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,8"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBox x:Name="SearchBox" Width="200" Height="28" Margin="0,0,8,0" TextChanged="SearchBox_TextChanged" />
-                        <TextBlock Text="{DynamicResource L.hardware.searchPlaceholder}" FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource L.hardware.searchPlaceholder}" FontSize="11" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
                         <Button x:Name="OpenInWindowButton" Content="{DynamicResource L.hardware.openInWindow}" Height="28" Padding="10,0"
                                 Style="{StaticResource SecondaryButton}" Margin="12,0,0,0"
                                 Click="OpenRawSensorsButton_Click"/>
@@ -99,3 +99,4 @@
         </StackPanel>
     </ScrollViewer>
 </UserControl>
+
