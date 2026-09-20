@@ -1,4 +1,5 @@
 using System.IO;
+using CrashScope.Desktop.Services;
 using System.Windows;
 using System.Windows.Controls;
 using UserControl = System.Windows.Controls.UserControl;
@@ -42,7 +43,7 @@ public partial class AgentMonitorPage : UserControl
 
     private async Task ConnectAsync()
     {
-        ConnectionText.Text = "Connecting...";
+        ConnectionText.Text = Loc.T("common.connecting");
         var ok = await _vm.ConnectAsync(StateDirBox.Text, pipeName: null);
         ConnectionText.Text = ok
             ? $"Connected: {_vm.PipeName}"
@@ -53,7 +54,7 @@ public partial class AgentMonitorPage : UserControl
     private void DisconnectButton_Click(object sender, RoutedEventArgs e)
     {
         _vm.Disconnect();
-        ConnectionText.Text = "Disconnected";
+        ConnectionText.Text = Loc.T("common.disconnected");
     }
 
     private async void StartButton_Click(object sender, RoutedEventArgs e)
@@ -64,15 +65,15 @@ public partial class AgentMonitorPage : UserControl
         }
         catch (Exception ex)
         {
-            ConnectionText.Text = $"Start failed: {ex.Message}";
+            ConnectionText.Text = Loc.F("agentMonitor.startFailed", ex.Message);
         }
     }
 
     private async void StopButton_Click(object sender, RoutedEventArgs e)
     {
         var confirm = System.Windows.MessageBox.Show(
-            "Stop the agent's recording session? It is marked clean only after successful shutdown; faults remain recorded.",
-            "CrashScope", MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+            Loc.T("agentMonitor.confirmStop"),
+            Loc.T("app.title"), MessageBoxButton.OKCancel, MessageBoxImage.Warning);
         if (confirm != MessageBoxResult.OK)
             return;
         try
@@ -81,23 +82,23 @@ public partial class AgentMonitorPage : UserControl
         }
         catch (Exception ex)
         {
-            ConnectionText.Text = $"Stop failed: {ex.Message}";
+            ConnectionText.Text = Loc.F("agentMonitor.stopFailed", ex.Message);
         }
     }
 
     private void RenderState()
     {
-        RecordingText.Text = _vm.Recording ? "\u25CF recording" : $"\u25CF {_vm.RecorderState ?? "idle"}";
+        RecordingText.Text = _vm.Recording ? Loc.T("agentMonitor.recordingDot") : _vm.RecorderState is null ? Loc.T("agentMonitor.idleDot") : $"\u25CF {_vm.RecorderState}";
         RecordingText.ToolTip = _vm.RecorderError ?? _vm.RecoveryError;
         RecordingText.Foreground = _vm.Recording
             ? (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(
                 System.Windows.Media.Color.FromRgb(0x00, 0xD6, 0x8F))
             : (System.Windows.Media.Brush)FindResource("TextSecondary");
-        SamplesText.Text = $"Samples: {_vm.SampleCount}";
-        UptimeText.Text = $"Uptime: {_vm.UptimeSeconds:0} s";
-        GpuText.Text = $"GPU: {_vm.PrimaryGpu ?? "n/a"}";
-        VersionText.Text = $"Agent: {_vm.AgentVersion ?? "n/a"}";
-        SessionText.Text = $"Session: {(_vm.SessionId is null ? "-" : _vm.SessionId[..8])}";
+        SamplesText.Text = Loc.F("common.samples", _vm.SampleCount);
+        UptimeText.Text = Loc.F("common.uptimeSeconds", _vm.UptimeSeconds);
+        GpuText.Text = Loc.F("agentMonitor.gpuLine", _vm.PrimaryGpu ?? Loc.T("common.na"));
+        VersionText.Text = Loc.F("agentMonitor.agentLine", _vm.AgentVersion ?? Loc.T("common.na"));
+        SessionText.Text = Loc.F("common.session", _vm.SessionId is null ? "-" : _vm.SessionId[..8]);
         LastUpdateText.Text = _vm.LastUpdateAt is { } at ? $"Last update: {at:HH:mm:ss}" : string.Empty;
     }
 }

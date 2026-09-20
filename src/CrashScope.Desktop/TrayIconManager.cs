@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
 using Timer = System.Windows.Forms.Timer;
+using CrashScope.Desktop.Services;
 
 namespace CrashScope.Desktop;
 
@@ -32,7 +33,7 @@ public sealed class TrayIconManager : IDisposable
         _notifyIcon = new NotifyIcon
         {
             Icon = _iconStopped,
-            Text = "CrashScope - Stopped",
+            Text = Loc.T("tray.stopped"),
             Visible = true,
             ContextMenuStrip = CreateContextMenu()
         };
@@ -44,27 +45,40 @@ public sealed class TrayIconManager : IDisposable
         _blinkTimer.Tick += OnBlinkTick;
 
         _service.StatusChanged += OnStatusChanged;
+        if (Application.Current is App app)
+            app.Localization.LocaleChanged += OnLocaleChanged;
+    }
+
+    private void OnLocaleChanged()
+    {
+        _window.Dispatcher.InvokeAsync(() =>
+        {
+            var old = _notifyIcon.ContextMenuStrip;
+            _notifyIcon.ContextMenuStrip = CreateContextMenu();
+            old?.Dispose();
+            OnStatusChanged();
+        });
     }
 
     private ContextMenuStrip CreateContextMenu()
     {
         var menu = new ContextMenuStrip();
-        menu.Items.Add("Start Recording", null, async (_, _) =>
+        menu.Items.Add(Loc.T("tray.startRecording"), null, async (_, _) =>
         {
             try { await _service.StopRecordingAsync(); await Task.Run(_service.StartRecording); }
             catch (Exception ex) { System.Windows.MessageBox.Show(ex.Message, "CrashScope"); }
         });
-        menu.Items.Add("Stop Recording", null, async (_, _) => await _service.StopRecordingAsync());
+        menu.Items.Add(Loc.T("tray.stopRecording"), null, async (_, _) => await _service.StopRecordingAsync());
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Open Data Folder", null, (_, _) =>
+        menu.Items.Add(Loc.T("tray.openDataFolder"), null, (_, _) =>
         {
             var path = _service.RootDirectory;
             if (Directory.Exists(path))
                 System.Diagnostics.Process.Start("explorer.exe", path);
         });
-        menu.Items.Add("Show CrashScope", null, OnShowFromTray);
+        menu.Items.Add(Loc.T("tray.show"), null, OnShowFromTray);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("Exit", null, OnExit);
+        menu.Items.Add(Loc.T("tray.exit"), null, OnExit);
 
         menu.Opening += (_, _) =>
         {
@@ -83,8 +97,8 @@ public sealed class TrayIconManager : IDisposable
         {
             _notifyIcon.Icon = _service.IsRecording ? _iconRecording : _iconStopped;
             _notifyIcon.Text = _service.IsRecording
-                ? $"CrashScope - Recording ({_service.SampleCount} samples)"
-                : $"CrashScope - {_service.RecorderState}";
+                ? Loc.F("tray.recording", _service.SampleCount)
+                : Loc.F("tray.state", _service.RecorderState);
         });
     }
 
@@ -94,7 +108,7 @@ public sealed class TrayIconManager : IDisposable
         _notifyIcon.ShowBalloonTip(
             5000,
             "CrashScope",
-            $"Previous unclean recording detected.\nCandidate: {mode} ({confidence:P0} evidence support, not probability)\nClick to view incident.",
+            Loc.F("tray.uncleanBalloon", mode, confidence),
             ToolTipIcon.Warning);
         _blinkTimer.Start();
     }
@@ -143,6 +157,8 @@ public sealed class TrayIconManager : IDisposable
 
     public void Dispose()
     {
+        if (Application.Current is App app)
+            app.Localization.LocaleChanged -= OnLocaleChanged;
         _blinkTimer.Stop();
         _blinkTimer.Dispose();
         _notifyIcon.Visible = false;

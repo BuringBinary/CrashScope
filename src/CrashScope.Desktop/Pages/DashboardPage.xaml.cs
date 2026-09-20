@@ -1,4 +1,5 @@
 using CrashScope.Core.Analysis;
+using CrashScope.Desktop.Services;
 using CrashScope.Core.Models;
 using OxyPlot;
 using OxyPlot.Axes;
@@ -461,7 +462,7 @@ public partial class DashboardPage : UserControl
     private void UpdateGpuEngines(Dictionary<string, float> engines, DateTimeOffset timestamp)
     {
         GpuEnginesPanel.Visibility = Visibility.Visible;
-        GpuEnginesTimestamp.Text = $"Updated {timestamp:HH:mm:ss}";
+        GpuEnginesTimestamp.Text = Loc.F("dashboard.updatedAt", timestamp);
 
         var items = engines
             .OrderByDescending(kv => kv.Value)
@@ -542,9 +543,9 @@ internal static class DashboardHealth
         if (incidents.Count == 0)
         {
             page.HealthScoreText.Text = "--";
-            page.HealthMtbfText.Text = "No incidents yet";
+            page.HealthMtbfText.Text = Loc.T("dashboard.health.noIncidents");
             page.HealthTrendText.Text = "N/A";
-            page.HealthSummaryText.Text = "Run the recorder to capture crash data.";
+            page.HealthSummaryText.Text = Loc.T("dashboard.health.runRecorder");
             page.HealthTrendArrow.Text = "\uE74C";
             page.HealthTrendArrow.Foreground = new SolidColorBrush(
                 (Color)ColorConverter.ConvertFromString("#8B8BA0"));
@@ -560,7 +561,7 @@ internal static class DashboardHealth
         {
             var trend = report.StabilityTrends[0];
             page.HealthScoreText.Text = trend.StabilityScore.ToString();
-            page.HealthMtbfText.Text = $"MTBF: {trend.MtbfHours:F1}h  ·  {trend.IncidentCount} incidents";
+            page.HealthMtbfText.Text = Loc.F("dashboard.health.mtbf", trend.MtbfHours, trend.IncidentCount);
             page.HealthTrendText.Text = trend.TrendDirection;
             page.HealthSummaryText.Text = report.Summary;
 

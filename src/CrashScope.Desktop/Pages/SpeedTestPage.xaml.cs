@@ -1,4 +1,5 @@
 using CrashScope.Core.Models;
+using CrashScope.Desktop.Services;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Net.NetworkInformation;
@@ -46,18 +47,18 @@ public partial class SpeedTestPage : UserControl
         _busy = true;
         _runCts = new CancellationTokenSource();
         SetButtons(enabled: false);
-        LogLine($"—— {DateTime.Now:HH:mm:ss} 开始 ——");
+        LogLine(Loc.F("speedTest.log.started", DateTime.Now));
         try
         {
             await run(_runCts.Token);
         }
         catch (OperationCanceledException)
         {
-            LogLine("已取消。");
+            LogLine(Loc.T("speedTest.log.cancelled"));
         }
         catch (Exception ex)
         {
-            LogLine($"失败：{ex.Message}");
+            LogLine(Loc.F("speedTest.log.failed", ex.Message));
         }
         finally
         {
@@ -83,8 +84,8 @@ public partial class SpeedTestPage : UserControl
     {
         (string Label, string Host)[] targets =
         [
-            ("阿里 DNS", "223.5.5.5"),
-            ("腾讯 DNS", "119.29.29.29"),
+            (Loc.T("speedTest.host.aliDns"), "223.5.5.5"),
+            (Loc.T("speedTest.host.tencentDns"), "119.29.29.29"),
             ("Cloudflare", "1.1.1.1"),
             ("Google", "8.8.8.8")
         ];
@@ -112,15 +113,15 @@ public partial class SpeedTestPage : UserControl
             }
 
             var reading = ok.Count > 0
-                ? $"平均 {SpeedTestView.FormatLatency(SpeedTestView.Average(ok))}，抖动 {SpeedTestView.FormatLatency(SpeedTestView.Jitter(ok))}"
-                : "全部超时";
-            LogLine($"延迟 {label} ({host}): {reading}，丢包 {lost}/4");
+                ? Loc.F("speedTest.log.latencyResult", SpeedTestView.FormatLatency(SpeedTestView.Average(ok)), SpeedTestView.FormatLatency(SpeedTestView.Jitter(ok)))
+                : Loc.T("speedTest.log.allTimedOut");
+            LogLine(Loc.F("speedTest.log.latencyLine", label, host, reading, lost));
         }
     }
 
     private async Task RunDownloadAsync(CancellationToken ct)
     {
-        LogLine($"下载测试：{DownloadUrl}");
+        LogLine(Loc.F("speedTest.log.downloadTest", DownloadUrl));
         using var http = new HttpClient();
         http.DefaultRequestHeaders.UserAgent.ParseAdd("CrashScope-SpeedTest/0.9");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -146,18 +147,18 @@ public partial class SpeedTestPage : UserControl
         sw.Stop();
         if (total == 0)
         {
-            LogLine("下载失败：无数据（端点不可达或被代理/防火墙拦截）");
+            LogLine(Loc.T("speedTest.log.downloadNoData"));
             return;
         }
 
         var bps = total / sw.Elapsed.TotalSeconds;
-        LogLine($"下载：{SpeedTestView.FormatMbps(SpeedTestView.ToMbps(bps))}（{total / 1048576.0:F1} MB / {sw.Elapsed.TotalSeconds:F1}s）");
-        LogLine($"结论：{SpeedTestView.Verdict(SpeedTestView.ToMbps(bps))}");
+        LogLine(Loc.F("speedTest.log.downloadResult", SpeedTestView.FormatMbps(SpeedTestView.ToMbps(bps)), total / 1048576.0, sw.Elapsed.TotalSeconds));
+        LogLine(Loc.F("speedTest.log.verdict", SpeedTestView.Verdict(SpeedTestView.ToMbps(bps))));
     }
 
     private async Task RunUploadAsync(CancellationToken ct)
     {
-        LogLine($"上传测试：{UploadUrl}");
+        LogLine(Loc.F("speedTest.log.uploadTest", UploadUrl));
         var payload = new byte[8 * 1024 * 1024];
         new Random(20260918).NextBytes(payload);
 
@@ -183,12 +184,12 @@ public partial class SpeedTestPage : UserControl
         sw.Stop();
         if (!completed)
         {
-            LogLine($"上传：未在 {TimeBudgetSeconds}s 内完成（带宽较低或端点不可达），不报告数值。");
+            LogLine(Loc.F("speedTest.log.uploadTimeout", TimeBudgetSeconds));
             return;
         }
 
         var bps = payload.Length / sw.Elapsed.TotalSeconds;
-        LogLine($"上传：{SpeedTestView.FormatMbps(SpeedTestView.ToMbps(bps))}（8.0 MB / {sw.Elapsed.TotalSeconds:F1}s）");
+        LogLine(Loc.F("speedTest.log.uploadResult", SpeedTestView.FormatMbps(SpeedTestView.ToMbps(bps)), sw.Elapsed.TotalSeconds));
     }
 
     private void LogLine(string line)

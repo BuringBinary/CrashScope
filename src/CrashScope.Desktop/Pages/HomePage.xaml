@@ -4,11 +4,11 @@
              Background="Transparent">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="0,0,0,24">
-            <TextBlock Text="CrashScope Toolbox"
+            <TextBlock Text="{DynamicResource L.home.title}"
                        FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"
                        Margin="0,0,0,4"/>
-            <TextBlock Text="PC 玩家工具箱 · 硬件监控 · 故障黑匣子 · 本地优先"
+            <TextBlock Text="{DynamicResource L.home.subtitle}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,0,0,20"/>
@@ -23,28 +23,28 @@
                 <Border Grid.Column="0" Background="{StaticResource CardBg}"
                         CornerRadius="12" Padding="20" Margin="0,0,8,0">
                     <StackPanel>
-                        <TextBlock Text="Recorder" FontSize="14" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource L.home.recorder}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <Ellipse x:Name="StatusDot" Width="12" Height="12"
                                      Fill="{StaticResource DangerColor}" Margin="0,0,8,0"/>
-                            <TextBlock x:Name="RecorderStateText" Text="Stopped"
+                            <TextBlock x:Name="RecorderStateText" Text="{DynamicResource L.home.stopped}"
                                        FontSize="16" FontWeight="Bold"
                                        Foreground="{StaticResource TextPrimary}"/>
                         </StackPanel>
-                        <TextBlock x:Name="SessionText" Text="Session: --"
+                        <TextBlock x:Name="SessionText" Text="{DynamicResource L.home.sessionPlaceholder}"
                                    FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="SamplesText" Text="Samples: 0"
+                        <TextBlock x:Name="SamplesText" Text="{DynamicResource L.home.samplesPlaceholder}"
                                    FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
                         <TextBlock x:Name="ErrorText" Text="" FontSize="11"
                                    Foreground="{StaticResource DangerColor}" Margin="0,0,0,8" TextWrapping="Wrap" Visibility="Collapsed"/>
                         <TextBlock x:Name="RecoveryText" Text="" FontSize="11"
                                    Foreground="#FFD93D" Margin="0,0,0,8" TextWrapping="Wrap" Visibility="Collapsed"/>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <Button x:Name="StartStopButton" Content="&#xE768;  Start"
+                            <Button x:Name="StartStopButton" Content="{DynamicResource L.common.start}"
                                     ContentTemplate="{StaticResource IconTextTemplate}" Width="120" Height="32" FontSize="12"
                                     Style="{StaticResource AccentButton}" Click="StartStopButton_Click" Margin="0,0,8,0"/>
-                            <Button x:Name="CheckButton" Content="检查上次异常" Width="110" Height="32" FontSize="12"
+                            <Button x:Name="CheckButton" Content="{DynamicResource L.home.checkLast}" Width="110" Height="32" FontSize="12"
                                     Style="{StaticResource SecondaryButton}" Click="CheckButton_Click"/>
                         </StackPanel>
                     </StackPanel>
@@ -54,19 +54,19 @@
                 <Border Grid.Column="1" Background="{StaticResource CardBg}"
                         CornerRadius="12" Padding="20" Margin="8,0,0,0">
                     <StackPanel>
-                        <TextBlock Text="Hardware Summary" FontSize="14" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource L.home.hardwareSummary}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
-                        <TextBlock x:Name="CpuText" Text="CPU: Not recording" FontSize="12"
+                        <TextBlock x:Name="CpuText" Text="{DynamicResource L.home.cpuNotRecording}" FontSize="12"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="GpuText" Text="GPU: Not recording" FontSize="12"
+                        <TextBlock x:Name="GpuText" Text="{DynamicResource L.home.gpuNotRecording}" FontSize="12"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="RamText" Text="RAM: --" FontSize="12"
+                        <TextBlock x:Name="RamText" Text="{DynamicResource L.home.ramPlaceholder}" FontSize="12"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,0,0,6"/>
-                        <TextBlock x:Name="CollectionHealthText" Text="Collection: stopped" FontSize="11"
+                        <TextBlock x:Name="CollectionHealthText" Text="{DynamicResource L.home.collectionStopped}" FontSize="11"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,8,0,0" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="DataRootText" Text="Data: --" FontSize="11"
+                        <TextBlock x:Name="DataRootText" Text="{DynamicResource L.home.dataPlaceholder}" FontSize="11"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,12,0,0" TextWrapping="Wrap"/>
-                        <TextBlock x:Name="ElevationText" Text="Privilege: --" FontSize="11"
+                        <TextBlock x:Name="ElevationText" Text="{DynamicResource L.home.privilegePlaceholder}" FontSize="11"
                                    Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
@@ -75,29 +75,29 @@
             <!-- Quick Actions -->
             <Border Background="{StaticResource CardBg}" CornerRadius="12" Padding="20" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="Quick Actions" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource L.home.quickActions}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimary}" Margin="0,0,0,12"/>
                     <WrapPanel>
-                        <Button Tag="Dashboard" Content="&#xE9D2;  Dashboard" ContentTemplate="{StaticResource IconTextTemplate}"
+                        <Button Tag="Dashboard" Content="{DynamicResource L.nav.dashboard}" ContentTemplate="{StaticResource IconTextTemplate}"
                                 Width="140" Height="36" Margin="0,0,8,8"
                                 Style="{StaticResource SecondaryButton}" Click="QuickNav_Click"/>
-                        <Button Tag="LiveMonitor" Content="&#xE7F7;  Live Monitor" ContentTemplate="{StaticResource IconTextTemplate}"
+                        <Button Tag="LiveMonitor" Content="{DynamicResource L.nav.liveMonitor}" ContentTemplate="{StaticResource IconTextTemplate}"
                                 Width="140" Height="36" Margin="0,0,8,8"
                                 Style="{StaticResource SecondaryButton}" Click="QuickNav_Click"/>
-                        <Button Tag="Hardware" Content="&#xE950;  Hardware" ContentTemplate="{StaticResource IconTextTemplate}"
+                        <Button Tag="Hardware" Content="{DynamicResource L.nav.hardware}" ContentTemplate="{StaticResource IconTextTemplate}"
                                 Width="140" Height="36" Margin="0,0,8,8"
                                 Style="{StaticResource SecondaryButton}" Click="QuickNav_Click"/>
-                        <Button Tag="Incidents" Content="&#xEA80;  Incidents" ContentTemplate="{StaticResource IconTextTemplate}"
+                        <Button Tag="Incidents" Content="{DynamicResource L.nav.incidents}" ContentTemplate="{StaticResource IconTextTemplate}"
                                 Width="140" Height="36" Margin="0,0,8,8"
                                 Style="{StaticResource SecondaryButton}" Click="QuickNav_Click"/>
-                        <Button Tag="Timeline" Content="&#xE8F0;  Timeline" ContentTemplate="{StaticResource IconTextTemplate}"
+                        <Button Tag="Timeline" Content="{DynamicResource L.nav.timeline}" ContentTemplate="{StaticResource IconTextTemplate}"
                                 Width="140" Height="36" Margin="0,0,8,8"
                                 Style="{StaticResource SecondaryButton}" Click="QuickNav_Click"/>
-                        <Button Tag="Settings" Content="&#xE713;  Settings" ContentTemplate="{StaticResource IconTextTemplate}"
+                        <Button Tag="Settings" Content="{DynamicResource L.nav.settings}" ContentTemplate="{StaticResource IconTextTemplate}"
                                 Width="140" Height="36" Margin="0,0,8,8"
                                 Style="{StaticResource SecondaryButton}" Click="QuickNav_Click"/>
                     </WrapPanel>
-                    <TextBlock Text="所有系统修改需填写原因并可回滚，默认仅被动采集。"
+                    <TextBlock Text="{DynamicResource L.home.safetyNote}"
                                FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,8,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
@@ -110,13 +110,13 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Recent Incidents" FontSize="14" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource L.home.recentIncidents}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"/>
-                        <Button Grid.Column="1" Content="查看全部" FontSize="11"
+                        <Button Grid.Column="1" Content="{DynamicResource L.home.viewAll}" FontSize="11"
                                 Style="{StaticResource SecondaryButton}" Width="80" Height="28"
                                 Click="ViewAllIncidents_Click"/>
                     </Grid>
-                    <TextBlock x:Name="IncidentsEmptyText" Text="暂无异常记录，录制器正在保护现场。"
+                    <TextBlock x:Name="IncidentsEmptyText" Text="{DynamicResource L.home.noIncidents}"
                                FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,8"/>
                     <ListView x:Name="IncidentsList" Background="Transparent" BorderThickness="0"
                               ScrollViewer.HorizontalScrollBarVisibility="Disabled">

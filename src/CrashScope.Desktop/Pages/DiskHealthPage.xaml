@@ -11,15 +11,15 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Disk Health" FontSize="24" FontWeight="Bold"
+            <TextBlock Text="{DynamicResource L.diskHealth.title}" FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"/>
-            <TextBlock Text="物理磁盘温度 / SMART / IO 延迟 — 只读展示，数据来自录制会话的存储采集"
+            <TextBlock Text="{DynamicResource L.diskHealth.subtitle}"
                        FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
         </StackPanel>
 
         <Border Grid.Row="1" Background="{StaticResource CardBg}" CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
             <StackPanel>
-                <TextBlock x:Name="StatusText" FontSize="12" Foreground="{StaticResource TextSecondary}" Text="No live readings yet."/>
+                <TextBlock x:Name="StatusText" FontSize="12" Foreground="{StaticResource TextSecondary}" Text="{DynamicResource L.diskHealth.noReadings}"/>
                 <TextBlock x:Name="CollectorText" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
@@ -30,16 +30,16 @@
                       ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="Disk" Width="95" DisplayMemberBinding="{Binding Name}"/>
-                        <GridViewColumn Header="Model" Width="165" DisplayMemberBinding="{Binding Model}"/>
-                        <GridViewColumn Header="Index" Width="85" DisplayMemberBinding="{Binding IndexText}"/>
-                        <GridViewColumn Header="Temp" Width="75" DisplayMemberBinding="{Binding TemperatureText}"/>
+                        <GridViewColumn Header="{DynamicResource L.common.disk}" Width="95" DisplayMemberBinding="{Binding Name}"/>
+                        <GridViewColumn Header="{DynamicResource L.diskHealth.col.model}" Width="165" DisplayMemberBinding="{Binding Model}"/>
+                        <GridViewColumn Header="{DynamicResource L.diskHealth.col.index}" Width="85" DisplayMemberBinding="{Binding IndexText}"/>
+                        <GridViewColumn Header="{DynamicResource L.common.temp}" Width="75" DisplayMemberBinding="{Binding TemperatureText}"/>
                         <GridViewColumn Header="SMART" Width="80" DisplayMemberBinding="{Binding SmartHealthText}"/>
-                        <GridViewColumn Header="Disk Time" Width="70" DisplayMemberBinding="{Binding DiskTimeText}"/>
-                        <GridViewColumn Header="Read" Width="80" DisplayMemberBinding="{Binding ReadLatencyText}"/>
-                        <GridViewColumn Header="Write" Width="80" DisplayMemberBinding="{Binding WriteLatencyText}"/>
-                        <GridViewColumn Header="Queue" Width="60" DisplayMemberBinding="{Binding QueueDepthText}"/>
-                        <GridViewColumn Header="Sources" Width="170" DisplayMemberBinding="{Binding SourcesText}"/>
+                        <GridViewColumn Header="{DynamicResource L.diskHealth.col.diskTime}" Width="70" DisplayMemberBinding="{Binding DiskTimeText}"/>
+                        <GridViewColumn Header="{DynamicResource L.diskHealth.col.read}" Width="80" DisplayMemberBinding="{Binding ReadLatencyText}"/>
+                        <GridViewColumn Header="{DynamicResource L.diskHealth.col.write}" Width="80" DisplayMemberBinding="{Binding WriteLatencyText}"/>
+                        <GridViewColumn Header="{DynamicResource L.diskHealth.col.queue}" Width="60" DisplayMemberBinding="{Binding QueueDepthText}"/>
+                        <GridViewColumn Header="{DynamicResource L.diskHealth.col.sources}" Width="170" DisplayMemberBinding="{Binding SourcesText}"/>
                     </GridView>
                 </ListView.View>
             </ListView>
@@ -47,7 +47,7 @@
 
         <Border Grid.Row="3" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="0,12,0,0">
             <StackPanel>
-                <TextBlock Text="Volumes (DriveInfo)" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
+                <TextBlock Text="{DynamicResource L.diskHealth.volumes}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
                 <TextBlock x:Name="VolumesText" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
             </StackPanel>
         </Border>

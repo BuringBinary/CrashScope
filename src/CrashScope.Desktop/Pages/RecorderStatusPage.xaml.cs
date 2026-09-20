@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using CrashScope.Desktop.Services;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,7 +13,7 @@ using MessageBox = System.Windows.MessageBox;
 
 namespace CrashScope.Desktop.Pages;
 
-public partial class RecorderStatusPage : UserControl
+public partial class RecorderStatusPage : UserControl, IRefreshableLocale
 {
     private readonly AppService _service;
     private readonly DispatcherTimer _uiTimer;
@@ -32,13 +33,15 @@ public partial class RecorderStatusPage : UserControl
 
     private void OnStatusChanged() => Dispatcher.InvokeAsync(RefreshStatus);
 
+    public void RefreshLocale() => RefreshStatus();
+
     private void RefreshStatus()
     {
         if (_service.IsRecording)
         {
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F"));
-            RecorderStatusLabel.Text = "RECORDING";
-            StartStopButton.Content = "\uE71A  Stop Recording";
+            RecorderStatusLabel.Text = Loc.T("recorder.status.recording");
+            StartStopButton.Content = Loc.T("recorder.buttons.stopRecording");
             StartStopButton.Style = (Style)FindResource("DangerButton");
 
             var session = _service.CurrentSession;
@@ -56,7 +59,7 @@ public partial class RecorderStatusPage : UserControl
         {
             StatusDot.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"));
             RecorderStatusLabel.Text = _service.RecorderState.ToString().ToUpperInvariant();
-            StartStopButton.Content = "\uE768  Start Recording";
+            StartStopButton.Content = Loc.T("recorder.buttons.startRecording");
             StartStopButton.Style = (Style)FindResource("AccentButton");
             SessionIdText.Text = "--";
             UptimeText.Text = "--";
@@ -66,12 +69,12 @@ public partial class RecorderStatusPage : UserControl
         StartStopButton.IsEnabled = !_service.IsStopping;
         RecorderStatusLabel.ToolTip = _service.RecorderError ?? _service.RecoveryError;
         DataDirText.Text = _service.DataDirectory;
-        ElevatedText.Text = _service.IsElevated ? "Yes (Administrator)" : "No (Limited)";
+        ElevatedText.Text = _service.IsElevated ? Loc.T("recorder.elevatedYes") : Loc.T("recorder.elevatedNo");
 
         var prev = _service.PreviousSession;
         if (prev is not null)
         {
-            var status = prev.CleanShutdown ? "Clean shutdown" : "Unclean shutdown \u26A0";
+            var status = prev.CleanShutdown ? Loc.T("recorder.cleanShutdown") : Loc.T("recorder.uncleanShutdown");
             PreviousSessionText.Text = $"{prev.LastHeartbeatAt:yyyy-MM-dd HH:mm:ss} ({status})";
             PreviousSessionText.Foreground = prev.CleanShutdown
                 ? (Brush)FindResource("TextPrimary")
@@ -79,7 +82,7 @@ public partial class RecorderStatusPage : UserControl
         }
         else
         {
-            PreviousSessionText.Text = "None";
+            PreviousSessionText.Text = Loc.T("common.none");
         }
 
         AgentVersionText.Text = "v0.5.0-dev";
@@ -101,7 +104,7 @@ public partial class RecorderStatusPage : UserControl
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "CrashScope", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(ex.Message, Loc.T("app.title"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally { RefreshStatus(); }
     }
@@ -112,7 +115,7 @@ public partial class RecorderStatusPage : UserControl
         if (Directory.Exists(path))
             Process.Start("explorer.exe", path);
         else
-            MessageBox.Show($"Data directory not found:\n{path}", "CrashScope",
+            MessageBox.Show(Loc.F("recorder.dataDirNotFound", path), Loc.T("app.title"),
                 MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 }

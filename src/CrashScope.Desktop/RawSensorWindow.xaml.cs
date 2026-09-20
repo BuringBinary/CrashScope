@@ -1,4 +1,5 @@
 using CrashScope.Core.Models;
+using CrashScope.Desktop.Services;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -85,7 +86,7 @@ public partial class RawSensorWindow : Window
         }
         else if (_service.IsRecording)
         {
-            StatusText.Text = $"Live — {count} sensors, updating on every telemetry tick.";
+            StatusText.Text = Loc.F("rawSensors.live", count);
         }
         else
         {

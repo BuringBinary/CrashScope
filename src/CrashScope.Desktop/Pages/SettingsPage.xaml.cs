@@ -12,7 +12,7 @@ using ColorConverter = System.Windows.Media.ColorConverter;
 
 namespace CrashScope.Desktop.Pages;
 
-public partial class SettingsPage : UserControl
+public partial class SettingsPage : UserControl, IRefreshableLocale
 {
     private readonly AppService _service;
     private readonly RetentionService _retention;
@@ -50,7 +50,7 @@ public partial class SettingsPage : UserControl
 
         DataDirText.Text = _service.RootDirectory;
         RuntimeText.Text = $".NET {Environment.Version}";
-        ElevationText.Text = _service.IsElevated ? "Administrator" : "Standard user";
+        ElevationText.Text = _service.IsElevated ? Loc.T("common.administrator") : Loc.T("common.standardUser");
         if (_service.IsElevated)
             ElevationText.Foreground = FindResource("GpuColor") as Brush;
 
@@ -84,7 +84,7 @@ public partial class SettingsPage : UserControl
                 var count = System.IO.Directory.GetFiles(pendingDir, "*.json").Length;
                 if (count > 0)
                 {
-                    RecoveryPendingText.Text = $"待恢复任务: {count} 个，下次启动将重试收集证据。";
+                    RecoveryPendingText.Text = Loc.F("settings.recoveryPending", count);
                     RecoveryPendingText.Visibility = Visibility.Visible;
                     return;
                 }
@@ -110,7 +110,7 @@ public partial class SettingsPage : UserControl
     private void SetAutoStart(bool enable)
     {
         using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(AutoStartKeyPath, true) ?? Microsoft.Win32.Registry.CurrentUser.CreateSubKey(AutoStartKeyPath);
-        if (key == null) throw new InvalidOperationException("无法打开注册表 Run 键");
+        if (key == null) throw new InvalidOperationException(Loc.T("settings.startup.runKeyError"));
         if (enable)
         {
             var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CrashScope.Desktop.exe");
@@ -126,15 +126,39 @@ public partial class SettingsPage : UserControl
     private void PopulateLanguageComboBox()
     {
         LanguageComboBox.Items.Clear();
+
+        // First entry follows the Windows display language (the default); it shows which
+        // concrete locale that currently resolves to so the choice is never a mystery.
+        var systemName = _localization.GetLocaleDisplayName(_localization.ResolveSystemLocale());
+        LanguageComboBox.Items.Add(new ComboBoxItem
+        {
+            Content = $"{Loc.T("settings.appearance.languageSystem")} ({systemName})",
+            Tag = LocalizationService.SystemLocale,
+            IsSelected = _localization.IsFollowingSystem
+        });
+
         foreach (var code in _localization.AvailableLocales)
         {
             LanguageComboBox.Items.Add(new ComboBoxItem
             {
                 Content = _localization.GetLocaleDisplayName(code),
                 Tag = code,
-                IsSelected = code == _localization.CurrentLocale
+                IsSelected = !_localization.IsFollowingSystem && code == _localization.Preference
             });
         }
+    }
+
+    /// <summary>Re-renders code-behind text after a language switch; XAML updates itself via DynamicResource.</summary>
+    public void RefreshLocale()
+    {
+        ElevationText.Text = _service.IsElevated ? Loc.T("common.administrator") : Loc.T("common.standardUser");
+        var wasInitialized = _initialized;
+        _initialized = false;          // suppress SelectionChanged while rebuilding
+        PopulateLanguageComboBox();
+        PopulateThemeComboBox();
+        _initialized = wasInitialized;
+        UpdateUsage();
+        RefreshRecoveryPending();
     }
 
     private void PopulateThemeComboBox()
@@ -144,7 +168,8 @@ public partial class SettingsPage : UserControl
         {
             ThemeComboBox.Items.Add(new ComboBoxItem
             {
-                Content = theme,
+                Content = theme == "Dark" ? Loc.T("settings.appearance.themeDark")
+                        : theme == "Light" ? Loc.T("settings.appearance.themeLight") : theme,
                 Tag = theme,
                 IsSelected = theme == _theme.CurrentTheme
             });
@@ -172,14 +197,14 @@ public partial class SettingsPage : UserControl
     private void UpdateUsage()
     {
         var usageMb = _retention.GetCurrentUsage() / (1024.0 * 1024.0);
-        CurrentUsageText.Text = $"{usageMb:F1} MB / {_retention.Settings.MaxTotalSizeMb} MB quota";
+        CurrentUsageText.Text = Loc.F("settings.dataRetention.usage", usageMb, _retention.Settings.MaxTotalSizeMb);
     }
 
     private void RetentionDaysSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (!_initialized) return;
         var days = (int)e.NewValue;
-        RetentionDaysText.Text = days == 90 ? "90 days (max)" : $"{days} days";
+        RetentionDaysText.Text = days == 90 ? Loc.F("settings.dataRetention.daysMax", days) : Loc.F("settings.dataRetention.days", days);
     }
 
     private void MaxSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -201,13 +226,13 @@ public partial class SettingsPage : UserControl
         _retention.Enforce();
         UpdateUsage();
 
-        ShowStatus("Settings saved successfully.", "#00D68F");
+        ShowStatus(Loc.T("settings.buttons.settingsSaved"), "#00D68F");
     }
 
     private void CopyDataDir_Click(object sender, RoutedEventArgs e)
     {
         Clipboard.SetText(_service.RootDirectory);
-        ShowStatus("Path copied to clipboard.", "#00D68F");
+        ShowStatus(Loc.T("settings.buttons.pathCopied"), "#00D68F");
     }
 
     private void ShowStatus(string message, string colorHex)
@@ -237,11 +262,11 @@ public partial class SettingsPage : UserControl
         {
             var enable = AutoStartCheckBox.IsChecked == true;
             SetAutoStart(enable);
-            ShowStatus(enable ? "已启用开机启动" : "已关闭开机启动", "#00D68F");
+            ShowStatus(enable ? Loc.T("settings.startup.autoStartEnabled") : Loc.T("settings.startup.autoStartDisabled"), "#00D68F");
         }
         catch (Exception ex)
         {
-            ShowStatus($"开机启动设置失败: {ex.Message}", "#FF6B6B");
+            ShowStatus(Loc.F("settings.startup.autoStartFailed", ex.Message), "#FF6B6B");
             RefreshStartupState();
         }
     }
@@ -261,7 +286,7 @@ public partial class SettingsPage : UserControl
         _uiSettings.MinimizeToTray = MinimizeToTrayCheckBox.IsChecked == true;
         _uiSettings.CloseToTray = CloseToTrayCheckBox.IsChecked == true;
 
-        ShowStatus("托盘行为已更新", "#00D68F");
+        ShowStatus(Loc.T("settings.startup.trayUpdated"), "#00D68F");
     }
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e)
@@ -276,7 +301,7 @@ public partial class SettingsPage : UserControl
         }
         catch (Exception ex)
         {
-            ShowStatus($"打开失败: {ex.Message}", "#FF6B6B");
+            ShowStatus(Loc.F("settings.startup.openFailed", ex.Message), "#FF6B6B");
         }
     }
 
@@ -294,7 +319,7 @@ public partial class SettingsPage : UserControl
         }
         catch (Exception ex)
         {
-            ShowStatus($"打开失败: {ex.Message}", "#FF6B6B");
+            ShowStatus(Loc.F("settings.startup.openFailed", ex.Message), "#FF6B6B");
         }
     }
 }

@@ -18,10 +18,10 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="Agent Monitor"
+            <TextBlock Text="{DynamicResource L.agentMonitor.title}"
                        FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"/>
-            <TextBlock Text="Live sensors and recorder status from the agent's RPC control plane (connects to CrashScope.Agent, not the in-process recorder)"
+            <TextBlock Text="{DynamicResource L.agentMonitor.subtitle}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,4,0,0"/>
@@ -31,27 +31,27 @@
         <Border Grid.Row="1" Background="{StaticResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="State dir:" VerticalAlignment="Center"
+                <TextBlock Text="{DynamicResource L.common.stateDir}" VerticalAlignment="Center"
                            Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="330" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
-                <Button x:Name="ConnectButton" Content="&#xE895;  Connect" ContentTemplate="{StaticResource IconTextTemplate}"
+                <Button x:Name="ConnectButton" Content="{DynamicResource L.common.connect}" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="94" Margin="8,0,0,0"
                         Click="ConnectButton_Click"/>
-                <Button x:Name="DisconnectButton" Content="&#xE8F4;  Stop client" ContentTemplate="{StaticResource IconTextTemplate}"
+                <Button x:Name="DisconnectButton" Content="{DynamicResource L.agentMonitor.stopClient}" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="110" Margin="6,0,0,0"
                         Click="DisconnectButton_Click"/>
-                <Button x:Name="StartRecButton" Content="&#xE768;  Start" ContentTemplate="{StaticResource IconTextTemplate}"
+                <Button x:Name="StartRecButton" Content="{DynamicResource L.common.start}" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="80" Margin="6,0,0,0"
                         Click="StartButton_Click"/>
-                <Button x:Name="StopRecButton" Content="&#xE71A;  Stop rec" ContentTemplate="{StaticResource IconTextTemplate}"
+                <Button x:Name="StopRecButton" Content="{DynamicResource L.agentMonitor.stopRec}" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="92" Margin="6,0,0,0"
                         Click="StopButton_Click"/>
-                <TextBlock x:Name="ConnectionText" Text="Not connected"
+                <TextBlock x:Name="ConnectionText" Text="{DynamicResource L.common.notConnected}"
                            VerticalAlignment="Center" FontSize="12"
                            Foreground="{StaticResource TextSecondary}" Margin="14,0,0,0"/>
             </StackPanel>
@@ -61,17 +61,17 @@
         <Border Grid.Row="2" Background="{StaticResource CardBg}"
                 CornerRadius="8" Padding="14,8" Margin="0,0,0,12">
             <WrapPanel>
-                <TextBlock x:Name="RecordingText" Text="&#x25CF; idle" FontSize="13"
+                <TextBlock x:Name="RecordingText" Text="{DynamicResource L.agentMonitor.idleDot}" FontSize="13"
                            Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
-                <TextBlock x:Name="SamplesText" Text="Samples: 0" FontSize="13"
+                <TextBlock x:Name="SamplesText" Text="{DynamicResource L.home.samplesPlaceholder}" FontSize="13"
                            Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
-                <TextBlock x:Name="UptimeText" Text="Uptime: 0 s" FontSize="13"
+                <TextBlock x:Name="UptimeText" Text="{DynamicResource L.agentMonitor.uptimePlaceholder}" FontSize="13"
                            Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
-                <TextBlock x:Name="GpuText" Text="GPU: n/a" FontSize="13"
+                <TextBlock x:Name="GpuText" Text="{DynamicResource L.agentMonitor.gpuPlaceholder}" FontSize="13"
                            Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
-                <TextBlock x:Name="VersionText" Text="Agent: n/a" FontSize="13"
+                <TextBlock x:Name="VersionText" Text="{DynamicResource L.agentMonitor.agentPlaceholder}" FontSize="13"
                            Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
-                <TextBlock x:Name="SessionText" Text="Session: -" FontSize="13"
+                <TextBlock x:Name="SessionText" Text="{DynamicResource L.agentMonitor.sessionPlaceholder}" FontSize="13"
                            Foreground="{StaticResource TextSecondary}" Margin="0,0,24,0"/>
                 <TextBlock x:Name="LastUpdateText" Text="" FontSize="13"
                            Foreground="{StaticResource TextSecondary}"/>

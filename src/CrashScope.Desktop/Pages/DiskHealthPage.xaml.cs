@@ -1,4 +1,5 @@
 using CrashScope.Core.Models;
+using CrashScope.Desktop.Services;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -72,7 +73,7 @@ public partial class DiskHealthPage : UserControl
         }
         catch (Exception ex)
         {
-            VolumesText.Text = $"Volume query failed: {ex.Message}";
+            VolumesText.Text = Loc.F("diskHealth.volumeQueryFailed", ex.Message);
         }
     }
 }

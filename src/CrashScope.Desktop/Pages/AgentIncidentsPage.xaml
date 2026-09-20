@@ -10,10 +10,10 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="Agent Incidents"
+            <TextBlock Text="{DynamicResource L.agentIncidents.title}"
                        FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"/>
-            <TextBlock Text="Incident bundles collected by the connected agent - the viewer for headless (scheduled task) deployments"
+            <TextBlock Text="{DynamicResource L.agentIncidents.subtitle}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,4,0,0"/>
@@ -23,15 +23,15 @@
         <Border Grid.Row="1" Background="{StaticResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="State dir:" VerticalAlignment="Center"
+                <TextBlock Text="{DynamicResource L.common.stateDir}" VerticalAlignment="Center"
                            Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="330" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
-                <Button x:Name="ConnectButton" Content="&#xE777;  Refresh" ContentTemplate="{StaticResource IconTextTemplate}"
+                <Button x:Name="ConnectButton" Content="{DynamicResource L.common.refresh}" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="96" Margin="8,0,0,0"
                         Click="RefreshButton_Click"/>
-                <TextBlock x:Name="ConnectionText" Text="Not connected"
+                <TextBlock x:Name="ConnectionText" Text="{DynamicResource L.common.notConnected}"
                            VerticalAlignment="Center" FontSize="12"
                            Foreground="{StaticResource TextSecondary}" Margin="14,0,0,0"/>
             </StackPanel>

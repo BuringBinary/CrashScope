@@ -39,14 +39,14 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StartupLog.Error("RetentionService unavailable", ex);
-            startupWarnings.Add($"Retention disabled: {ex.Message}");
+            startupWarnings.Add(Loc.F("statusbar.retentionDisabled", ex.Message));
         }
 
         try { _tray = new TrayIconManager(this, _service); }
         catch (Exception ex)
         {
             StartupLog.Error("Tray icon unavailable", ex);
-            startupWarnings.Add($"Tray icon disabled: {ex.Message}");
+            startupWarnings.Add(Loc.F("statusbar.trayDisabled", ex.Message));
         }
 
         _localization.LocaleChanged += OnLocaleChanged;
@@ -56,7 +56,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StartupLog.Error("Home page failed to load; falling back to Settings", ex);
-            startupWarnings.Add($"Home page failed: {ex.Message}");
+            startupWarnings.Add(Loc.F("statusbar.homeFailed", ex.Message));
             try { NavigateTo("Settings"); }
             catch (Exception ex2) { StartupLog.Error("Settings page also failed", ex2); }
         }
@@ -73,6 +73,7 @@ public partial class MainWindow : Window
         {
             RefreshWindowLocale();
             (_currentPage as IRefreshableLocale)?.RefreshLocale();
+            StatusBarText.Text = Loc.T("statusbar.ready");
         });
     }
 
@@ -80,12 +81,12 @@ public partial class MainWindow : Window
     {
         if (_service.IsRecording)
         {
-            StatusText.Text = _localization.T("recorder.status.running");
+            StatusText.Text = Loc.T("titlebar.recorderActive");
             StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F"));
         }
         else
         {
-            StatusText.Text = _localization.T("recorder.status.stopped");
+            StatusText.Text = Loc.F("titlebar.recorderState", _service.RecorderState);
             StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"));
         }
     }
@@ -96,10 +97,10 @@ public partial class MainWindow : Window
         var (sessions, incidents, bytes) = _retention.Enforce();
         var usageMb = _retention.GetCurrentUsage() / (1024.0 * 1024.0);
 
-        StatusBarText.Text = $"Data: {usageMb:F0} MB / {_retention.Settings.MaxTotalSizeMb} MB quota";
+        StatusBarText.Text = Loc.F("statusbar.dataQuota", usageMb, _retention.Settings.MaxTotalSizeMb);
         if (sessions > 0 || incidents > 0)
         {
-            StatusBarText.Text += $" | Cleaned: {sessions} sessions, {incidents} incidents ({bytes / 1024.0 / 1024.0:F1} MB)";
+            StatusBarText.Text += Loc.F("statusbar.cleaned", sessions, incidents, bytes / 1024.0 / 1024.0);
         }
     }
 
@@ -111,9 +112,9 @@ public partial class MainWindow : Window
             var analysis = await Task.Run(_service.CheckPreviousUncleanSession);
             // Recovery first; retention also acquires ownership and protects pending evidence.
             try { EnforceRetentionOnStartup(); }
-            catch (Exception ex) { StatusBarText.Text = $"Retention skipped: {ex.Message}"; }
+            catch (Exception ex) { StatusBarText.Text = Loc.F("statusbar.retentionSkipped", ex.Message); }
             if (_service.RecoveryError is not null)
-                StatusBarText.Text = $"Recovery deferred: {_service.RecoveryError}";
+                StatusBarText.Text = Loc.F("statusbar.recoveryDeferred", _service.RecoveryError);
             if (analysis is not null)
             {
                 var leading = analysis.Hypotheses.FirstOrDefault(h => h.Score > 0);
@@ -133,7 +134,7 @@ public partial class MainWindow : Window
         {
             // async void: an escaped exception here would crash the process after the window is up.
             StartupLog.Error("Previous-session check failed", ex);
-            StatusBarText.Text = $"Previous-session check failed: {ex.Message}";
+            StatusBarText.Text = Loc.F("statusbar.previousCheckFailed", ex.Message);
         }
     }
 
@@ -143,12 +144,12 @@ public partial class MainWindow : Window
         {
             if (_service.IsRecording)
             {
-                StatusText.Text = "Recorder: Active";
+                StatusText.Text = Loc.T("titlebar.recorderActive");
                 StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F"));
             }
             else
             {
-                StatusText.Text = $"Recorder: {_service.RecorderState}";
+                StatusText.Text = Loc.F("titlebar.recorderState", _service.RecorderState);
                 StatusText.ToolTip = _service.RecorderError;
                 StatusText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"));
             }
@@ -316,6 +317,6 @@ public partial class MainWindow : Window
         };
         _currentPage = content;
         ContentArea.Children.Add(content);
-        StatusBarText.Text = $"{page} loaded";
+        StatusBarText.Text = Loc.F("statusbar.pageLoaded", page);
     }
 }

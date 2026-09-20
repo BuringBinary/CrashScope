@@ -5,20 +5,133 @@
   },
   "app": {
     "title": "CrashScope",
+    "brand": "CRASHSCOPE",
     "subtitle": "Windows Flight Recorder",
-    "version": "v0.9.0-dev"
+    "fatalUnhandled": "CrashScope hit an unhandled error and will exit.\n\n{0}\n\nDetailed log:\n{1}",
+    "fatalMainWindow": "CrashScope main window failed to initialise:\n\n{0}\n\nDetailed log:\n{1}"
   },
   "nav": {
-    "recorder": "Recorder",
-    "dashboard": "Dashboard",
-    "liveMonitor": "Live Monitor",
-    "incidents": "Incidents",
-    "timeline": "Timeline",
-    "settings": "Settings"
+    "home": "  Home",
+    "recorder": "  Recorder",
+    "dashboard": "  Dashboard",
+    "hardware": "  Hardware",
+    "diskHealth": "  Disk Health",
+    "speedTest": "  Speed Test",
+    "liveMonitor": "  Live Monitor",
+    "agentMonitor": "  Agent Monitor",
+    "agentIncidents": "  Agent Incidents",
+    "agentActions": "  Agent Actions",
+    "incidents": "  Incidents",
+    "timeline": "  Timeline",
+    "settings": "  Settings"
   },
   "titlebar": {
     "recorderActive": "Recorder: Active",
-    "recorderStopped": "Recorder: Stopped"
+    "recorderStopped": "Recorder: Stopped",
+    "recorderState": "Recorder: {0}"
+  },
+  "statusbar": {
+    "ready": "Ready",
+    "pageLoaded": "{0} loaded",
+    "dataQuota": "Data: {0:F0} MB / {1} MB quota",
+    "cleaned": " | Cleaned: {0} sessions, {1} incidents ({2:F1} MB)",
+    "retentionSkipped": "Retention skipped: {0}",
+    "recoveryDeferred": "Recovery deferred: {0}",
+    "previousCheckFailed": "Previous-session check failed: {0}",
+    "retentionDisabled": "Retention disabled: {0}",
+    "trayDisabled": "Tray icon disabled: {0}",
+    "homeFailed": "Home page failed: {0}"
+  },
+  "common": {
+    "start": "  Start",
+    "stop": "  Stop",
+    "clear": "  Clear",
+    "refresh": "  Refresh",
+    "connect": "  Connect",
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "notConnected": "Not connected",
+    "notConnectedDetail": "Not connected: {0}",
+    "connected": "Connected: {0}",
+    "connecting": "Connecting...",
+    "disconnected": "Disconnected",
+    "detecting": "Detecting...",
+    "calculating": "Calculating...",
+    "checking": "Checking...",
+    "unknown": "Unknown",
+    "none": "None",
+    "notAvailable": "--",
+    "na": "n/a",
+    "error": "Error: {0}",
+    "administrator": "Administrator",
+    "standardUser": "Standard user",
+    "stateDir": "State dir:",
+    "telemetry": "Telemetry",
+    "foreground": "Foreground",
+    "process": "Process",
+    "processes": "Processes",
+    "gpuEngine": "GPU Engine",
+    "gpuEngines": "GPU Engines",
+    "display": "Display",
+    "power": "Power",
+    "snapshot": "Snapshot",
+    "temp": "Temp",
+    "clock": "Clock",
+    "load": "% Load",
+    "sensor": "Sensor",
+    "value": "Value",
+    "type": "Type",
+    "hardware": "Hardware",
+    "disk": "Disk",
+    "memory": "Memory",
+    "systemHealth": "System Health",
+    "mtbfPlaceholder": "MTBF: --",
+    "trendPlaceholder": "Trend: --",
+    "trendPrefix": "Trend: ",
+    "samples": "Samples: {0}",
+    "session": "Session: {0}",
+    "uptimeSeconds": "Uptime: {0:0} s"
+  },
+  "home": {
+    "title": "CrashScope Toolbox",
+    "subtitle": "PC gamer toolbox · hardware monitoring · crash black box · local-first",
+    "recorder": "Recorder",
+    "stopped": "Stopped",
+    "sessionPlaceholder": "Session: --",
+    "samplesPlaceholder": "Samples: 0",
+    "checkLast": "Check last session",
+    "checking": "Checking...",
+    "hardwareSummary": "Hardware Summary",
+    "cpuNotRecording": "CPU: Not recording",
+    "gpuNotRecording": "GPU: Not recording",
+    "ramPlaceholder": "RAM: --",
+    "collectionStopped": "Collection: stopped",
+    "dataPlaceholder": "Data: --",
+    "privilegePlaceholder": "Privilege: --",
+    "quickActions": "Quick Actions",
+    "safetyNote": "Every system change requires a reason and can be rolled back; passive collection only by default.",
+    "recentIncidents": "Recent Incidents",
+    "viewAll": "View all",
+    "noIncidents": "No incidents yet - the recorder is protecting the scene.",
+    "cpuLine": "CPU: {0}",
+    "gpuLine": "GPU: {0}",
+    "ramUsed": "RAM Used: {0:F1} GiB",
+    "ramLine": "RAM: {0}",
+    "unavailable": "Unavailable",
+    "notRecording": "Not recording",
+    "collectionStoppedLong": "Collection: stopped (no live readings)",
+    "collectionPending": "Collection: status not yet available",
+    "collectionPrefix": "Collection: ",
+    "collectionTip": "Start recording to inspect collector health.",
+    "dataLine": "Data: {0}",
+    "privilegeLine": "Privilege: {0} | App: {1} | Runtime: {2}",
+    "errorLine": "Error: {0}",
+    "recoveryLine": "Recovery: {0}",
+    "recoveryDeferred": "Recovery deferred: {0}",
+    "noUncleanSession": "No unclean session was found.",
+    "dlgRecorder": "Recorder",
+    "dlgRecovery": "Recovery",
+    "dlgCheck": "Check"
   },
   "recorder": {
     "title": "Recorder Status",
@@ -26,6 +139,7 @@
     "status": {
       "stopped": "STOPPED",
       "running": "RUNNING",
+      "recording": "RECORDING",
       "starting": "Starting...",
       "stopping": "Stopping..."
     },
@@ -37,38 +151,24 @@
     "sessionDetails": "Session Details",
     "dataDirectory": "Data Directory",
     "elevated": "Elevated",
+    "elevatedYes": "Yes (Administrator)",
+    "elevatedNo": "No (Limited)",
     "previousSession": "Previous Session",
+    "cleanShutdown": "Clean shutdown",
+    "uncleanShutdown": "Unclean shutdown ⚠",
     "agentVersion": "Agent Version",
     "writeThroughput": "Write Throughput",
-    "throughputLabels": {
-      "telemetry": "Telemetry",
-      "foreground": "Foreground",
-      "gpuEngines": "GPU Engines",
-      "processes": "Processes",
-      "snapshot": "Snapshot"
-    },
     "buttons": {
-      "startRecording": "Start Recording",
-      "stopRecording": "Stop Recording",
-      "openDataFolder": "Open Data Folder"
-    }
+      "startRecording": "  Start Recording",
+      "stopRecording": "  Stop Recording",
+      "openDataFolder": "  Open Data Folder"
+    },
+    "dataDirNotFound": "Data directory not found:\n{0}"
   },
   "dashboard": {
     "title": "Hardware Dashboard",
     "subtitle": "Real-time CPU, GPU and memory telemetry with GPU state transition detection",
-    "cpu": {
-      "label": "CPU",
-      "detecting": "Detecting...",
-      "load": "% Load",
-      "temp": "Temp",
-      "clock": "Clock"
-    },
     "gpu": {
-      "label": "GPU",
-      "detecting": "Detecting...",
-      "load": "% Load",
-      "temp": "Temp",
-      "clock": "Clock",
       "vram": "VRAM",
       "power": "Power"
     },
@@ -78,21 +178,9 @@
       "available": "Available",
       "usage": "Usage"
     },
-    "systemHealth": {
-      "title": "System Health",
-      "mtbf": "MTBF",
-      "trend": "Trend",
-      "improving": "Improving",
-      "declining": "Declining",
-      "stable": "Stable"
-    },
-    "gpuEngines": {
-      "title": "GPU Engines"
-    },
     "gpuTransitions": {
       "title": "GPU State Transitions",
-      "subtitle": "Real-time detection of GPU load, clock, and power changes",
-      "clear": "Clear"
+      "subtitle": "Real-time detection of GPU load, clock, and power changes"
     },
     "historyCharts": {
       "title": "History Charts",
@@ -103,20 +191,115 @@
     },
     "sensorDetails": {
       "title": "Sensor Details"
+    },
+    "updatedAt": "Updated {0:HH:mm:ss}",
+    "health": {
+      "noIncidents": "No incidents yet",
+      "runRecorder": "Run the recorder to capture crash data.",
+      "mtbf": "MTBF: {0:F1}h  ·  {1} incidents",
+      "trend": "Trend: {0}"
     }
   },
   "liveMonitor": {
     "title": "Live Monitor",
-    "subtitle": "Real-time event stream: foreground changes, processes, GPU engines, display topology",
-    "filters": {
-      "telemetry": "Telemetry",
-      "foreground": "Foreground",
-      "process": "Process",
-      "gpuEngine": "GPU Engine",
-      "display": "Display",
-      "power": "Power",
-      "clear": "Clear"
+    "subtitle": "Real-time event stream: foreground changes, processes, GPU engines, display topology"
+  },
+  "hardware": {
+    "title": "Hardware Overview",
+    "subtitle": "CPU / GPU / RAM / Disk / Mainboard / Display / Network - read-only, nothing is modified",
+    "openRawSensors": "Open Raw Sensor Window",
+    "floatingBar": "Floating Bar",
+    "mainboard": "Mainboard / BIOS",
+    "displayNetwork": "Display / Network",
+    "rawCatalog": "Raw Sensor Catalog",
+    "rawCatalogHint": "Grouped by hardware type, live refresh, searchable",
+    "searchPlaceholder": "Search sensors",
+    "openInWindow": "Open in window",
+    "diskQueryFailed": "Disk query failed: {0}",
+    "displayUnavailable": "Display: unable to query (Forms not available)",
+    "networkQueryFailed": "Network query failed: {0}"
+  },
+  "diskHealth": {
+    "title": "Disk Health",
+    "subtitle": "Physical disk temperature / SMART / IO latency - read-only, sourced from the recording session's storage collector",
+    "noReadings": "No live readings yet.",
+    "col": {
+      "model": "Model",
+      "index": "Index",
+      "diskTime": "Disk Time",
+      "read": "Read",
+      "write": "Write",
+      "queue": "Queue",
+      "sources": "Sources"
+    },
+    "volumes": "Volumes (DriveInfo)",
+    "volumeQueryFailed": "Volume query failed: {0}"
+  },
+  "speedTest": {
+    "title": "Speed Test",
+    "subtitle": "Latency / download / upload via public endpoints (Cloudflare); results are affected by proxies and firewalls. Read-only, no system settings are changed.",
+    "ping": "Ping",
+    "download": "Download",
+    "upload": "Upload",
+    "runAll": "Run All",
+    "notRun": "Not run yet. Run All performs latency, download and upload in sequence.",
+    "log": {
+      "started": "—— {0:HH:mm:ss} started ——",
+      "cancelled": "Cancelled.",
+      "failed": "Failed: {0}",
+      "latencyResult": "avg {0}, jitter {1}",
+      "allTimedOut": "all timed out",
+      "latencyLine": "Latency {0} ({1}): {2}, loss {3}/4",
+      "downloadTest": "Download test: {0}",
+      "downloadNoData": "Download failed: no data (endpoint unreachable or blocked by proxy/firewall)",
+      "downloadResult": "Download: {0} ({1:F1} MB / {2:F1}s)",
+      "verdict": "Verdict: {0}",
+      "uploadTest": "Upload test: {0}",
+      "uploadTimeout": "Upload: did not finish within {0}s (low bandwidth or endpoint unreachable); no value reported.",
+      "uploadResult": "Upload: {0} (8.0 MB / {1:F1}s)"
+    },
+    "host": {
+      "aliDns": "AliDNS",
+      "tencentDns": "Tencent DNS"
     }
+  },
+  "agentMonitor": {
+    "title": "Agent Monitor",
+    "subtitle": "Live sensors and recorder status from the agent's RPC control plane (connects to CrashScope.Agent, not the in-process recorder)",
+    "stopClient": "  Stop client",
+    "stopRec": "  Stop rec",
+    "idleDot": "● idle",
+    "recordingDot": "● recording",
+    "samplesPlaceholder": "Samples: 0",
+    "uptimePlaceholder": "Uptime: 0 s",
+    "gpuPlaceholder": "GPU: n/a",
+    "agentPlaceholder": "Agent: n/a",
+    "sessionPlaceholder": "Session: -",
+    "gpuLine": "GPU: {0}",
+    "agentLine": "Agent: {0}",
+    "startFailed": "Start failed: {0}",
+    "stopFailed": "Stop failed: {0}",
+    "confirmStop": "Stop the agent's recording session? It is marked clean only after successful shutdown; faults remain recorded."
+  },
+  "agentIncidents": {
+    "title": "Agent Incidents",
+    "subtitle": "Incident bundles collected by the connected agent - the viewer for headless (scheduled task) deployments",
+    "loadFailed": "Load failed: {0}",
+    "detailFailed": "Detail failed: {0}"
+  },
+  "agentActions": {
+    "title": "Agent Actions",
+    "subtitle": "Reversible system actions on the connected agent - every change is recorded with its reason and can be rolled back",
+    "powerPlans": "Power plans",
+    "active": " (active)",
+    "processPriority": "Process priority",
+    "journal": "Action journal (append-only audit trail)",
+    "rollback": "  Roll back selected",
+    "selectPlan": "Select a power plan first.",
+    "selectProcess": "Select a process first.",
+    "selectJournalRow": "Select a journal row first.",
+    "reasonRequired": "A reason is required - that is the forensic contract.",
+    "notRollbackable": "Action {0} is not rollback-able (status: {1})."
   },
   "incidents": {
     "title": "Incidents",
@@ -127,8 +310,8 @@
       "topCause": "Top Cause"
     },
     "buttons": {
-      "compare": "Compare (2)",
-      "analyzeAll": "Analyze All"
+      "compare": "  Compare (2)",
+      "analyzeAll": "  Analyze All"
     },
     "detail": {
       "selectIncident": "Select an incident",
@@ -137,41 +320,46 @@
     },
     "export": {
       "redactData": "Redact personal data",
-      "exportZip": "Export Diagnostic ZIP"
+      "exportZip": "  Export Diagnostic ZIP",
+      "exporting": "  Exporting...",
+      "selectFirst": "Please select an incident first.",
+      "success": "Diagnostic package exported successfully!\n\n{0}\n\nOpen containing folder?",
+      "failed": "Export failed: {0}"
     },
     "crossAnalysis": {
       "title": "Cross-Incident Analysis",
-      "systemHealth": "System Health",
-      "patternsFound": "Patterns Found",
-      "drivers": "Drivers",
-      "recommendations": "Recommendations"
+      "patternsFound": "  Patterns Found",
+      "drivers": "  Drivers",
+      "recommendations": "  Recommendations"
     },
     "comparison": {
       "title": "Incident Comparison",
       "subtitle": "Select exactly 2 incidents and click Compare",
       "basicInfo": "BASIC INFO",
-      "mode": "Mode",
-      "confidence": "Confidence",
+      "mode": "Mode:",
+      "support": "Support:",
+      "supportTip": "Heuristic evidence support, not a calibrated probability",
       "gpuState": "GPU STATE",
-      "finalLoad": "Final Load",
-      "transitions": "Transitions",
+      "finalLoad": "Final Load:",
+      "transitions": "Transitions:",
       "etwEvents": "ETW EVENTS",
-      "gpuTdr": "GPU (TDR)",
-      "power": "Power",
-      "whea": "WHEA",
+      "gpuTdr": "GPU (TDR):",
+      "power": "Power:",
+      "whea": "WHEA:",
       "display": "DISPLAY",
-      "monitors": "Monitors",
-      "virtual": "Virtual",
+      "monitors": "Monitors:",
+      "virtual": "Virtual:",
       "drivers": "DRIVERS",
       "graphicsApps": "GRAPHICS APPS",
-      "hypotheses": "HYPOTHESES"
+      "hypotheses": "HYPOTHESES",
+      "events": "{0} events",
+      "monitorsCount": "{0} monitor(s)"
     }
   },
   "timeline": {
     "title": "Timeline",
     "subtitle": "Crash reconstruction timeline: telemetry, processes, GPU transitions, Windows events",
     "legend": {
-      "telemetry": "Telemetry",
       "gpuTransition": "GPU Transition",
       "appProcess": "App/Process",
       "windowsEvent": "Windows Event",
@@ -183,19 +371,39 @@
     "subtitle": "Configure recording, retention, and privacy",
     "appearance": {
       "title": "Appearance",
+      "subtitle": "Customize language and visual theme",
       "language": "Language",
+      "languageSystem": "Follow system",
       "theme": "Theme",
       "themeDark": "Dark",
       "themeLight": "Light"
     },
+    "startup": {
+      "title": "Startup & Tray",
+      "subtitle": "Auto-start and tray behaviour; nothing system-wide is modified, current user only",
+      "autoStart": "Start with Windows (current-user registry Run key)",
+      "autoStartHint": "Launches the Desktop only; recording is not started automatically - start it manually or let the Agent handle it",
+      "minimizeToTray": "Hide to tray on minimize (default: minimize to taskbar)",
+      "closeToTray": "Minimize to tray on close instead of exiting",
+      "openDataDir": "Open data folder",
+      "openIncidentsDir": "Open incidents folder",
+      "autoStartEnabled": "Auto-start enabled",
+      "autoStartDisabled": "Auto-start disabled",
+      "autoStartFailed": "Auto-start setting failed: {0}",
+      "trayUpdated": "Tray behaviour updated",
+      "openFailed": "Open failed: {0}",
+      "runKeyError": "Cannot open the registry Run key"
+    },
+    "recoveryPending": "Pending recovery tasks: {0}; evidence collection will be retried on next start.",
     "dataRetention": {
       "title": "Data Retention",
       "subtitle": "Control how long session and incident data is kept",
       "maxRetentionDays": "Max retention days",
       "maxTotalSize": "Max total size",
-      "daysUnit": "days",
-      "daysUnitMax": "days (max)",
-      "currentUsage": "Current usage"
+      "days": "{0} days",
+      "daysMax": "{0} days (max)",
+      "currentUsage": "Current usage:",
+      "usage": "{0:F1} MB / {1} MB quota"
     },
     "privacy": {
       "title": "Privacy",
@@ -204,12 +412,7 @@
       "redactDesc": "Process names, window titles, user names, and file paths are anonymized in exported ZIP files"
     },
     "recording": {
-      "title": "Recording",
-      "telemetry": "Telemetry",
-      "processes": "Processes",
-      "gpuEngines": "GPU Engines",
-      "display": "Display",
-      "snapshot": "Snapshot"
+      "title": "Recording"
     },
     "about": {
       "title": "About",
@@ -217,27 +420,33 @@
       "dataDir": "Data directory",
       "runtime": ".NET Runtime",
       "elevation": "Elevation",
-      "copyPath": "Copy path",
-      "administrator": "Administrator",
-      "standardUser": "Standard user"
+      "copyPath": "Copy path"
     },
     "buttons": {
-      "saveSettings": "Save Settings",
+      "saveSettings": "  Save Settings",
       "settingsSaved": "Settings saved successfully.",
       "pathCopied": "Path copied to clipboard."
     }
   },
-  "common": {
-    "calculating": "Calculating...",
-    "unknown": "Unknown",
-    "notAvailable": "--"
+  "floatingBar": {
+    "title": "CrashScope — Floating Bar",
+    "starting": "CrashScope starting…"
   },
-  "statusbar": {
-    "loaded": "loaded",
-    "data": "Data",
-    "quota": "quota",
-    "cleaned": "Cleaned",
-    "sessions": "sessions",
-    "incidents": "incidents"
+  "rawSensors": {
+    "title": "CrashScope — Raw Sensors",
+    "topmost": "Topmost",
+    "refreshCatalog": "Refresh catalog",
+    "live": "Live — {0} sensors, updating on every telemetry tick."
+  },
+  "tray": {
+    "stopped": "CrashScope - Stopped",
+    "recording": "CrashScope - Recording ({0} samples)",
+    "state": "CrashScope - {0}",
+    "startRecording": "Start Recording",
+    "stopRecording": "Stop Recording",
+    "openDataFolder": "Open Data Folder",
+    "show": "Show CrashScope",
+    "exit": "Exit",
+    "uncleanBalloon": "Previous unclean recording detected.\nCandidate: {0} ({1:P0} evidence support, not probability)\nClick to view incident."
   }
 }

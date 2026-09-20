@@ -48,7 +48,7 @@ public partial class App : Application
             if (_shuttingDown) return;
             _shuttingDown = true;
             WpfMessageBox.Show(
-                $"CrashScope 发生未处理的错误，即将退出。\n\n{e.Exception.Message}\n\n详细日志：\n{StartupLog.LogPath}",
+                Loc.F("app.fatalUnhandled", e.Exception.Message, StartupLog.LogPath),
                 "CrashScope", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         };
@@ -99,7 +99,7 @@ public partial class App : Application
             StartupLog.Error("MainWindow construction failed", ex);
             WriteLegacyCrashLog($"MainWindow ctor: {ex}");
             WpfMessageBox.Show(
-                $"CrashScope 主窗口初始化失败：\n\n{ex.Message}\n\n详细日志：\n{StartupLog.LogPath}",
+                Loc.F("app.fatalMainWindow", ex.Message, StartupLog.LogPath),
                 "CrashScope", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
             return;

@@ -5,11 +5,11 @@
              Background="Transparent">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="0,0,0,24">
-            <TextBlock Text="Hardware Dashboard"
+            <TextBlock Text="{DynamicResource L.dashboard.title}"
                        FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"
                        Margin="0,0,0,8"/>
-            <TextBlock Text="Real-time CPU, GPU and memory telemetry with GPU state transition detection"
+            <TextBlock Text="{DynamicResource L.dashboard.subtitle}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,0,0,24"/>
@@ -35,7 +35,7 @@
                             <StackPanel>
                                 <TextBlock Text="CPU" FontSize="14" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>
-                                <TextBlock x:Name="CpuModelText" Text="Detecting..."
+                                <TextBlock x:Name="CpuModelText" Text="{DynamicResource L.common.detecting}"
                                            FontSize="11" Foreground="{StaticResource TextSecondary}"/>
                             </StackPanel>
                         </StackPanel>
@@ -49,7 +49,7 @@
                                        FontSize="36" FontWeight="Bold"
                                        Foreground="{StaticResource CpuColor}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Grid.Column="1" Text="% Load"
+                            <TextBlock Grid.Column="1" Text="{DynamicResource L.common.load}"
                                        FontSize="13"
                                        Foreground="{StaticResource TextSecondary}"
                                        VerticalAlignment="Center"/>
@@ -61,14 +61,14 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="Temp" FontSize="10"
+                                <TextBlock Text="{DynamicResource L.common.temp}" FontSize="10"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="CpuTempText" Text="--°C"
                                            FontSize="16" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
-                                <TextBlock Text="Clock" FontSize="10"
+                                <TextBlock Text="{DynamicResource L.common.clock}" FontSize="10"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="CpuClockText" Text="-- MHz"
                                            FontSize="16" FontWeight="SemiBold"
@@ -91,7 +91,7 @@
                             <StackPanel>
                                 <TextBlock Text="GPU" FontSize="14" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>
-                                <TextBlock x:Name="GpuModelText" Text="Detecting..."
+                                <TextBlock x:Name="GpuModelText" Text="{DynamicResource L.common.detecting}"
                                            FontSize="11" Foreground="{StaticResource TextSecondary}"/>
                             </StackPanel>
                         </StackPanel>
@@ -105,7 +105,7 @@
                                        FontSize="36" FontWeight="Bold"
                                        Foreground="{StaticResource GpuColor}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Grid.Column="1" Text="% Load"
+                            <TextBlock Grid.Column="1" Text="{DynamicResource L.common.load}"
                                        FontSize="13"
                                        Foreground="{StaticResource TextSecondary}"
                                        VerticalAlignment="Center"/>
@@ -121,28 +121,28 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0" Grid.Column="0">
-                                <TextBlock Text="Temp" FontSize="10"
+                                <TextBlock Text="{DynamicResource L.common.temp}" FontSize="10"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="GpuTempText" Text="--°C"
                                            FontSize="16" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>
                             </StackPanel>
                             <StackPanel Grid.Row="0" Grid.Column="1">
-                                <TextBlock Text="Clock" FontSize="10"
+                                <TextBlock Text="{DynamicResource L.common.clock}" FontSize="10"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="GpuClockText" Text="-- MHz"
                                            FontSize="16" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>
                             </StackPanel>
                             <StackPanel Grid.Row="1" Grid.Column="0">
-                                <TextBlock Text="VRAM" FontSize="10"
+                                <TextBlock Text="{DynamicResource L.dashboard.gpu.vram}" FontSize="10"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="GpuVramText" Text="-- GB"
                                            FontSize="16" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>
                             </StackPanel>
                             <StackPanel Grid.Row="1" Grid.Column="1">
-                                <TextBlock Text="Power" FontSize="10"
+                                <TextBlock Text="{DynamicResource L.common.power}" FontSize="10"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="GpuPowerText" Text="-- W"
                                            FontSize="16" FontWeight="SemiBold"
@@ -163,7 +163,7 @@
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <StackPanel>
-                                <TextBlock Text="RAM" FontSize="14" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource L.dashboard.ram.label}" FontSize="14" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>
                                 <TextBlock x:Name="RamTotalText" Text="-- GB"
                                            FontSize="11" Foreground="{StaticResource TextSecondary}"/>
@@ -179,7 +179,7 @@
                                        FontSize="36" FontWeight="Bold"
                                        Foreground="{StaticResource RamColor}"
                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Grid.Column="1" Text="GB Used"
+                            <TextBlock Grid.Column="1" Text="{DynamicResource L.dashboard.ram.used}"
                                        FontSize="13"
                                        Foreground="{StaticResource TextSecondary}"
                                        VerticalAlignment="Center"/>
@@ -191,14 +191,14 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="Available" FontSize="10"
+                                <TextBlock Text="{DynamicResource L.dashboard.ram.available}" FontSize="10"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="RamAvailText" Text="-- GB"
                                            FontSize="16" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
-                                <TextBlock Text="Usage" FontSize="10"
+                                <TextBlock Text="{DynamicResource L.dashboard.ram.usage}" FontSize="10"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="RamPercentText" Text="--%"
                                            FontSize="16" FontWeight="SemiBold"
@@ -220,7 +220,7 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel>
-                        <TextBlock Text="System Health"
+                        <TextBlock Text="{DynamicResource L.common.systemHealth}"
                                    FontSize="13" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"/>
                         <StackPanel Orientation="Horizontal">
@@ -236,11 +236,11 @@
 
                     <StackPanel Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center">
                         <TextBlock x:Name="HealthMtbfText"
-                                   Text="MTBF: --"
+                                   Text="{DynamicResource L.common.mtbfPlaceholder}"
                                    FontSize="13"
                                    Foreground="{StaticResource TextSecondary}"/>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Trend: "
+                            <TextBlock Text="{DynamicResource L.common.trendPrefix}"
                                        FontSize="13"
                                        Foreground="{StaticResource TextSecondary}"/>
                             <TextBlock x:Name="HealthTrendText"
@@ -274,7 +274,7 @@
                                        FontSize="14" Foreground="{StaticResource GpuColor}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        <TextBlock Text="GPU Engines"
+                        <TextBlock Text="{DynamicResource L.common.gpuEngines}"
                                    FontSize="16" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"/>
                         <TextBlock x:Name="GpuEnginesTimestamp"
@@ -325,15 +325,15 @@
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel>
-                            <TextBlock Text="GPU State Transitions"
+                            <TextBlock Text="{DynamicResource L.dashboard.gpuTransitions.title}"
                                        FontSize="16" FontWeight="SemiBold"
                                        Foreground="{StaticResource TextPrimary}"/>
-                            <TextBlock Text="Real-time detection of GPU load, clock, and power changes"
+                            <TextBlock Text="{DynamicResource L.dashboard.gpuTransitions.subtitle}"
                                        FontSize="11"
                                        Foreground="{StaticResource TextSecondary}"/>
                         </StackPanel>
                         <Button x:Name="ClearTransitionsButton"
-                                Content="&#xE777;  Clear"
+                                Content="{DynamicResource L.common.clear}"
                                 FontSize="11"
                                 Style="{StaticResource SecondaryButton}"
                                 Height="24" Width="60"
@@ -392,7 +392,7 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
-                           Text="History Charts"
+                           Text="{DynamicResource L.dashboard.historyCharts.title}"
                            FontSize="16" FontWeight="SemiBold"
                            Foreground="{StaticResource TextPrimary}"
                            Margin="0,0,0,8"/>
@@ -405,7 +405,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="CPU Load %"
+                        <TextBlock Text="{DynamicResource L.dashboard.historyCharts.cpuLoad}"
                                    FontSize="12" FontWeight="SemiBold"
                                    Foreground="{StaticResource CpuColor}"
                                    Margin="0,0,0,4"/>
@@ -423,7 +423,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="GPU Load %"
+                        <TextBlock Text="{DynamicResource L.dashboard.historyCharts.gpuLoad}"
                                    FontSize="12" FontWeight="SemiBold"
                                    Foreground="{StaticResource GpuColor}"
                                    Margin="0,0,0,4"/>
@@ -441,7 +441,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="GPU Clock (MHz) / Power (W)"
+                        <TextBlock Text="{DynamicResource L.dashboard.historyCharts.gpuClockPower}"
                                    FontSize="12" FontWeight="SemiBold"
                                    Foreground="{StaticResource GpuColor}"
                                    Margin="0,0,0,4"/>
@@ -459,7 +459,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="RAM Usage (GB)"
+                        <TextBlock Text="{DynamicResource L.dashboard.historyCharts.ramUsage}"
                                    FontSize="12" FontWeight="SemiBold"
                                    Foreground="{StaticResource RamColor}"
                                    Margin="0,0,0,4"/>
@@ -474,7 +474,7 @@
             <Border Background="{StaticResource CardBg}"
                     CornerRadius="12" Padding="24">
                 <StackPanel>
-                    <TextBlock Text="Sensor Details"
+                    <TextBlock Text="{DynamicResource L.dashboard.sensorDetails.title}"
                                FontSize="16" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimary}"
                                Margin="0,0,0,12"/>

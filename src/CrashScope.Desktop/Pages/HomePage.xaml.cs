@@ -1,4 +1,5 @@
 using System.Windows;
+using CrashScope.Desktop.Services;
 using System.Windows.Controls;
 using System.Windows.Media;
 using CrashScope.Core.Models;
@@ -12,7 +13,7 @@ using Brush = System.Windows.Media.Brush;
 
 namespace CrashScope.Desktop.Pages;
 
-public partial class HomePage : UserControl
+public partial class HomePage : UserControl, IRefreshableLocale
 {
     private readonly AppService _service;
     private int _cpuModelIdx = -1;
@@ -68,6 +69,8 @@ public partial class HomePage : UserControl
         });
     }
 
+    public void RefreshLocale() => RefreshAll();
+
     private void RefreshAll()
     {
         RefreshRecorder();
@@ -80,8 +83,8 @@ public partial class HomePage : UserControl
     {
         var state = _service.RecorderState;
         RecorderStateText.Text = state.ToString().ToUpperInvariant();
-        SessionText.Text = $"Session: {_service.DataDirectory}";
-        SamplesText.Text = $"Samples: {_service.SampleCount}";
+        SessionText.Text = Loc.F("common.session", _service.DataDirectory);
+        SamplesText.Text = Loc.F("common.samples", _service.SampleCount);
 
         var isRecording = _service.IsRecording;
         StatusDot.Fill = isRecording
@@ -90,12 +93,12 @@ public partial class HomePage : UserControl
                 ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"))
                 : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"));
 
-        StartStopButton.Content = isRecording ? "\uE71A  Stop" : "\uE768  Start";
+        StartStopButton.Content = isRecording ? Loc.T("common.stop") : Loc.T("common.start");
         StartStopButton.IsEnabled = !_service.IsStopping;
 
         if (!string.IsNullOrWhiteSpace(_service.RecorderError))
         {
-            ErrorText.Text = $"Error: {_service.RecorderError}";
+            ErrorText.Text = Loc.F("home.errorLine", _service.RecorderError);
             ErrorText.Visibility = Visibility.Visible;
         }
         else
@@ -105,7 +108,7 @@ public partial class HomePage : UserControl
 
         if (!string.IsNullOrWhiteSpace(_service.RecoveryError))
         {
-            RecoveryText.Text = $"Recovery: {_service.RecoveryError}";
+            RecoveryText.Text = Loc.F("home.recoveryLine", _service.RecoveryError);
             RecoveryText.Visibility = Visibility.Visible;
         }
         else
@@ -118,30 +121,30 @@ public partial class HomePage : UserControl
     {
         BuildSensorMap();
         var catalog = _service.SensorCatalog;
-        var missing = _service.IsRecording ? "Unavailable" : "Not recording";
-        CpuText.Text = "CPU: " + (_cpuModelIdx >= 0 ? catalog[_cpuModelIdx].HardwareName : missing);
-        GpuText.Text = "GPU: " + (_gpuModelIdx >= 0 ? catalog[_gpuModelIdx].HardwareName : missing);
+        var missing = _service.IsRecording ? Loc.T("home.unavailable") : Loc.T("home.notRecording");
+        CpuText.Text = Loc.F("home.cpuLine", _cpuModelIdx >= 0 ? catalog[_cpuModelIdx].HardwareName : missing);
+        GpuText.Text = Loc.F("home.gpuLine", _gpuModelIdx >= 0 ? catalog[_gpuModelIdx].HardwareName : missing);
         if (values is not null && _ramUsedIdx >= 0 && _ramUsedIdx < values.Count && values[_ramUsedIdx] is { } used)
-            RamText.Text = $"RAM Used: {used:F1} GiB";
+            RamText.Text = Loc.F("home.ramUsed", used);
         else if (!_service.IsRecording || _ramUsedIdx < 0)
-            RamText.Text = "RAM: " + missing;
+            RamText.Text = Loc.F("home.ramLine", missing);
         RefreshCollectionHealth();
     }
 
     private void RefreshCollectionHealth()
     {
         var health = _service.CollectorHealth;
-        CollectionHealthText.Text = !_service.IsRecording ? "Collection: stopped (no live readings)"
-            : health.Count == 0 ? "Collection: status not yet available"
-            : "Collection: " + string.Join(" · ", health.Select(h => $"{h.Collector}: {h.Status}"));
-        CollectionHealthText.ToolTip = health.Count == 0 ? "Start recording to inspect collector health."
+        CollectionHealthText.Text = !_service.IsRecording ? Loc.T("home.collectionStoppedLong")
+            : health.Count == 0 ? Loc.T("home.collectionPending")
+            : Loc.T("home.collectionPrefix") + string.Join(" · ", health.Select(h => $"{h.Collector}: {h.Status}"));
+        CollectionHealthText.ToolTip = health.Count == 0 ? Loc.T("home.collectionTip")
             : string.Join("\n", health.Select(h => $"{h.Collector}: {h.Detail}"));
     }
 
     private void RefreshDataRoot()
     {
-        DataRootText.Text = $"Data: {_service.RootDirectory}";
-        ElevationText.Text = $"Privilege: {(_service.IsElevated ? "Administrator" : "Standard user")} | App: {typeof(AppService).Assembly.GetName().Version} | Runtime: {Environment.Version}";
+        DataRootText.Text = Loc.F("home.dataLine", _service.RootDirectory);
+        ElevationText.Text = Loc.F("home.privilegeLine", _service.IsElevated ? Loc.T("common.administrator") : Loc.T("common.standardUser"), typeof(AppService).Assembly.GetName().Version, Environment.Version);
     }
 
     private void RefreshIncidents()
@@ -166,7 +169,7 @@ public partial class HomePage : UserControl
             }
             catch (Exception ex)
             {
-                WpfMessageBox.Show(ex.Message, "Recorder", MessageBoxButton.OK, MessageBoxImage.Warning);
+                WpfMessageBox.Show(ex.Message, Loc.T("home.dlgRecorder"), MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
     }
@@ -174,7 +177,7 @@ public partial class HomePage : UserControl
     private async void CheckButton_Click(object sender, RoutedEventArgs e)
     {
         CheckButton.IsEnabled = false;
-        CheckButton.Content = "检查中...";
+        CheckButton.Content = Loc.T("home.checking");
 
         IncidentAnalysis? analysis;
         try
@@ -186,7 +189,7 @@ public partial class HomePage : UserControl
             // Without finally a throw would strand the button greyed out at "检查中..."
             // until the page is rebuilt. AppService swallows today, but the guarantee
             // belongs here, next to the code that disabled the button.
-            CheckButton.Content = "检查上次异常";
+            CheckButton.Content = Loc.T("home.checkLast");
             CheckButton.IsEnabled = true;
         }
 
@@ -196,11 +199,11 @@ public partial class HomePage : UserControl
         }
         else if (_service.RecoveryError != null)
         {
-            WpfMessageBox.Show($"恢复已延期: {_service.RecoveryError}", "Recovery", MessageBoxButton.OK, MessageBoxImage.Information);
+            WpfMessageBox.Show(Loc.F("home.recoveryDeferred", _service.RecoveryError), Loc.T("home.dlgRecovery"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
         else
         {
-            WpfMessageBox.Show("未发现未正常结束的会话。", "Check", MessageBoxButton.OK, MessageBoxImage.Information);
+            WpfMessageBox.Show(Loc.T("home.noUncleanSession"), Loc.T("home.dlgCheck"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 

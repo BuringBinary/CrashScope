@@ -10,10 +10,10 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="Timeline"
+            <TextBlock Text="{DynamicResource L.timeline.title}"
                        FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"/>
-            <TextBlock Text="Crash reconstruction timeline: telemetry, processes, GPU transitions, Windows events"
+            <TextBlock Text="{DynamicResource L.timeline.subtitle}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,4,0,0"/>
@@ -25,23 +25,23 @@
             <StackPanel Orientation="Horizontal">
                 <Border Background="{StaticResource AccentColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="Telemetry" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.common.telemetry}" Foreground="{StaticResource TextSecondary}"
                            FontSize="11" Margin="0,0,16,0"/>
                 <Border Background="{StaticResource GpuColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="GPU Transition" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.gpuTransition}" Foreground="{StaticResource TextSecondary}"
                            FontSize="11" Margin="0,0,16,0"/>
                 <Border Background="{StaticResource CpuColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="App/Process" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.appProcess}" Foreground="{StaticResource TextSecondary}"
                            FontSize="11" Margin="0,0,16,0"/>
                 <Border Background="{StaticResource RamColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="Windows Event" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.windowsEvent}" Foreground="{StaticResource TextSecondary}"
                            FontSize="11" Margin="0,0,16,0"/>
                 <Border Background="{StaticResource DangerColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="Crash Point" Foreground="{StaticResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.crashPoint}" Foreground="{StaticResource TextSecondary}"
                            FontSize="11"/>
             </StackPanel>
         </Border>

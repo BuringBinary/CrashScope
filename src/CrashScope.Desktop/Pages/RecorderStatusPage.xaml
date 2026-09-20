@@ -4,11 +4,11 @@
              Background="Transparent">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="0,0,0,24">
-            <TextBlock Text="Recorder Status"
+            <TextBlock Text="{DynamicResource L.recorder.title}"
                        FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"
                        Margin="0,0,0,8"/>
-            <TextBlock Text="Control and monitor the flight recorder agent"
+            <TextBlock Text="{DynamicResource L.recorder.subtitle}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,0,0,24"/>
@@ -27,7 +27,7 @@
                         <Ellipse x:Name="StatusDot" Width="12" Height="12"
                                  Fill="{StaticResource DangerColor}" Margin="0,0,8,0"/>
                         <TextBlock x:Name="RecorderStatusLabel"
-                                   Text="STOPPED"
+                                   Text="{DynamicResource L.recorder.status.stopped}"
                                    FontSize="18" FontWeight="Bold"
                                    Foreground="{StaticResource TextPrimary}"/>
                     </StackPanel>
@@ -41,7 +41,7 @@
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="12" Margin="0,0,8,0">
                             <StackPanel>
-                                <TextBlock Text="Session"
+                                <TextBlock Text="{DynamicResource L.recorder.cards.session}"
                                            FontSize="11"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="SessionIdText" Text="--"
@@ -52,7 +52,7 @@
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="12" Margin="4,0">
                             <StackPanel>
-                                <TextBlock Text="Uptime"
+                                <TextBlock Text="{DynamicResource L.recorder.cards.uptime}"
                                            FontSize="11"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="UptimeText" Text="--"
@@ -63,7 +63,7 @@
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="12" Margin="8,0,0,0">
                             <StackPanel>
-                                <TextBlock Text="Samples"
+                                <TextBlock Text="{DynamicResource L.recorder.cards.samples}"
                                            FontSize="11"
                                            Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="SampleCountText" Text="0"
@@ -75,12 +75,12 @@
 
                     <StackPanel Grid.Row="2" Orientation="Horizontal">
                         <Button x:Name="StartStopButton"
-                                Content="&#xE768;  Start Recording"
+                                Content="{DynamicResource L.recorder.buttons.startRecording}"
                                 Width="160" Height="36"
                                 FontSize="13"
                                 Click="StartStopButton_Click"
                                 Style="{StaticResource AccentButton}"/>
-                        <Button Content="&#xE74C;  Open Data Folder"
+                        <Button Content="{DynamicResource L.recorder.buttons.openDataFolder}"
                                 Width="160" Height="36"
                                 FontSize="13" Margin="8,0,0,0"
                                 Style="{StaticResource SecondaryButton}"
@@ -93,7 +93,7 @@
             <Border Background="{StaticResource CardBg}"
                     CornerRadius="12" Padding="24" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="Session Details"
+                    <TextBlock Text="{DynamicResource L.recorder.sessionDetails}"
                                FontSize="16" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimary}"
                                Margin="0,0,0,12"/>
@@ -109,25 +109,25 @@
                             <RowDefinition Height="26"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Text="Data Directory" Grid.Row="0" Grid.Column="0"
+                        <TextBlock Text="{DynamicResource L.recorder.dataDirectory}" Grid.Row="0" Grid.Column="0"
                                    Foreground="{StaticResource TextSecondary}" FontSize="12"
                                    Margin="0,0,16,0"/>
                         <TextBlock x:Name="DataDirText" Grid.Row="0" Grid.Column="1"
                                    Text="--" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
 
-                        <TextBlock Text="Elevated" Grid.Row="1" Grid.Column="0"
+                        <TextBlock Text="{DynamicResource L.recorder.elevated}" Grid.Row="1" Grid.Column="0"
                                    Foreground="{StaticResource TextSecondary}" FontSize="12"
                                    Margin="0,0,16,0"/>
                         <TextBlock x:Name="ElevatedText" Grid.Row="1" Grid.Column="1"
                                    Text="--" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
 
-                        <TextBlock Text="Previous Session" Grid.Row="2" Grid.Column="0"
+                        <TextBlock Text="{DynamicResource L.recorder.previousSession}" Grid.Row="2" Grid.Column="0"
                                    Foreground="{StaticResource TextSecondary}" FontSize="12"
                                    Margin="0,0,16,0"/>
                         <TextBlock x:Name="PreviousSessionText" Grid.Row="2" Grid.Column="1"
                                    Text="--" Foreground="{StaticResource TextPrimary}" FontSize="12"/>
 
-                        <TextBlock Text="Agent Version" Grid.Row="3" Grid.Column="0"
+                        <TextBlock Text="{DynamicResource L.recorder.agentVersion}" Grid.Row="3" Grid.Column="0"
                                    Foreground="{StaticResource TextSecondary}" FontSize="12"
                                    Margin="0,0,16,0"/>
                         <TextBlock x:Name="AgentVersionText" Grid.Row="3" Grid.Column="1"
@@ -140,7 +140,7 @@
             <Border Background="{StaticResource CardBg}"
                     CornerRadius="12" Padding="24">
                 <StackPanel>
-                    <TextBlock Text="Write Throughput"
+                    <TextBlock Text="{DynamicResource L.recorder.writeThroughput}"
                                FontSize="16" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimary}"
                                Margin="0,0,0,12"/>
@@ -155,7 +155,7 @@
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="0,0,6,0">
                             <StackPanel>
-                                <TextBlock Text="Telemetry"
+                                <TextBlock Text="{DynamicResource L.common.telemetry}"
                                            FontSize="10" Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="TelemetryHzText" Text="1 Hz"
                                            FontSize="16" FontWeight="SemiBold"
@@ -165,7 +165,7 @@
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
-                                <TextBlock Text="Foreground"
+                                <TextBlock Text="{DynamicResource L.common.foreground}"
                                            FontSize="10" Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="ForegroundHzText" Text="1 Hz"
                                            FontSize="16" FontWeight="SemiBold"
@@ -175,7 +175,7 @@
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
-                                <TextBlock Text="GPU Engines"
+                                <TextBlock Text="{DynamicResource L.common.gpuEngines}"
                                            FontSize="10" Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="GpuEngineHzText" Text="0.5 Hz"
                                            FontSize="16" FontWeight="SemiBold"
@@ -185,7 +185,7 @@
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
-                                <TextBlock Text="Processes"
+                                <TextBlock Text="{DynamicResource L.common.processes}"
                                            FontSize="10" Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="ProcessHzText" Text="0.5 Hz"
                                            FontSize="16" FontWeight="SemiBold"
@@ -195,7 +195,7 @@
 
                         <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="6,0,0,0">
                             <StackPanel>
-                                <TextBlock Text="Snapshot"
+                                <TextBlock Text="{DynamicResource L.common.snapshot}"
                                            FontSize="10" Foreground="{StaticResource TextSecondary}"/>
                                 <TextBlock x:Name="SnapshotHzText" Text="1/30 Hz"
                                            FontSize="16" FontWeight="SemiBold"

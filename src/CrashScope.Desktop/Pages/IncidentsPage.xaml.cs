@@ -1,4 +1,5 @@
 using CrashScope.Core.Analysis;
+using CrashScope.Desktop.Services;
 using CrashScope.Core.Models;
 using System.IO;
 using System.Windows;
@@ -106,7 +107,7 @@ public partial class IncidentsPage : UserControl
     {
         if (_selectedIncident is null)
         {
-            MessageBox.Show("Please select an incident first.", "CrashScope",
+            MessageBox.Show(Loc.T("incidents.export.selectFirst"), Loc.T("app.title"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -122,7 +123,7 @@ public partial class IncidentsPage : UserControl
         if (dialog.ShowDialog() != true) return;
 
         ExportButton.IsEnabled = false;
-        ExportButton.Content = "\uE74C  Exporting...";
+        ExportButton.Content = Loc.T("incidents.export.exporting");
 
         try
         {
@@ -133,8 +134,8 @@ public partial class IncidentsPage : UserControl
                 _selectedIncident, outputDir, redact);
 
             var result = MessageBox.Show(
-                $"Diagnostic package exported successfully!\n\n{zipPath}\n\nOpen containing folder?",
-                "CrashScope",
+                Loc.F("incidents.export.success", zipPath),
+                Loc.T("app.title"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Information);
 
@@ -146,15 +147,15 @@ public partial class IncidentsPage : UserControl
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"Export failed: {ex.Message}",
-                "CrashScope",
+                Loc.F("incidents.export.failed", ex.Message),
+                Loc.T("app.title"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
         finally
         {
             ExportButton.IsEnabled = _incidents.Count > 0;
-            ExportButton.Content = "\uE74C  Export Diagnostic ZIP";
+            ExportButton.Content = Loc.T("incidents.export.exportZip");
         }
     }
 
@@ -226,8 +227,8 @@ public partial class IncidentsPage : UserControl
 
         var leftTransCount = leftAnalysis.GpuTransitions.Count;
         var rightTransCount = rightAnalysis.GpuTransitions.Count;
-        LeftGpuTransitions.Text = $"{leftTransCount} events";
-        RightGpuTransitions.Text = $"{rightTransCount} events";
+        LeftGpuTransitions.Text = Loc.F("incidents.comparison.events", leftTransCount);
+        RightGpuTransitions.Text = Loc.F("incidents.comparison.events", rightTransCount);
         LeftGpuTransitions.Foreground = leftTransCount > rightTransCount
             ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"))
             : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"));
@@ -237,8 +238,8 @@ public partial class IncidentsPage : UserControl
 
         var leftEtwGpu = leftAnalysis.Timeline.Count(e => e.Category == "ETW-GPU");
         var rightEtwGpu = rightAnalysis.Timeline.Count(e => e.Category == "ETW-GPU");
-        LeftEtwGpu.Text = $"{leftEtwGpu} events";
-        RightEtwGpu.Text = $"{rightEtwGpu} events";
+        LeftEtwGpu.Text = Loc.F("incidents.comparison.events", leftEtwGpu);
+        RightEtwGpu.Text = Loc.F("incidents.comparison.events", rightEtwGpu);
         LeftEtwGpu.Foreground = leftEtwGpu > 0
             ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"))
             : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"));
@@ -248,13 +249,13 @@ public partial class IncidentsPage : UserControl
 
         var leftEtwPower = leftAnalysis.Timeline.Count(e => e.Category == "ETW-Power");
         var rightEtwPower = rightAnalysis.Timeline.Count(e => e.Category == "ETW-Power");
-        LeftEtwPower.Text = $"{leftEtwPower} events";
-        RightEtwPower.Text = $"{rightEtwPower} events";
+        LeftEtwPower.Text = Loc.F("incidents.comparison.events", leftEtwPower);
+        RightEtwPower.Text = Loc.F("incidents.comparison.events", rightEtwPower);
 
         var leftEtwWhea = leftAnalysis.Timeline.Count(e => e.Category == "ETW-WHEA");
         var rightEtwWhea = rightAnalysis.Timeline.Count(e => e.Category == "ETW-WHEA");
-        LeftEtwWhea.Text = $"{leftEtwWhea} events";
-        RightEtwWhea.Text = $"{rightEtwWhea} events";
+        LeftEtwWhea.Text = Loc.F("incidents.comparison.events", leftEtwWhea);
+        RightEtwWhea.Text = Loc.F("incidents.comparison.events", rightEtwWhea);
         LeftEtwWhea.Foreground = leftEtwWhea > 0
             ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#E81123"))
             : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"));
@@ -266,8 +267,8 @@ public partial class IncidentsPage : UserControl
         var rightDisplays = rightAnalysis.Graphics?.LatestDisplayChange?.After;
         var leftMonitorCount = leftDisplays?.Count ?? 0;
         var rightMonitorCount = rightDisplays?.Count ?? 0;
-        LeftMonitors.Text = $"{leftMonitorCount} monitor(s)";
-        RightMonitors.Text = $"{rightMonitorCount} monitor(s)";
+        LeftMonitors.Text = Loc.F("incidents.comparison.monitorsCount", leftMonitorCount);
+        RightMonitors.Text = Loc.F("incidents.comparison.monitorsCount", rightMonitorCount);
 
         var leftHasVirtual = leftDisplays?.Any(d => d.IsVirtual) ?? false;
         var rightHasVirtual = rightDisplays?.Any(d => d.IsVirtual) ?? false;
@@ -328,8 +329,8 @@ public partial class IncidentsPage : UserControl
         {
             var trend = report.StabilityTrends[0];
             StabilityScoreText.Text = trend.StabilityScore.ToString();
-            MtbfText.Text = $"MTBF: {trend.MtbfHours:F1}h  ·  {trend.IncidentCount} incidents";
-            TrendText.Text = $"Trend: {trend.TrendDirection}";
+            MtbfText.Text = Loc.F("dashboard.health.mtbf", trend.MtbfHours, trend.IncidentCount);
+            TrendText.Text = Loc.F("dashboard.health.trend", trend.TrendDirection);
 
             StabilityScoreText.Foreground = trend.StabilityScore switch
             {

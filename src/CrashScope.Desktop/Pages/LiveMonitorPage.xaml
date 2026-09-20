@@ -10,10 +10,10 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="Live Monitor"
+            <TextBlock Text="{DynamicResource L.liveMonitor.title}"
                        FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"/>
-            <TextBlock Text="Real-time event stream: foreground changes, processes, GPU engines, display topology"
+            <TextBlock Text="{DynamicResource L.liveMonitor.subtitle}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,4,0,0"/>
@@ -23,19 +23,19 @@
         <Border Grid.Row="1" Background="{StaticResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <CheckBox x:Name="FilterTelemetry" Content="Telemetry" IsChecked="True"
+                <CheckBox x:Name="FilterTelemetry" Content="{DynamicResource L.common.telemetry}" IsChecked="True"
                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
-                <CheckBox x:Name="FilterForeground" Content="Foreground" IsChecked="True"
+                <CheckBox x:Name="FilterForeground" Content="{DynamicResource L.common.foreground}" IsChecked="True"
                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
-                <CheckBox x:Name="FilterProcess" Content="Process" IsChecked="True"
+                <CheckBox x:Name="FilterProcess" Content="{DynamicResource L.common.process}" IsChecked="True"
                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
-                <CheckBox x:Name="FilterGpuEngine" Content="GPU Engine" IsChecked="True"
+                <CheckBox x:Name="FilterGpuEngine" Content="{DynamicResource L.common.gpuEngine}" IsChecked="True"
                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
-                <CheckBox x:Name="FilterDisplay" Content="Display" IsChecked="True"
+                <CheckBox x:Name="FilterDisplay" Content="{DynamicResource L.common.display}" IsChecked="True"
                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
-                <CheckBox x:Name="FilterPower" Content="Power" IsChecked="True"
+                <CheckBox x:Name="FilterPower" Content="{DynamicResource L.common.power}" IsChecked="True"
                           Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
-                <Button Content="&#xE777;  Clear"
+                <Button Content="{DynamicResource L.common.clear}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="70" Margin="12,0,0,0"
                         Click="ClearButton_Click"/>

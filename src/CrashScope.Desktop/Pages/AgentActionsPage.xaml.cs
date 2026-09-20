@@ -1,4 +1,5 @@
 using System.Windows;
+using CrashScope.Desktop.Services;
 using System.Windows.Controls;
 using CrashScope.Contracts;
 using UserControl = System.Windows.Controls.UserControl;
@@ -33,7 +34,7 @@ public partial class AgentActionsPage : UserControl
 
     private async Task ConnectAsync()
     {
-        StatusText.Text = "Connecting...";
+        StatusText.Text = Loc.T("common.connecting");
         await _vm.ConnectAsync(StateDirBox.Text, pipeName: null);
         StatusText.Text = _vm.StatusMessage;
     }
@@ -44,14 +45,14 @@ public partial class AgentActionsPage : UserControl
     {
         if (PlanList.SelectedItem is not PowerPlanDto plan)
         {
-            StatusText.Text = "Select a power plan first.";
+            StatusText.Text = Loc.T("agentActions.selectPlan");
             return;
         }
 
         var reason = PlanReasonBox.Text.Trim();
         if (reason.Length == 0)
         {
-            StatusText.Text = "A reason is required - that is the forensic contract.";
+            StatusText.Text = Loc.T("agentActions.reasonRequired");
             return;
         }
 
@@ -63,7 +64,7 @@ public partial class AgentActionsPage : UserControl
     {
         if (ProcessList.SelectedItem is not ProcessDto process)
         {
-            StatusText.Text = "Select a process first.";
+            StatusText.Text = Loc.T("agentActions.selectProcess");
             return;
         }
 
@@ -71,7 +72,7 @@ public partial class AgentActionsPage : UserControl
         var reason = PriorityReasonBox.Text.Trim();
         if (reason.Length == 0)
         {
-            StatusText.Text = "A reason is required - that is the forensic contract.";
+            StatusText.Text = Loc.T("agentActions.reasonRequired");
             return;
         }
 
@@ -83,20 +84,20 @@ public partial class AgentActionsPage : UserControl
     {
         if (ActionList.SelectedItem is not ActionRecordDto action)
         {
-            StatusText.Text = "Select a journal row first.";
+            StatusText.Text = Loc.T("agentActions.selectJournalRow");
             return;
         }
 
         if (!action.Reversible || action.Status != "applied")
         {
-            StatusText.Text = $"Action {action.ActionId[..8]} is not rollback-able (status: {action.Status}).";
+            StatusText.Text = Loc.F("agentActions.notRollbackable", action.ActionId[..8], action.Status);
             return;
         }
 
         var reason = RollbackReasonBox.Text.Trim();
         if (reason.Length == 0)
         {
-            StatusText.Text = "A reason is required - that is the forensic contract.";
+            StatusText.Text = Loc.T("agentActions.reasonRequired");
             return;
         }
 

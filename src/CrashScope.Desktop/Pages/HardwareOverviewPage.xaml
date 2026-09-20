@@ -6,16 +6,16 @@
         <StackPanel Margin="0,0,0,24">
             <Grid Margin="0,0,0,20">
                 <StackPanel>
-                    <TextBlock Text="Hardware Overview" FontSize="24" FontWeight="Bold"
+                    <TextBlock Text="{DynamicResource L.hardware.title}" FontSize="24" FontWeight="Bold"
                                Foreground="{StaticResource TextPrimary}"/>
-                    <TextBlock Text="CPU / GPU / RAM / Disk / Mainboard / Display / Network - 只读展示，不修改系统"
+                    <TextBlock Text="{DynamicResource L.hardware.subtitle}"
                                FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button x:Name="OpenRawSensorsButton" Content="Open Raw Sensor Window"
+                    <Button x:Name="OpenRawSensorsButton" Content="{DynamicResource L.hardware.openRawSensors}"
                             Style="{StaticResource SecondaryButton}" Height="30" Padding="14,0" Margin="0,0,8,0"
                             Click="OpenRawSensorsButton_Click"/>
-                    <Button x:Name="OpenFloatingBarButton" Content="Floating Bar"
+                    <Button x:Name="OpenFloatingBarButton" Content="{DynamicResource L.hardware.floatingBar}"
                             Style="{StaticResource SecondaryButton}" Height="30" Padding="14,0"
                             Click="OpenFloatingBarButton_Click"/>
                 </StackPanel>
@@ -35,38 +35,38 @@
                 <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
                     <StackPanel>
                         <TextBlock Text="CPU" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="CpuInfoText" Text="Detecting..." FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="CpuInfoText" Text="{DynamicResource L.common.detecting}" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Row="0" Grid.Column="1" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
                     <StackPanel>
                         <TextBlock Text="GPU" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                        <TextBlock x:Name="GpuInfoText" Text="Detecting..." FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="GpuInfoText" Text="{DynamicResource L.common.detecting}" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
 
                 <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
                     <StackPanel>
-                        <TextBlock Text="Memory" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource L.common.memory}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="MemoryInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
                     <StackPanel>
-                        <TextBlock Text="Disk" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource L.common.disk}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="DiskInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
 
                 <Border Grid.Row="2" Grid.Column="0" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="0,0,8,8">
                     <StackPanel>
-                        <TextBlock Text="Mainboard / BIOS" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource L.hardware.mainboard}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="BoardInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Row="2" Grid.Column="1" Background="{StaticResource CardBg}" CornerRadius="12" Padding="16" Margin="8,0,0,8">
                     <StackPanel>
-                        <TextBlock Text="Display / Network" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource L.hardware.displayNetwork}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="DisplayInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                         <TextBlock x:Name="NetworkInfoText" Text="--" FontSize="12" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"/>
                     </StackPanel>
@@ -75,22 +75,22 @@
 
             <Border Background="{StaticResource CardBg}" CornerRadius="12" Padding="16">
                 <StackPanel>
-                    <TextBlock Text="Raw Sensor Catalog" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
-                    <TextBlock Text="按硬件类型分组，实时刷新，支持搜索" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{DynamicResource L.hardware.rawCatalog}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{DynamicResource L.hardware.rawCatalogHint}" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,8"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBox x:Name="SearchBox" Width="200" Height="28" Margin="0,0,8,0" TextChanged="SearchBox_TextChanged" />
-                        <TextBlock Text="搜索传感器" FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
-                        <Button x:Name="OpenInWindowButton" Content="Open in window" Height="28" Padding="10,0"
+                        <TextBlock Text="{DynamicResource L.hardware.searchPlaceholder}" FontSize="11" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                        <Button x:Name="OpenInWindowButton" Content="{DynamicResource L.hardware.openInWindow}" Height="28" Padding="10,0"
                                 Style="{StaticResource SecondaryButton}" Margin="12,0,0,0"
                                 Click="OpenRawSensorsButton_Click"/>
                     </StackPanel>
                     <ListView x:Name="SensorList" Background="Transparent" BorderThickness="0" Height="300">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Sensor" Width="220" DisplayMemberBinding="{Binding Sensor}"/>
-                                <GridViewColumn Header="Value" Width="100" DisplayMemberBinding="{Binding ValueText}"/>
-                                <GridViewColumn Header="Type" Width="90" DisplayMemberBinding="{Binding SensorType}"/>
-                                <GridViewColumn Header="Hardware" Width="150" DisplayMemberBinding="{Binding Group}"/>
+                                <GridViewColumn Header="{DynamicResource L.common.sensor}" Width="220" DisplayMemberBinding="{Binding Sensor}"/>
+                                <GridViewColumn Header="{DynamicResource L.common.value}" Width="100" DisplayMemberBinding="{Binding ValueText}"/>
+                                <GridViewColumn Header="{DynamicResource L.common.type}" Width="90" DisplayMemberBinding="{Binding SensorType}"/>
+                                <GridViewColumn Header="{DynamicResource L.common.hardware}" Width="150" DisplayMemberBinding="{Binding Group}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>

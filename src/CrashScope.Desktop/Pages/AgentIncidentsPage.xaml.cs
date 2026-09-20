@@ -1,4 +1,5 @@
 using System.Windows;
+using CrashScope.Desktop.Services;
 using System.Windows.Controls;
 using CrashScope.Contracts;
 using UserControl = System.Windows.Controls.UserControl;
@@ -34,22 +35,22 @@ public partial class AgentIncidentsPage : UserControl
 
     private async Task ReconnectAsync()
     {
-        ConnectionText.Text = "Connecting...";
+        ConnectionText.Text = Loc.T("common.connecting");
         var ok = await _vm.ConnectAsync(StateDirBox.Text, pipeName: null);
         if (!ok)
         {
-            ConnectionText.Text = $"Not connected: {_vm.ConnectionError}";
+            ConnectionText.Text = Loc.F("common.notConnectedDetail", _vm.ConnectionError);
             return;
         }
 
-        ConnectionText.Text = $"Connected: {_vm.PipeName}";
+        ConnectionText.Text = Loc.F("common.connected", _vm.PipeName);
         try
         {
             await _vm.LoadIncidentsAsync();
         }
         catch (Exception ex)
         {
-            ConnectionText.Text = $"Load failed: {ex.Message}";
+            ConnectionText.Text = Loc.F("agentIncidents.loadFailed", ex.Message);
         }
     }
 
@@ -66,7 +67,7 @@ public partial class AgentIncidentsPage : UserControl
         }
         catch (Exception ex)
         {
-            ConnectionText.Text = $"Detail failed: {ex.Message}";
+            ConnectionText.Text = Loc.F("agentIncidents.detailFailed", ex.Message);
         }
     }
 

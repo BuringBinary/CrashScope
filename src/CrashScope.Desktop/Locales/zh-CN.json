@@ -5,20 +5,133 @@
   },
   "app": {
     "title": "CrashScope",
+    "brand": "CRASHSCOPE",
     "subtitle": "Windows 飞行记录器",
-    "version": "v0.9.0-dev"
+    "fatalUnhandled": "CrashScope 发生未处理的错误，即将退出。\n\n{0}\n\n详细日志：\n{1}",
+    "fatalMainWindow": "CrashScope 主窗口初始化失败：\n\n{0}\n\n详细日志：\n{1}"
   },
   "nav": {
-    "recorder": "录制器",
-    "dashboard": "仪表盘",
-    "liveMonitor": "实时监控",
-    "incidents": "事件",
-    "timeline": "时间线",
-    "settings": "设置"
+    "home": "  首页",
+    "recorder": "  录制器",
+    "dashboard": "  仪表盘",
+    "hardware": "  硬件",
+    "diskHealth": "  磁盘健康",
+    "speedTest": "  网速测试",
+    "liveMonitor": "  实时监控",
+    "agentMonitor": "  Agent 监控",
+    "agentIncidents": "  Agent 事件",
+    "agentActions": "  Agent 操作",
+    "incidents": "  事件",
+    "timeline": "  时间线",
+    "settings": "  设置"
   },
   "titlebar": {
     "recorderActive": "录制器: 运行中",
-    "recorderStopped": "录制器: 已停止"
+    "recorderStopped": "录制器: 已停止",
+    "recorderState": "录制器: {0}"
+  },
+  "statusbar": {
+    "ready": "就绪",
+    "pageLoaded": "{0} 已加载",
+    "dataQuota": "数据: {0:F0} MB / 配额 {1} MB",
+    "cleaned": " | 已清理: {0} 个会话, {1} 个事件 ({2:F1} MB)",
+    "retentionSkipped": "保留策略跳过: {0}",
+    "recoveryDeferred": "恢复已延期: {0}",
+    "previousCheckFailed": "上次会话检查失败: {0}",
+    "retentionDisabled": "保留策略不可用: {0}",
+    "trayDisabled": "托盘图标不可用: {0}",
+    "homeFailed": "首页加载失败: {0}"
+  },
+  "common": {
+    "start": "  开始",
+    "stop": "  停止",
+    "clear": "  清除",
+    "refresh": "  刷新",
+    "connect": "  连接",
+    "apply": "应用",
+    "cancel": "取消",
+    "notConnected": "未连接",
+    "notConnectedDetail": "未连接: {0}",
+    "connected": "已连接: {0}",
+    "connecting": "连接中...",
+    "disconnected": "已断开",
+    "detecting": "检测中...",
+    "calculating": "计算中...",
+    "checking": "检查中...",
+    "unknown": "未知",
+    "none": "无",
+    "notAvailable": "--",
+    "na": "无",
+    "error": "错误: {0}",
+    "administrator": "管理员",
+    "standardUser": "标准用户",
+    "stateDir": "状态目录:",
+    "telemetry": "遥测",
+    "foreground": "前台",
+    "process": "进程",
+    "processes": "进程",
+    "gpuEngine": "GPU 引擎",
+    "gpuEngines": "GPU 引擎",
+    "display": "显示",
+    "power": "电源",
+    "snapshot": "快照",
+    "temp": "温度",
+    "clock": "频率",
+    "load": "% 负载",
+    "sensor": "传感器",
+    "value": "数值",
+    "type": "类型",
+    "hardware": "硬件",
+    "disk": "磁盘",
+    "memory": "内存",
+    "systemHealth": "系统健康",
+    "mtbfPlaceholder": "MTBF: --",
+    "trendPlaceholder": "趋势: --",
+    "trendPrefix": "趋势: ",
+    "samples": "采样: {0}",
+    "session": "会话: {0}",
+    "uptimeSeconds": "运行: {0:0} 秒"
+  },
+  "home": {
+    "title": "CrashScope 工具箱",
+    "subtitle": "PC 玩家工具箱 · 硬件监控 · 故障黑匣子 · 本地优先",
+    "recorder": "录制器",
+    "stopped": "已停止",
+    "sessionPlaceholder": "会话: --",
+    "samplesPlaceholder": "采样: 0",
+    "checkLast": "检查上次异常",
+    "checking": "检查中...",
+    "hardwareSummary": "硬件概览",
+    "cpuNotRecording": "CPU: 未录制",
+    "gpuNotRecording": "GPU: 未录制",
+    "ramPlaceholder": "内存: --",
+    "collectionStopped": "采集: 已停止",
+    "dataPlaceholder": "数据: --",
+    "privilegePlaceholder": "权限: --",
+    "quickActions": "快捷操作",
+    "safetyNote": "所有系统修改需填写原因并可回滚，默认仅被动采集。",
+    "recentIncidents": "最近事件",
+    "viewAll": "查看全部",
+    "noIncidents": "暂无异常记录，录制器正在保护现场。",
+    "cpuLine": "CPU: {0}",
+    "gpuLine": "GPU: {0}",
+    "ramUsed": "内存已用: {0:F1} GiB",
+    "ramLine": "内存: {0}",
+    "unavailable": "不可用",
+    "notRecording": "未录制",
+    "collectionStoppedLong": "采集: 已停止（无实时读数）",
+    "collectionPending": "采集: 状态暂不可用",
+    "collectionPrefix": "采集: ",
+    "collectionTip": "开始录制后可查看采集器健康状态。",
+    "dataLine": "数据: {0}",
+    "privilegeLine": "权限: {0} | 应用: {1} | 运行时: {2}",
+    "errorLine": "错误: {0}",
+    "recoveryLine": "恢复: {0}",
+    "recoveryDeferred": "恢复已延期: {0}",
+    "noUncleanSession": "未发现未正常结束的会话。",
+    "dlgRecorder": "录制器",
+    "dlgRecovery": "恢复",
+    "dlgCheck": "检查"
   },
   "recorder": {
     "title": "录制器状态",
@@ -26,6 +139,7 @@
     "status": {
       "stopped": "已停止",
       "running": "运行中",
+      "recording": "录制中",
       "starting": "启动中...",
       "stopping": "停止中..."
     },
@@ -37,38 +151,24 @@
     "sessionDetails": "会话详情",
     "dataDirectory": "数据目录",
     "elevated": "管理员权限",
+    "elevatedYes": "是（管理员）",
+    "elevatedNo": "否（受限）",
     "previousSession": "上次会话",
+    "cleanShutdown": "正常关闭",
+    "uncleanShutdown": "异常结束 ⚠",
     "agentVersion": "Agent 版本",
     "writeThroughput": "写入吞吐量",
-    "throughputLabels": {
-      "telemetry": "遥测",
-      "foreground": "前台进程",
-      "gpuEngines": "GPU 引擎",
-      "processes": "进程",
-      "snapshot": "快照"
-    },
     "buttons": {
-      "startRecording": "开始录制",
-      "stopRecording": "停止录制",
-      "openDataFolder": "打开数据目录"
-    }
+      "startRecording": "  开始录制",
+      "stopRecording": "  停止录制",
+      "openDataFolder": "  打开数据目录"
+    },
+    "dataDirNotFound": "数据目录不存在:\n{0}"
   },
   "dashboard": {
     "title": "硬件仪表盘",
-    "subtitle": "实时 CPU、GPU 和内存遥测数据",
-    "cpu": {
-      "label": "CPU",
-      "detecting": "检测中...",
-      "load": "% 负载",
-      "temp": "温度",
-      "clock": "频率"
-    },
+    "subtitle": "实时 CPU、GPU 和内存遥测，含 GPU 状态转换检测",
     "gpu": {
-      "label": "GPU",
-      "detecting": "检测中...",
-      "load": "% 负载",
-      "temp": "温度",
-      "clock": "频率",
       "vram": "显存",
       "power": "功耗"
     },
@@ -78,21 +178,9 @@
       "available": "可用",
       "usage": "使用率"
     },
-    "systemHealth": {
-      "title": "系统健康",
-      "mtbf": "平均无故障时间",
-      "trend": "趋势",
-      "improving": "改善中",
-      "declining": "恶化中",
-      "stable": "稳定"
-    },
-    "gpuEngines": {
-      "title": "GPU 引擎"
-    },
     "gpuTransitions": {
       "title": "GPU 状态转换",
-      "subtitle": "实时检测 GPU 负载、频率和功耗变化",
-      "clear": "清除"
+      "subtitle": "实时检测 GPU 负载、频率和功耗变化"
     },
     "historyCharts": {
       "title": "历史曲线",
@@ -103,20 +191,115 @@
     },
     "sensorDetails": {
       "title": "传感器详情"
+    },
+    "updatedAt": "更新于 {0:HH:mm:ss}",
+    "health": {
+      "noIncidents": "暂无事件",
+      "runRecorder": "运行录制器以采集崩溃数据。",
+      "mtbf": "MTBF: {0:F1} 小时  ·  {1} 个事件",
+      "trend": "趋势: {0}"
     }
   },
   "liveMonitor": {
     "title": "实时监控",
-    "subtitle": "实时事件流：前台切换、进程、GPU 引擎、显示拓扑",
-    "filters": {
-      "telemetry": "遥测",
-      "foreground": "前台",
-      "process": "进程",
-      "gpuEngine": "GPU 引擎",
-      "display": "显示",
-      "power": "电源",
-      "clear": "清除"
+    "subtitle": "实时事件流：前台切换、进程、GPU 引擎、显示拓扑"
+  },
+  "hardware": {
+    "title": "硬件概览",
+    "subtitle": "CPU / GPU / RAM / 磁盘 / 主板 / 显示 / 网络 — 只读展示，不修改系统",
+    "openRawSensors": "打开原始传感器窗口",
+    "floatingBar": "悬浮条",
+    "mainboard": "主板 / BIOS",
+    "displayNetwork": "显示 / 网络",
+    "rawCatalog": "原始传感器目录",
+    "rawCatalogHint": "按硬件类型分组，实时刷新，支持搜索",
+    "searchPlaceholder": "搜索传感器",
+    "openInWindow": "在窗口中打开",
+    "diskQueryFailed": "磁盘查询失败: {0}",
+    "displayUnavailable": "显示: 无法查询（Forms 不可用）",
+    "networkQueryFailed": "网络查询失败: {0}"
+  },
+  "diskHealth": {
+    "title": "磁盘健康",
+    "subtitle": "物理磁盘温度 / SMART / IO 延迟 — 只读展示，数据来自录制会话的存储采集",
+    "noReadings": "暂无实时读数。",
+    "col": {
+      "model": "型号",
+      "index": "序号",
+      "diskTime": "磁盘时间",
+      "read": "读",
+      "write": "写",
+      "queue": "队列",
+      "sources": "来源"
+    },
+    "volumes": "卷 (DriveInfo)",
+    "volumeQueryFailed": "卷查询失败: {0}"
+  },
+  "speedTest": {
+    "title": "网速测试",
+    "subtitle": "延迟 / 下载 / 上传测量 — 走公共端点（Cloudflare），结果受代理与防火墙影响；只读，不修改系统设置",
+    "ping": "延迟",
+    "download": "下载",
+    "upload": "上传",
+    "runAll": "全部运行",
+    "notRun": "尚未运行。“全部运行”依次执行延迟、下载、上传三项测量。",
+    "log": {
+      "started": "—— {0:HH:mm:ss} 开始 ——",
+      "cancelled": "已取消。",
+      "failed": "失败：{0}",
+      "latencyResult": "平均 {0}，抖动 {1}",
+      "allTimedOut": "全部超时",
+      "latencyLine": "延迟 {0} ({1}): {2}，丢包 {3}/4",
+      "downloadTest": "下载测试：{0}",
+      "downloadNoData": "下载失败：无数据（端点不可达或被代理/防火墙拦截）",
+      "downloadResult": "下载：{0}（{1:F1} MB / {2:F1}s）",
+      "verdict": "结论：{0}",
+      "uploadTest": "上传测试：{0}",
+      "uploadTimeout": "上传：未在 {0}s 内完成（带宽较低或端点不可达），不报告数值。",
+      "uploadResult": "上传：{0}（8.0 MB / {1:F1}s）"
+    },
+    "host": {
+      "aliDns": "阿里 DNS",
+      "tencentDns": "腾讯 DNS"
     }
+  },
+  "agentMonitor": {
+    "title": "Agent 监控",
+    "subtitle": "来自 Agent RPC 控制面的实时传感器与录制器状态（连接 CrashScope.Agent，而非进程内录制器）",
+    "stopClient": "  断开客户端",
+    "stopRec": "  停止录制",
+    "idleDot": "● 空闲",
+    "recordingDot": "● 录制中",
+    "samplesPlaceholder": "采样: 0",
+    "uptimePlaceholder": "运行: 0 秒",
+    "gpuPlaceholder": "GPU: 无",
+    "agentPlaceholder": "Agent: 无",
+    "sessionPlaceholder": "会话: -",
+    "gpuLine": "GPU: {0}",
+    "agentLine": "Agent: {0}",
+    "startFailed": "启动失败: {0}",
+    "stopFailed": "停止失败: {0}",
+    "confirmStop": "停止 Agent 的录制会话？仅在成功关闭后才标记为正常结束；故障记录会保留。"
+  },
+  "agentIncidents": {
+    "title": "Agent 事件",
+    "subtitle": "已连接 Agent 收集的事件包 — 用于无界面（计划任务）部署的查看器",
+    "loadFailed": "加载失败: {0}",
+    "detailFailed": "详情加载失败: {0}"
+  },
+  "agentActions": {
+    "title": "Agent 操作",
+    "subtitle": "对已连接 Agent 执行可逆的系统操作 — 每次更改都记录原因并可回滚",
+    "powerPlans": "电源计划",
+    "active": "（当前）",
+    "processPriority": "进程优先级",
+    "journal": "操作日志（仅追加的审计记录）",
+    "rollback": "  回滚所选",
+    "selectPlan": "请先选择电源计划。",
+    "selectProcess": "请先选择进程。",
+    "selectJournalRow": "请先选择一条日志。",
+    "reasonRequired": "必须填写原因 — 这是取证约定。",
+    "notRollbackable": "操作 {0} 不可回滚（状态: {1}）。"
   },
   "incidents": {
     "title": "事件",
@@ -127,8 +310,8 @@
       "topCause": "主要原因"
     },
     "buttons": {
-      "compare": "对比 (2)",
-      "analyzeAll": "分析全部"
+      "compare": "  对比 (2)",
+      "analyzeAll": "  分析全部"
     },
     "detail": {
       "selectIncident": "选择一个事件",
@@ -137,41 +320,46 @@
     },
     "export": {
       "redactData": "脱敏个人数据",
-      "exportZip": "导出诊断 ZIP"
+      "exportZip": "  导出诊断 ZIP",
+      "exporting": "  导出中...",
+      "selectFirst": "请先选择一个事件。",
+      "success": "诊断包导出成功！\n\n{0}\n\n是否打开所在文件夹？",
+      "failed": "导出失败: {0}"
     },
     "crossAnalysis": {
       "title": "跨事件分析",
-      "systemHealth": "系统健康",
-      "patternsFound": "发现的模式",
-      "drivers": "驱动",
-      "recommendations": "建议"
+      "patternsFound": "  发现的模式",
+      "drivers": "  驱动",
+      "recommendations": "  建议"
     },
     "comparison": {
       "title": "事件对比",
       "subtitle": "选择恰好 2 个事件并点击对比",
       "basicInfo": "基本信息",
-      "mode": "模式",
-      "confidence": "置信度",
+      "mode": "模式:",
+      "support": "支持度:",
+      "supportTip": "启发式证据支持度，不是校准过的概率",
       "gpuState": "GPU 状态",
-      "finalLoad": "最终负载",
-      "transitions": "状态转换",
+      "finalLoad": "最终负载:",
+      "transitions": "状态转换:",
       "etwEvents": "ETW 事件",
-      "gpuTdr": "GPU (TDR)",
-      "power": "电源",
-      "whea": "WHEA",
+      "gpuTdr": "GPU (TDR):",
+      "power": "电源:",
+      "whea": "WHEA:",
       "display": "显示",
-      "monitors": "显示器",
-      "virtual": "虚拟",
+      "monitors": "显示器:",
+      "virtual": "虚拟:",
       "drivers": "驱动",
       "graphicsApps": "图形应用",
-      "hypotheses": "假设"
+      "hypotheses": "假设",
+      "events": "{0} 个事件",
+      "monitorsCount": "{0} 台显示器"
     }
   },
   "timeline": {
     "title": "时间线",
     "subtitle": "崩溃重建时间线：遥测、进程、GPU 转换、Windows 事件",
     "legend": {
-      "telemetry": "遥测",
       "gpuTransition": "GPU 转换",
       "appProcess": "应用/进程",
       "windowsEvent": "Windows 事件",
@@ -183,19 +371,39 @@
     "subtitle": "配置录制、数据保留和隐私选项",
     "appearance": {
       "title": "外观",
+      "subtitle": "自定义语言和视觉主题",
       "language": "语言",
+      "languageSystem": "跟随系统",
       "theme": "主题",
       "themeDark": "深色",
       "themeLight": "浅色"
     },
+    "startup": {
+      "title": "启动与托盘",
+      "subtitle": "开机启动和托盘行为，默认不修改系统，仅当前用户",
+      "autoStart": "开机自动启动（当前用户注册表 Run）",
+      "autoStartHint": "仅启动 Desktop，不自动开始录制；录制需手动开始或由 Agent 负责",
+      "minimizeToTray": "最小化时隐藏到托盘（默认最小化到任务栏）",
+      "closeToTray": "关闭时最小化到托盘而非退出",
+      "openDataDir": "打开数据目录",
+      "openIncidentsDir": "打开故障目录",
+      "autoStartEnabled": "已启用开机启动",
+      "autoStartDisabled": "已关闭开机启动",
+      "autoStartFailed": "开机启动设置失败: {0}",
+      "trayUpdated": "托盘行为已更新",
+      "openFailed": "打开失败: {0}",
+      "runKeyError": "无法打开注册表 Run 键"
+    },
+    "recoveryPending": "待恢复任务: {0} 个，下次启动将重试收集证据。",
     "dataRetention": {
       "title": "数据保留",
       "subtitle": "控制会话和事件数据的保留时长",
       "maxRetentionDays": "最大保留天数",
       "maxTotalSize": "最大总容量",
-      "daysUnit": "天",
-      "daysUnitMax": "天 (最大)",
-      "currentUsage": "当前使用量"
+      "days": "{0} 天",
+      "daysMax": "{0} 天（最大）",
+      "currentUsage": "当前使用量:",
+      "usage": "{0:F1} MB / 配额 {1} MB"
     },
     "privacy": {
       "title": "隐私",
@@ -204,12 +412,7 @@
       "redactDesc": "导出的 ZIP 文件中，进程名、窗口标题、用户名和文件路径将被匿名化"
     },
     "recording": {
-      "title": "录制",
-      "telemetry": "遥测",
-      "processes": "进程",
-      "gpuEngines": "GPU 引擎",
-      "display": "显示",
-      "snapshot": "快照"
+      "title": "录制"
     },
     "about": {
       "title": "关于",
@@ -217,27 +420,33 @@
       "dataDir": "数据目录",
       "runtime": ".NET 运行时",
       "elevation": "权限级别",
-      "copyPath": "复制路径",
-      "administrator": "管理员",
-      "standardUser": "标准用户"
+      "copyPath": "复制路径"
     },
     "buttons": {
-      "saveSettings": "保存设置",
+      "saveSettings": "  保存设置",
       "settingsSaved": "设置已保存",
       "pathCopied": "路径已复制到剪贴板"
     }
   },
-  "common": {
-    "calculating": "计算中...",
-    "unknown": "未知",
-    "notAvailable": "--"
+  "floatingBar": {
+    "title": "CrashScope — 悬浮条",
+    "starting": "CrashScope 启动中…"
   },
-  "statusbar": {
-    "loaded": "已加载",
-    "data": "数据",
-    "quota": "配额",
-    "cleaned": "已清理",
-    "sessions": "个会话",
-    "incidents": "个事件"
+  "rawSensors": {
+    "title": "CrashScope — 原始传感器",
+    "topmost": "置顶",
+    "refreshCatalog": "刷新目录",
+    "live": "实时 — {0} 个传感器，每次遥测采样更新。"
+  },
+  "tray": {
+    "stopped": "CrashScope - 已停止",
+    "recording": "CrashScope - 录制中（{0} 次采样）",
+    "state": "CrashScope - {0}",
+    "startRecording": "开始录制",
+    "stopRecording": "停止录制",
+    "openDataFolder": "打开数据目录",
+    "show": "显示 CrashScope",
+    "exit": "退出",
+    "uncleanBalloon": "检测到上次录制未正常结束。\n候选原因: {0}（证据支持度 {1:P0}，非概率）\n点击查看事件。"
   }
 }

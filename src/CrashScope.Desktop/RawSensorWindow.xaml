@@ -1,7 +1,7 @@
 <Window x:Class="CrashScope.Desktop.RawSensorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="CrashScope — Raw Sensors"
+        Title="{DynamicResource L.rawSensors.title}"
         Width="760" Height="560"
         MinWidth="560" MinHeight="380"
         WindowStartupLocation="CenterOwner"
@@ -15,11 +15,11 @@
 
         <DockPanel Grid.Row="0" Margin="0,0,0,8">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <CheckBox x:Name="TopmostToggle" Content="Topmost"
+                <CheckBox x:Name="TopmostToggle" Content="{DynamicResource L.rawSensors.topmost}"
                           VerticalAlignment="Center" Margin="0,0,12,0"
                           Foreground="{StaticResource TextSecondary}"
                           Checked="TopmostToggle_Changed" Unchecked="TopmostToggle_Changed"/>
-                <Button x:Name="RefreshButton" Content="Refresh catalog" Height="26" Padding="10,0"
+                <Button x:Name="RefreshButton" Content="{DynamicResource L.rawSensors.refreshCatalog}" Height="26" Padding="10,0"
                         Style="{StaticResource SecondaryButton}"
                         Click="RefreshButton_Click"/>
             </StackPanel>
@@ -50,9 +50,9 @@
             </ListView.GroupStyle>
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="Sensor" Width="260" DisplayMemberBinding="{Binding Sensor}"/>
-                    <GridViewColumn Header="Type" Width="100" DisplayMemberBinding="{Binding SensorType}"/>
-                    <GridViewColumn Header="Value" Width="110" DisplayMemberBinding="{Binding ValueText}"/>
+                    <GridViewColumn Header="{DynamicResource L.common.sensor}" Width="260" DisplayMemberBinding="{Binding Sensor}"/>
+                    <GridViewColumn Header="{DynamicResource L.common.type}" Width="100" DisplayMemberBinding="{Binding SensorType}"/>
+                    <GridViewColumn Header="{DynamicResource L.common.value}" Width="110" DisplayMemberBinding="{Binding ValueText}"/>
                 </GridView>
             </ListView.View>
         </ListView>

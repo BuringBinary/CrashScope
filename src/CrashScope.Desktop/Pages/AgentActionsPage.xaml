@@ -10,10 +10,10 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="Agent Actions"
+            <TextBlock Text="{DynamicResource L.agentActions.title}"
                        FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"/>
-            <TextBlock Text="Reversible system actions on the connected agent - every change is recorded with its reason and can be rolled back"
+            <TextBlock Text="{DynamicResource L.agentActions.subtitle}"
                        FontSize="13"
                        Foreground="{StaticResource TextSecondary}"
                        Margin="0,4,0,0"/>
@@ -22,15 +22,15 @@
         <Border Grid.Row="1" Background="{StaticResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="State dir:" VerticalAlignment="Center"
+                <TextBlock Text="{DynamicResource L.common.stateDir}" VerticalAlignment="Center"
                            Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="320" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
-                <Button x:Name="ConnectButton" Content="&#xE895;  Connect" ContentTemplate="{StaticResource IconTextTemplate}"
+                <Button x:Name="ConnectButton" Content="{DynamicResource L.common.connect}" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="94" Margin="8,0,0,0"
                         Click="ConnectButton_Click"/>
-                <TextBlock x:Name="StatusText" Text="Not connected"
+                <TextBlock x:Name="StatusText" Text="{DynamicResource L.common.notConnected}"
                            VerticalAlignment="Center" FontSize="12"
                            Foreground="{StaticResource TextSecondary}" Margin="14,0,0,0"/>
             </StackPanel>
@@ -55,7 +55,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Power plans" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Grid.Row="0" Text="{DynamicResource L.agentActions.powerPlans}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
                     <ListBox Grid.Row="1" x:Name="PlanList"
                              ItemsSource="{Binding Plans}"
@@ -66,7 +66,7 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,2">
                                     <TextBlock Text="{Binding Name}" FontSize="12"
                                                Foreground="{StaticResource TextPrimary}"/>
-                                    <TextBlock Text=" (active)" FontSize="11"
+                                    <TextBlock Text="{DynamicResource L.agentActions.active}" FontSize="11"
                                                Foreground="#00D68F"
                                                Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}"/>
                                 </StackPanel>
@@ -76,7 +76,7 @@
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBox x:Name="PlanReasonBox" Width="200" Height="26" FontSize="12"
                                  VerticalContentAlignment="Center"/>
-                        <Button Content="Apply" FontSize="12" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource L.common.apply}" FontSize="12" Style="{StaticResource SecondaryButton}"
                                 Height="26" Width="64" Margin="6,0,0,0"
                                 Click="ApplyPlanButton_Click"/>
                     </StackPanel>
@@ -92,7 +92,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Process priority" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Grid.Row="0" Text="{DynamicResource L.agentActions.processPriority}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
                     <ListBox Grid.Row="1" x:Name="ProcessList"
                              ItemsSource="{Binding Processes}"
@@ -123,7 +123,7 @@
                         </ComboBox>
                         <TextBox x:Name="PriorityReasonBox" Width="130" Height="26" FontSize="12"
                                  VerticalContentAlignment="Center" Margin="6,0,0,0"/>
-                        <Button Content="Apply" FontSize="12" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource L.common.apply}" FontSize="12" Style="{StaticResource SecondaryButton}"
                                 Height="26" Width="64" Margin="6,0,0,0"
                                 Click="ApplyPriorityButton_Click"/>
                     </StackPanel>
@@ -139,7 +139,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Text="Action journal (append-only audit trail)" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Grid.Row="0" Text="{DynamicResource L.agentActions.journal}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
                     <ListBox Grid.Row="1" x:Name="ActionList"
                              ItemsSource="{Binding Actions}"
@@ -168,7 +168,7 @@
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
                         <TextBox x:Name="RollbackReasonBox" Width="240" Height="26" FontSize="12"
                                  VerticalContentAlignment="Center"/>
-                        <Button Content="&#xE7A7;  Roll back selected" ContentTemplate="{StaticResource IconTextTemplate}"
+                        <Button Content="{DynamicResource L.agentActions.rollback}" ContentTemplate="{StaticResource IconTextTemplate}"
                                 FontSize="12" Style="{StaticResource SecondaryButton}"
                                 Height="26" Width="150" Margin="6,0,0,0"
                                 Click="RollbackButton_Click"/>

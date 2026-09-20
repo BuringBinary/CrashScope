@@ -10,23 +10,23 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Speed Test" FontSize="24" FontWeight="Bold"
+            <TextBlock Text="{DynamicResource L.speedTest.title}" FontSize="24" FontWeight="Bold"
                        Foreground="{StaticResource TextPrimary}"/>
-            <TextBlock Text="延迟 / 下载 / 上传测量 — 走公共端点（Cloudflare），结果受代理与防火墙影响；只读，不修改系统设置"
+            <TextBlock Text="{DynamicResource L.speedTest.subtitle}"
                        FontSize="12" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
         </StackPanel>
 
         <Border Grid.Row="1" Background="{StaticResource CardBg}" CornerRadius="8" Padding="12,8" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <Button x:Name="PingButton" Content="Ping" Height="30" Padding="14,0"
+                <Button x:Name="PingButton" Content="{DynamicResource L.speedTest.ping}" Height="30" Padding="14,0"
                         Style="{StaticResource SecondaryButton}" Click="PingButton_Click"/>
-                <Button x:Name="DownButton" Content="Download" Height="30" Padding="14,0" Margin="8,0,0,0"
+                <Button x:Name="DownButton" Content="{DynamicResource L.speedTest.download}" Height="30" Padding="14,0" Margin="8,0,0,0"
                         Style="{StaticResource SecondaryButton}" Click="DownButton_Click"/>
-                <Button x:Name="UpButton" Content="Upload" Height="30" Padding="14,0" Margin="8,0,0,0"
+                <Button x:Name="UpButton" Content="{DynamicResource L.speedTest.upload}" Height="30" Padding="14,0" Margin="8,0,0,0"
                         Style="{StaticResource SecondaryButton}" Click="UpButton_Click"/>
-                <Button x:Name="RunAllButton" Content="Run All" Height="30" Padding="14,0" Margin="8,0,0,0"
+                <Button x:Name="RunAllButton" Content="{DynamicResource L.speedTest.runAll}" Height="30" Padding="14,0" Margin="8,0,0,0"
                         Style="{StaticResource SecondaryButton}" Click="RunAllButton_Click"/>
-                <Button x:Name="CancelButton" Content="Cancel" Height="30" Padding="14,0" Margin="8,0,0,0"
+                <Button x:Name="CancelButton" Content="{DynamicResource L.common.cancel}" Height="30" Padding="14,0" Margin="8,0,0,0"
                         Style="{StaticResource SecondaryButton}" IsEnabled="False"
                         Click="CancelButton_Click"/>
             </StackPanel>
@@ -36,7 +36,7 @@
             <TextBox x:Name="ResultsText" Background="Transparent" BorderThickness="0"
                      Foreground="{StaticResource TextPrimary}" FontFamily="Consolas" FontSize="12"
                      IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                     TextWrapping="NoWrap" Text="尚未运行。Run All 依次执行延迟、下载、上传三项测量。"/>
+                     TextWrapping="NoWrap" Text="{DynamicResource L.speedTest.notRun}"/>
         </Border>
     </Grid>
 </UserControl>

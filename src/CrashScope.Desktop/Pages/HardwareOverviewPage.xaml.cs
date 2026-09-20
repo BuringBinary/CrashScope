@@ -1,4 +1,5 @@
 using System.IO;
+using CrashScope.Desktop.Services;
 using System.Management;
 using System.Net.NetworkInformation;
 using System.Windows;
@@ -62,7 +63,7 @@ public partial class HardwareOverviewPage : UserControl
             }
             catch (Exception ex)
             {
-                DiskInfoText.Text = $"Disk query failed: {ex.Message}";
+                DiskInfoText.Text = Loc.F("hardware.diskQueryFailed", ex.Message);
             }
 
             // Display
@@ -73,7 +74,7 @@ public partial class HardwareOverviewPage : UserControl
             }
             catch
             {
-                DisplayInfoText.Text = "Display: unable to query (Forms not available)";
+                DisplayInfoText.Text = Loc.T("hardware.displayUnavailable");
             }
 
             // Network
@@ -87,12 +88,12 @@ public partial class HardwareOverviewPage : UserControl
             }
             catch (Exception ex)
             {
-                NetworkInfoText.Text = $"Network query failed: {ex.Message}";
+                NetworkInfoText.Text = Loc.F("hardware.networkQueryFailed", ex.Message);
             }
         }
         catch (Exception ex)
         {
-            CpuInfoText.Text = $"Error: {ex.Message}";
+            CpuInfoText.Text = Loc.F("common.error", ex.Message);
         }
     }
 
