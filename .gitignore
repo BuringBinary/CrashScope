@@ -26,3 +26,7 @@ build_*.txt
 test-*.txt
 test_*.txt
 all_output.txt
+
+# Local MCP probe workspace: scripts, logs and machine-readable evidence (not product source)
+.mcp-probes/
+NUL
