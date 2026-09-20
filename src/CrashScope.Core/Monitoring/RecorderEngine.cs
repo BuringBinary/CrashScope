@@ -54,6 +54,7 @@ public sealed class RecorderEngine : IDisposable
     private CrashSafeJsonlWriter? _selfOverheadWriter;
     private CrashSafeJsonlWriter? _pageFileWriter;
     private CrashSafeJsonlWriter? _cpuFallbackWriter;
+    private TickProfiler? _tickProfiler;
 
     private CancellationTokenSource? _cts;
     private Task? _recordingTask;
@@ -219,6 +220,8 @@ public sealed class RecorderEngine : IDisposable
         _selfOverheadWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "collector-overhead.jsonl"));
         _pageFileWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "pagefile.jsonl"));
         _cpuFallbackWriter = new CrashSafeJsonlWriter(Path.Combine(_sessionDirectory, "cpu-fallback.jsonl"));
+        _tickProfiler = new TickProfiler(Path.Combine(_sessionDirectory, "tick-timing.jsonl"),
+            (c, st, d) => _collectorHealth?.Set(c, st, d));
 
         _processTracker = new ProcessTracker();
         _gpuEngineTracker = new GpuEngineTracker();
@@ -398,8 +401,32 @@ public sealed class RecorderEngine : IDisposable
 
         token.ThrowIfCancellationRequested();
         var now = DateTimeOffset.Now;
+        var profiler = _tickProfiler;
+        var gap = profiler?.BeginTick();
+        try
+        {
+            TickCore(token, now, profiler);
+        }
+        finally
+        {
+            profiler?.EndTick(now, gap);
+        }
+    }
 
-        var memPressure = _memoryPressureTracker!.Capture(now);
+    // Each stage is wrapped so a blocked synchronous call (WMI, PDH, process enumeration, disk flush)
+    // is attributable in tick-timing.jsonl. Keep stage names stable: they are grep targets.
+    private static TickProfiler.StageScope? Stage(TickProfiler? p, string name) => p?.Stage(name);
+
+    private static T Timed<T>(TickProfiler? p, string name, Func<T> action)
+    {
+        if (p is null) return action();
+        using (p.Stage(name)) return action();
+    }
+
+    private void TickCore(CancellationToken token, DateTimeOffset now, TickProfiler? p)
+    {
+
+        var memPressure = Timed(p, "memory-pressure", () => _memoryPressureTracker!.Capture(now));
         if (memPressure is not null)
         {
             _memoryPressureWriter!.Write(memPressure);
@@ -412,15 +439,12 @@ public sealed class RecorderEngine : IDisposable
         var criticalPressure = _commitPressureLevel == CommitPressureLevel.Critical;
         var throttled = _commitPressureLevel == CommitPressureLevel.Throttled;
 
-        var cpuFallback = criticalPressure
-            ? new CpuFallbackSample(now, null, "WindowsPdhProcessorTotal", "SuppressedByPressure",
-                "CPU fallback polling is intentionally suspended at critical commit pressure.")
-            : _cpuFallbackTracker!.Capture(now);
-        _cpuFallbackWriter!.Write(cpuFallback);
+        var cpuFallback = Timed(p, "cpu-fallback", () => criticalPressure ? new CpuFallbackSample(now, null, "WindowsPdhProcessorTotal", "SuppressedByPressure", "CPU fallback polling is intentionally suspended at critical commit pressure.") : _cpuFallbackTracker!.Capture(now));
+        using (Stage(p, "write:cpu-fallback")) _cpuFallbackWriter!.Write(cpuFallback);
         _collectorHealth?.Set("CPU Fallback", cpuFallback.Status, cpuFallback.Error ?? _cpuFallbackTracker!.HealthDetail);
 
-        var foreground = WindowsActivity.CaptureForeground();
-        var sensorValues = criticalPressure ? _hardware!.CaptureGpuTemperatureValues() : _hardware!.CaptureValues();
+        var foreground = Timed(p, "foreground", () => WindowsActivity.CaptureForeground());
+        var sensorValues = Timed(p, "sensors", () => criticalPressure ? _hardware!.CaptureGpuTemperatureValues() : _hardware!.CaptureValues());
         if (criticalPressure)
         {
             _collectorHealth?.Set("Sensors", "Throttled", "Critical commit pressure: only GPU temperature readings are retained.");
@@ -439,13 +463,13 @@ public sealed class RecorderEngine : IDisposable
             else
                 _collectorHealth?.Set("CPU", cpuHealth.Status, cpuHealth.Detail);
         }
-        _telemetryWriter!.Write(new TelemetrySnapshot(now, foreground, sensorValues));
+        using (Stage(p, "write:telemetry")) _telemetryWriter!.Write(new TelemetrySnapshot(now, foreground, sensorValues));
         SampleCount++;
         Interlocked.Exchange(ref _lastSampleTicks, now.UtcTicks);
         // The first durable sample is enough to make this session recoverable (not five ticks later).
         if (SampleCount == 1) _journal!.Heartbeat(now);
 
-        Notify(SensorUpdated, sensorValues);
+        using (Stage(p, "notify:sensors")) Notify(SensorUpdated, sensorValues);
 
         if (_previousForeground is null ||
             _previousForeground.ProcessId != foreground.ProcessId ||
@@ -466,15 +490,17 @@ public sealed class RecorderEngine : IDisposable
         if (!criticalPressure && ++_processPollCounter >= (throttled ? 5 : 2))
         {
             _processPollCounter = 0;
-            foreach (var processEvent in _processTracker!.Poll(now))
-            {
-                _processEventWriter!.Write(processEvent);
-                Notify(ProcessEventReceived, processEvent);
-            }
+            var processEvents = Timed(p, "process-poll", () => _processTracker!.Poll(now).ToList());
+            using (Stage(p, "write:process-events"))
+                foreach (var processEvent in processEvents)
+                {
+                    _processEventWriter!.Write(processEvent);
+                    Notify(ProcessEventReceived, processEvent);
+                }
 
-            var engineSample = _gpuEngineTracker!.Capture(now);
-            _gpuEngineWriter!.Write(engineSample);
-            _collectorHealth?.Set("GPU Engines", _gpuEngineTracker.HealthStatus, _gpuEngineTracker.HealthDetail);
+            var engineSample = Timed(p, "gpu-engines", () => _gpuEngineTracker!.Capture(now));
+            using (Stage(p, "write:gpu-engines")) _gpuEngineWriter!.Write(engineSample);
+            _collectorHealth?.Set("GPU Engines", _gpuEngineTracker!.HealthStatus, _gpuEngineTracker.HealthDetail);
             Notify(GpuEngineUpdated, engineSample);
         }
         else if (criticalPressure && SampleCount % 5 == 0)
@@ -489,14 +515,14 @@ public sealed class RecorderEngine : IDisposable
         if (!criticalPressure && ++_displayCounter >= (throttled ? 10 : 5))
         {
             _displayCounter = 0;
-            var displayChange = _displayTracker!.Poll(now);
+            var displayChange = Timed(p, "display", () => _displayTracker!.Poll(now));
             if (displayChange is not null)
             {
                 _displayWriter!.Write(displayChange);
                 Notify(DisplayChanged, displayChange);
             }
 
-            var remoteChange = _powerTracker!.PollRemoteSession(now);
+            var remoteChange = Timed(p, "remote-session", () => _powerTracker!.PollRemoteSession(now));
             if (remoteChange is not null)
             {
                 _remoteSessionWriter!.Write(remoteChange);
@@ -505,24 +531,24 @@ public sealed class RecorderEngine : IDisposable
 
             if (_storageTracker is not null)
             {
-                var storageSample = _storageTracker.Capture(now);
+                var storageSample = Timed(p, "storage", () => _storageTracker.Capture(now));
                 _collectorHealth?.Set("Storage", _storageTracker.HealthStatus, _storageTracker.HealthDetail);
-                _storageWriter!.Write(storageSample);
+                using (Stage(p, "write:storage")) _storageWriter!.Write(storageSample);
                 Notify(StorageUpdated, storageSample);
             }
 
             if (_gpuMemoryTracker is { IsAvailable: true })
             {
-                var gpuMemSample = _gpuMemoryTracker.Capture(now);
+                var gpuMemSample = Timed(p, "gpu-memory", () => _gpuMemoryTracker.Capture(now));
                 if (gpuMemSample is not null)
                 {
-                    _gpuMemoryWriter!.Write(gpuMemSample);
+                    using (Stage(p, "write:gpu-memory")) _gpuMemoryWriter!.Write(gpuMemSample);
                     Notify(GpuMemoryUpdated, gpuMemSample);
                 }
             }
 
-            var dwmChange = _dwmTracker!.Poll(now);
-            _collectorHealth?.Set("DWM", _dwmTracker.HealthStatus, _dwmTracker.HealthDetail);
+            var dwmChange = Timed(p, "dwm", () => _dwmTracker!.Poll(now));
+            _collectorHealth?.Set("DWM", _dwmTracker!.HealthStatus, _dwmTracker.HealthDetail);
             if (dwmChange is not null)
             {
                 _dwmStateWriter!.Write(dwmChange);
@@ -533,7 +559,7 @@ public sealed class RecorderEngine : IDisposable
         if (!criticalPressure && ++_powerCounter >= (throttled ? 20 : 10))
         {
             _powerCounter = 0;
-            var schemeChange = _powerTracker!.PollScheme(now);
+            var schemeChange = Timed(p, "power-scheme", () => _powerTracker!.PollScheme(now));
             if (schemeChange is not null)
             {
                 _powerWriter!.Write(schemeChange);
@@ -544,14 +570,15 @@ public sealed class RecorderEngine : IDisposable
         if (!criticalPressure && ++_processSnapshotCounter >= 5)
         {
             _processSnapshotCounter = 0;
-            _processSnapshotWriter!.Write(_processTracker!.CaptureSnapshot(now));
+            var snapshot = Timed(p, "process-snapshot", () => _processTracker!.CaptureSnapshot(now));
+            using (Stage(p, "write:process-snapshot")) _processSnapshotWriter!.Write(snapshot);
         }
 
         if (++_selfOverheadCounter >= 5)
         {
             _selfOverheadCounter = 0;
-            var overhead = _selfOverheadTracker!.Capture(now, CurrentEtwCoverage());
-            _selfOverheadWriter!.Write(overhead);
+            var overhead = Timed(p, "self-overhead", () => _selfOverheadTracker!.Capture(now, CurrentEtwCoverage()));
+            using (Stage(p, "write:self-overhead")) _selfOverheadWriter!.Write(overhead);
             var cpu = overhead.TotalCpuPercent is float value ? $"{value:F2}%" : "warming up";
             var maxEtwRate = overhead.Etw.Where(e => e.ReceivedPerSecond.HasValue)
                 .Select(e => e.ReceivedPerSecond!.Value).DefaultIfEmpty(0).Max();
@@ -563,24 +590,23 @@ public sealed class RecorderEngine : IDisposable
         if (!criticalPressure && ++_pageFileCounter >= 30)
         {
             _pageFileCounter = 0;
-            var pageFile = _pageFileTracker!.Capture(now, memPressure?.CommitLimitBytes, "Periodic");
+            var pageFile = Timed(p, "pagefile", () => _pageFileTracker!.Capture(now, memPressure?.CommitLimitBytes, "Periodic"));
             _pageFileWriter!.Write(pageFile);
-            _collectorHealth?.Set("Page File", _pageFileTracker.HealthStatus, _pageFileTracker.HealthDetail);
+            _collectorHealth?.Set("Page File", _pageFileTracker!.HealthStatus, _pageFileTracker.HealthDetail);
         }
 
         if (++_heartbeatCounter >= 5)
         {
             _heartbeatCounter = 0;
-            _journal!.Heartbeat(now);
-            RefreshEtwHealth();
-            RefreshResourceExhaustionHealth();
-            Notify(StatusChanged);
+            using (Stage(p, "heartbeat")) _journal!.Heartbeat(now);
+            using (Stage(p, "etw-health")) { RefreshEtwHealth(); RefreshResourceExhaustionHealth(); }
+            using (Stage(p, "notify:status")) Notify(StatusChanged);
         }
 
         if (++_retentionCounter >= RetentionIntervalSeconds)
         {
             _retentionCounter = 0;
-            EnforceRetention();
+            using (Stage(p, "retention")) EnforceRetention();
         }
 
         if (++_etwDrainCounter >= 3)
@@ -712,6 +738,7 @@ public sealed class RecorderEngine : IDisposable
         _selfOverheadTracker = null;
         _pageFileTracker = null;
         Release(_cpuFallbackTracker); _cpuFallbackTracker = null;
+        Release(_tickProfiler); _tickProfiler = null;
         Release(_hardware); _hardware = null;
         Release(_telemetryWriter); _telemetryWriter = null;
         Release(_foregroundWriter); _foregroundWriter = null;
