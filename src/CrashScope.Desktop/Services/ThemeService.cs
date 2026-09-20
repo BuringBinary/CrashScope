@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -92,11 +93,14 @@ public class ThemeService
         ThemeChanged?.Invoke();
     }
 
+    /// <summary>Re-applies the stored theme after <c>App.InitializeComponent()</c> replaced <c>Resources</c>.</summary>
+    public void EnsureResourcesAttached() => ApplyTheme(_currentTheme);
+
     private void ApplyTheme(string theme)
     {
         var resources = _app.Resources;
         var themeDict = resources.MergedDictionaries
-            .FirstOrDefault(d => d.Source?.OriginalString?.Contains("Theme") == true);
+            .FirstOrDefault(d => d.Source?.OriginalString?.EndsWith("Theme.xaml", StringComparison.OrdinalIgnoreCase) == true);
 
         if (themeDict is not null)
             resources.MergedDictionaries.Remove(themeDict);

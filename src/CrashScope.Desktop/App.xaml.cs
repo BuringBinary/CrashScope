@@ -81,6 +81,14 @@ public partial class App : Application
         base.OnStartup(e);
         StartupLog.Info("OnStartup");
 
+        // InitializeComponent() (run by the generated Main between the ctor and Run) replaced
+        // Application.Resources with the App.xaml dictionary, dropping the locale/theme dictionaries
+        // the services merged in the constructor. Re-attach them before any window is created.
+        Localization.EnsureResourcesAttached();
+        Theme.EnsureResourcesAttached();
+        StartupLog.Info($"Resources re-attached (locale={Localization.CurrentLocale}, theme={Theme.CurrentTheme})");
+
+
         if (!TryAcquireSingleInstance())
         {
             StartupLog.Info("Another instance is already running; signalled it to show its window and exiting.");
@@ -181,3 +189,4 @@ public partial class App : Application
         catch { }
     }
 }
+

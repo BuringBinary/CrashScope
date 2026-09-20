@@ -201,6 +201,19 @@ public class LocalizationService
         LocaleChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Re-attaches the <c>L.*</c> resource dictionary to <see cref="Application.Resources"/>.
+    /// Must be called from <c>App.OnStartup</c>: the service is created in the App constructor, but
+    /// <c>InitializeComponent()</c> (which runs after the constructor) replaces <c>Resources</c> with
+    /// the App.xaml dictionary, discarding anything merged before it.
+    /// </summary>
+    public void EnsureResourcesAttached()
+    {
+        if (_app is null) return;
+        if (_resourceDict is not null && _app.Resources.MergedDictionaries.Contains(_resourceDict)) return;
+        Apply(_currentLocale);
+    }
+
     private void Apply(string code)
     {
         _strings = LoadStrings(code);
@@ -294,3 +307,4 @@ public static class Loc
     public static string F(string key, params object?[] args)
         => Service?.F(key, args) ?? key;
 }
+
