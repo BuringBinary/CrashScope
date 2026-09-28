@@ -7,7 +7,9 @@ param(
     [ValidatePattern('^[0-9]{8}-[0-9]{6}$')]
     [string]$BuildId = (Get-Date -Format 'yyyyMMdd-HHmmss'),
     [ValidatePattern('^[0-9]+\.[0-9]+\.[0-9]+$')]
-    [string]$BaseVersion = '0.9.2'
+    # Bump this with every delivered test package. 0.9.2 was left here after the 09-18 packages and
+    # three 09-21 builds silently reused it, colliding with the real 0.9.2 game-session journals.
+    [string]$BaseVersion = '0.9.10'
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -37,7 +39,7 @@ function Get-SourceSnapshot {
     foreach ($directory in @('src', 'test', 'scripts')) {
         $files += Get-ChildItem (Join-Path $repo $directory) -Recurse -File |
             Where-Object { $_.FullName -notmatch '[\\/](bin|obj|TestResults|packages)[\\/]' -and
-                $_.Extension -in @('.cs','.csproj','.xaml','.json','.props','.targets','.ps1','.cmd','.resx','.config','.txt') }
+                $_.Extension -in @('.cs','.csproj','.xaml','.json','.props','.targets','.ps1','.cmd','.resx','.config','.txt','.sh') }
     }
     $files += Get-ChildItem $repo -File -Force | Where-Object {
         $_.Name -in @('global.json','NuGet.Config','nuget.config','Directory.Build.props','Directory.Build.targets','Directory.Packages.props') }
@@ -113,15 +115,33 @@ try {
         'SessionJournalTests','RetentionServiceTests','CrashSafeJsonlWriterTests','DiagnosticExportRedactionTests',
         'DisplayTopologyTrackerTests','EtwModelJsonRoundtripTests','GpuTransitionDetectorTests','GraphicsContextBuilderTests',
         'ModelsJsonRoundtripTests','RpcFramingTests','TimelineBuilderEtwTests','CollectionChainTests','ProcessTrackerTests',
-        'P0CollectionSafetyTests','P1DiagnosticReliabilityTests','RawSensorViewTests','DiskHealthViewTests','FloatingBarViewTests','SpeedTestViewTests')
+        'P0CollectionSafetyTests','P1DiagnosticReliabilityTests','RawSensorViewTests','DiskHealthViewTests','FloatingBarViewTests','SpeedTestViewTests','OverviewMetricTextTests','IncidentPresentationTests','LiveSamplePresentationTests','RecorderOperationGateTests','IncidentCatalogReaderTests','NavigationLayoutTests','SidebarRecorderPresentationTests')
     $filter = ($classes | ForEach-Object { 'FullyQualifiedName~' + $_ }) -join '|'
     Invoke-Dotnet @('test',(Join-Path $repo 'test\CrashScope.Core.Tests\CrashScope.Core.Tests.csproj'),'-c','Release',
         '--filter',$filter,'--results-directory',$logs,'--logger','trx;LogFileName=package-regression.trx') 'regression.log'
     [xml]$trx = Get-Content (Join-Path $logs 'package-regression.trx') -Raw
     $counts = $trx.SelectSingleNode('//*[local-name()="Counters"]')
-    if (-not $counts -or [int]$counts.failed -ne 0 -or [int]$counts.total -lt 282 -or [int]$counts.passed -ne [int]$counts.total) {
+    if (-not $counts -or [int]$counts.failed -ne 0 -or [int]$counts.total -lt 406 -or [int]$counts.passed -ne [int]$counts.total) {
         throw 'Regression counts are missing, failing, skipped, or unexpectedly incomplete.'
     }
+    $incidentUiTests = @($trx.SelectNodes('//*[local-name()="UnitTestResult"]') | Where-Object {
+        $_.testName -like '*IncidentPresentationTests.*' -and $_.outcome -eq 'Passed'
+    })
+    if ($incidentUiTests.Count -lt 30) { throw 'Required IncidentPresentationTests were not all executed successfully.' }
+    foreach ($requirement in @(@('LiveSamplePresentationTests',23), @('RecorderOperationGateTests',4), @('IncidentCatalogReaderTests',15))) {
+        $passed = @($trx.SelectNodes('//*[local-name()="UnitTestResult"]') | Where-Object {
+            $_.testName -like ('*' + $requirement[0] + '.*') -and $_.outcome -eq 'Passed'
+        })
+        if ($passed.Count -lt $requirement[1]) { throw "Required batch B tests are incomplete: $($requirement[0])" }
+    }
+    $navigationTests = @($trx.SelectNodes('//*[local-name()="UnitTestResult"]') | Where-Object {
+        $_.testName -like '*NavigationLayoutTests.*' -and $_.outcome -eq 'Passed'
+    })
+    if ($navigationTests.Count -lt 14) { throw 'Required batch C navigation tests are incomplete.' }
+    $sidebarTests = @($trx.SelectNodes('//*[local-name()="UnitTestResult"]') | Where-Object {
+        $_.testName -like '*SidebarRecorderPresentationTests.*' -and $_.outcome -eq 'Passed'
+    })
+    if ($sidebarTests.Count -lt 9) { throw 'Required sidebar recording presentation tests are incomplete.' }
 
     $hosts = @('Desktop','Agent','Service')
     foreach ($hostName in $hosts) {
@@ -146,6 +166,7 @@ try {
         }
     }
     foreach ($relative in @('Locales\en-US.json','Locales\zh-CN.json','Themes\DarkTheme.xaml','Themes\LightTheme.xaml',
+        'Themes\CommonResources.xaml','Themes\ControlStyles.xaml',
         'PresentationFramework.dll','PresentationCore.dll','WindowsBase.dll','OxyPlot.Wpf.dll','LibreHardwareMonitorLib.dll')) {
         if (-not (Test-Path (Join-Path $package "Desktop\$relative"))) { throw "Desktop asset missing: $relative" }
     }
