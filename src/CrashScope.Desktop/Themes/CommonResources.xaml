@@ -12,6 +12,11 @@
          goes through IconTextTemplate which renders the glyph and the label in two separate TextBlocks. -->
     <FontFamily x:Key="IconTextFont">Segoe MDL2 Assets</FontFamily>
 
+    <!-- AgentActionsPage binds Visibility through {StaticResource BoolToVis}. The key was
+         referenced but never defined anywhere, which throws XamlParseException the moment
+         that page's ItemTemplate is realised. Defined here so every page shares one instance. -->
+    <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
     <conv:IconTextPartConverter x:Key="IconPart" Part="Icon"/>
     <conv:IconTextPartConverter x:Key="LabelPart" Part="Label"/>
 
