@@ -67,7 +67,7 @@
                                     <TextBlock Text="{Binding Name}" FontSize="12"
                                                Foreground="{DynamicResource TextPrimary}"/>
                                     <TextBlock Text="{DynamicResource L.agentActions.active}" FontSize="11"
-                                               Foreground="#00D68F"
+                                               Foreground="{DynamicResource SuccessColor}"
                                                Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}"/>
                                 </StackPanel>
                             </DataTemplate>
@@ -115,11 +115,12 @@
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
                         <ComboBox x:Name="PriorityBox" Width="120" Height="26" FontSize="12"
                                   VerticalContentAlignment="Center" SelectedIndex="2">
-                            <ComboBoxItem Content="Idle"/>
-                            <ComboBoxItem Content="BelowNormal"/>
-                            <ComboBoxItem Content="Normal"/>
-                            <ComboBoxItem Content="AboveNormal"/>
-                            <ComboBoxItem Content="High"/>
+                            <!-- Tag carries the RPC protocol value; Content is display-only. -->
+                            <ComboBoxItem Content="{DynamicResource L.agentActions.priorityLevels.idle}" Tag="Idle"/>
+                            <ComboBoxItem Content="{DynamicResource L.agentActions.priorityLevels.belowNormal}" Tag="BelowNormal"/>
+                            <ComboBoxItem Content="{DynamicResource L.agentActions.priorityLevels.normal}" Tag="Normal"/>
+                            <ComboBoxItem Content="{DynamicResource L.agentActions.priorityLevels.aboveNormal}" Tag="AboveNormal"/>
+                            <ComboBoxItem Content="{DynamicResource L.agentActions.priorityLevels.high}" Tag="High"/>
                         </ComboBox>
                         <TextBox x:Name="PriorityReasonBox" Width="130" Height="26" FontSize="12"
                                  VerticalContentAlignment="Center" Margin="6,0,0,0"/>

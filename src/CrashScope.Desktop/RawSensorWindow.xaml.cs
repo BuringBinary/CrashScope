@@ -81,8 +81,8 @@ public partial class RawSensorWindow : Window
         if (count == 0)
         {
             StatusText.Text = _service.IsRecording
-                ? "Recording — the sensor catalog is being built; the first tick fills this list."
-                : "Sensor catalog is empty — start recording to build it.";
+                ? Loc.T("rawSensors.catalogBuilding")
+                : Loc.T("rawSensors.catalogEmpty");
         }
         else if (_service.IsRecording)
         {
@@ -91,8 +91,8 @@ public partial class RawSensorWindow : Window
         else
         {
             StatusText.Text = _lastValues is null
-                ? "Recorder stopped — no live readings yet; values appear while recording."
-                : $"Recorder stopped — showing the last received values for {count} sensors.";
+                ? Loc.T("rawSensors.stoppedNoValues")
+                : Loc.F("rawSensors.stoppedLastValues", count);
         }
     }
 

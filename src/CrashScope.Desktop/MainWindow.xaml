@@ -9,6 +9,7 @@
         Background="{DynamicResource ContentBg}"
         WindowStyle="None"
         AllowsTransparency="True"
+        FontFamily="Segoe UI" UseLayoutRounding="True" SnapsToDevicePixels="True"
         ResizeMode="CanResizeWithGrip">
 
     <WindowChrome.WindowChrome>
@@ -21,8 +22,8 @@
     <Border CornerRadius="12" ClipToBounds="True">
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="{StaticResource WindowGradientStartColor}" Offset="0"/>
-                <GradientStop Color="{StaticResource WindowGradientEndColor}" Offset="1"/>
+                <GradientStop Color="{DynamicResource WindowGradientStartColor}" Offset="0"/>
+                <GradientStop Color="{DynamicResource WindowGradientEndColor}" Offset="1"/>
             </LinearGradientBrush>
         </Border.Background>
         <Grid>
@@ -81,10 +82,10 @@
                         </Grid.RowDefinitions>
 
                         <!-- App title in sidebar -->
-                        <StackPanel Grid.Row="0" Margin="20,24,20,16">
+                        <StackPanel Grid.Row="0" Margin="22,18,18,8">
                             <TextBlock Text="{DynamicResource L.app.brand}"
-                                       FontSize="18" FontWeight="Bold"
-                                       Foreground="{DynamicResource AccentColor}"/>
+                                       FontSize="20" FontWeight="Bold"
+                                       Foreground="{DynamicResource TextPrimary}"/>
                             <TextBlock Text="{DynamicResource L.app.subtitle}"
                                        FontSize="11"
                                        Foreground="{DynamicResource TextSecondary}"
@@ -92,114 +93,150 @@
                         </StackPanel>
 
                         <!-- Navigation -->
-                        <StackPanel Grid.Row="1" Margin="8,0">
-                            <RadioButton x:Name="NavHome"
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="10,0,10,12">
+                                <TextBlock Text="{DynamicResource L.navGroups.monitoring}" Style="{StaticResource SectionLabel}"/>
+                                <RadioButton x:Name="NavHome"
                                          Content="{DynamicResource L.nav.home}"
                                          ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          IsChecked="False"
                                          Checked="NavButton_Checked"
                                          Tag="Home"/>
-                            <RadioButton x:Name="NavRecorder"
-                                         Content="{DynamicResource L.nav.recorder}"
-                                         ContentTemplate="{StaticResource IconTextTemplate}"
-                                         Style="{StaticResource NavButton}"
-                                         IsChecked="True"
-                                         Checked="NavButton_Checked"
-                                         Tag="Recorder"/>
-                            <RadioButton x:Name="NavDashboard"
+                                <RadioButton x:Name="NavDashboard"
                                          Content="{DynamicResource L.nav.dashboard}"
                                          ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          Checked="NavButton_Checked"
                                          Tag="Dashboard"/>
-                            <RadioButton x:Name="NavHardware"
+                                <RadioButton x:Name="NavLiveMonitor"
+                                         Content="{DynamicResource L.nav.liveMonitor}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
+                                         Style="{StaticResource NavButton}"
+                                         Checked="NavButton_Checked"
+                                         Tag="LiveMonitor"/>
+
+                                <TextBlock Text="{DynamicResource L.navGroups.diagnostics}" Style="{StaticResource SectionLabel}"/>
+                                <RadioButton x:Name="NavIncidents"
+                                         Content="{DynamicResource L.nav.incidents}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
+                                         Style="{StaticResource NavButton}"
+                                         Checked="NavButton_Checked"
+                                         Tag="Incidents"/>
+                                <RadioButton x:Name="NavTimeline"
+                                         Content="{DynamicResource L.nav.timeline}"
+                                         ContentTemplate="{StaticResource IconTextTemplate}"
+                                         Style="{StaticResource NavButton}"
+                                         Checked="NavButton_Checked"
+                                         Tag="Timeline"/>
+
+                                <TextBlock Text="{DynamicResource L.navGroups.tools}" Style="{StaticResource SectionLabel}"/>
+                                <RadioButton x:Name="NavHardware"
                                          Content="{DynamicResource L.nav.hardware}"
                                          ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          IsChecked="False"
                                          Checked="NavButton_Checked"
                                          Tag="Hardware"/>
-                            <RadioButton x:Name="NavDiskHealth"
+                                <RadioButton x:Name="NavDiskHealth"
                                          Content="{DynamicResource L.nav.diskHealth}"
                                          ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          IsChecked="False"
                                          Checked="NavButton_Checked"
                                          Tag="DiskHealth"/>
-                            <RadioButton x:Name="NavSpeedTest"
+                                <RadioButton x:Name="NavSpeedTest"
                                          Content="{DynamicResource L.nav.speedTest}"
                                          ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
                                          IsChecked="False"
                                          Checked="NavButton_Checked"
                                          Tag="SpeedTest"/>
-                            <RadioButton x:Name="NavLiveMonitor"
-                                         Content="{DynamicResource L.nav.liveMonitor}"
-                                         ContentTemplate="{StaticResource IconTextTemplate}"
-                                         Style="{StaticResource NavButton}"
-                                         Checked="NavButton_Checked"
-                                         Tag="LiveMonitor"/>
-                            <RadioButton x:Name="NavAgentMonitor"
-                                         Content="{DynamicResource L.nav.agentMonitor}"
-                                         ContentTemplate="{StaticResource IconTextTemplate}"
-                                         Style="{StaticResource NavButton}"
-                                         Checked="NavButton_Checked"
-                                         Tag="AgentMonitor"/>
-                            <RadioButton x:Name="NavAgentIncidents"
-                                         Content="{DynamicResource L.nav.agentIncidents}"
-                                         ContentTemplate="{StaticResource IconTextTemplate}"
-                                         Style="{StaticResource NavButton}"
-                                         Checked="NavButton_Checked"
-                                         Tag="AgentIncidents"/>
-                            <RadioButton x:Name="NavAgentActions"
-                                         Content="{DynamicResource L.nav.agentActions}"
-                                         ContentTemplate="{StaticResource IconTextTemplate}"
-                                         Style="{StaticResource NavButton}"
-                                         Checked="NavButton_Checked"
-                                         Tag="AgentActions"/>
-                            <RadioButton x:Name="NavIncidents"
-                                         Content="{DynamicResource L.nav.incidents}"
-                                         ContentTemplate="{StaticResource IconTextTemplate}"
-                                         Style="{StaticResource NavButton}"
-                                         Checked="NavButton_Checked"
-                                         Tag="Incidents"/>
-                            <RadioButton x:Name="NavTimeline"
-                                         Content="{DynamicResource L.nav.timeline}"
-                                         ContentTemplate="{StaticResource IconTextTemplate}"
-                                         Style="{StaticResource NavButton}"
-                                         Checked="NavButton_Checked"
-                                         Tag="Timeline"/>
+
+                                <!-- Advanced / Agent is the last group on purpose: it starts collapsed, so
+                                     expanding it can only push content below it, never hide the Tools routes
+                                     that sit above at 900x600. -->
+                                <ToggleButton x:Name="AgentNavigationToggle"
+                                              Content="{DynamicResource L.navGroups.advanced}"
+                                              Style="{StaticResource NavGroupButton}"
+                                              IsChecked="False"/>
+                                <StackPanel x:Name="AgentNavigationItems" Visibility="Collapsed" Margin="8,0,0,0">
+                                    <RadioButton x:Name="NavAgentMonitor"
+                                             Content="{DynamicResource L.nav.agentMonitor}"
+                                             ContentTemplate="{StaticResource IconTextTemplate}"
+                                             Style="{StaticResource NavButton}"
+                                             Checked="NavButton_Checked"
+                                             Tag="AgentMonitor"/>
+                                    <RadioButton x:Name="NavAgentIncidents"
+                                             Content="{DynamicResource L.nav.agentIncidents}"
+                                             ContentTemplate="{StaticResource IconTextTemplate}"
+                                             Style="{StaticResource NavButton}"
+                                             Checked="NavButton_Checked"
+                                             Tag="AgentIncidents"/>
+                                    <RadioButton x:Name="NavAgentActions"
+                                             Content="{DynamicResource L.nav.agentActions}"
+                                             ContentTemplate="{StaticResource IconTextTemplate}"
+                                             Style="{StaticResource NavButton}"
+                                             Checked="NavButton_Checked"
+                                             Tag="AgentActions"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Settings is pinned outside the scrolling route list so it remains reachable
+                             at the minimum window size. -->
+                        <StackPanel Grid.Row="2" Margin="10,8,10,12">
+                            <!-- Persistent recording control: reachable from every page, but deliberately
+                                 low-weight so it never competes with the Home page's primary action.
+                                 The status hint moved to the row tooltip; the error line only
+                                 materialises when the recorder actually faults. -->
+                            <StackPanel Margin="2,0,2,10">
+                                <!-- Hairline keeps the recorder row from reading as one more nav entry
+                                     now that the surrounding card is gone. -->
+                                <Border Height="1" Background="{DynamicResource BorderColor}"
+                                        Opacity="0.6" Margin="0,0,0,10"/>
+                                <Grid x:Name="SidebarRecorderRow">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse x:Name="SidebarStatusDot" Grid.Column="0"
+                                             Width="7" Height="7"
+                                             Fill="{DynamicResource TextSecondary}" Margin="0,0,8,0"
+                                             VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="SidebarStateText" Grid.Column="1"
+                                               Text="{DynamicResource L.sidebarUi.stopped}"
+                                               FontSize="12"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextSecondary}"/>
+                                    <Button x:Name="SidebarRecordButton" Grid.Column="2"
+                                            ContentTemplate="{StaticResource IconTextTemplate}"
+                                            Style="{StaticResource SecondaryButton}"
+                                            MinWidth="30" MinHeight="26" Padding="8,3"
+                                            FontSize="12"
+                                            Click="SidebarRecordButton_Click"/>
+                                </Grid>
+                                <TextBlock x:Name="SidebarErrorText"
+                                           FontSize="10" Foreground="{DynamicResource DangerColor}"
+                                           TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                           MaxHeight="30" Visibility="Collapsed" Margin="15,4,0,0"/>
+                            </StackPanel>
                             <RadioButton x:Name="NavSettings"
                                          Content="{DynamicResource L.nav.settings}"
                                          ContentTemplate="{StaticResource IconTextTemplate}"
                                          Style="{StaticResource NavButton}"
+                                         IsChecked="False"
                                          Checked="NavButton_Checked"
                                          Tag="Settings"/>
-                        </StackPanel>
-
-                        <!-- Bottom status -->
-                        <StackPanel Grid.Row="2" Margin="20,0,20,20">
-                            <Border Background="{DynamicResource CardBg}"
-                                    CornerRadius="8" Padding="12">
-                                <StackPanel>
-                                    <TextBlock Text="v0.5.0-dev"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource TextSecondary}"/>
-                                    <TextBlock x:Name="StatusText"
-                                               Text="{DynamicResource L.titlebar.recorderStopped}"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource DangerColor}"
-                                               Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </Border>
                         </StackPanel>
                     </Grid>
                 </Border>
 
                 <!-- Content area -->
                 <Border Grid.Column="1" Background="{DynamicResource ContentBg}">
-                    <Grid x:Name="ContentArea" Margin="24"/>
+                    <Grid x:Name="ContentArea" Margin="28,24"/>
                 </Border>
             </Grid>
 

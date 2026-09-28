@@ -19,6 +19,12 @@ public partial class App : Application
     private bool _shuttingDown;
 
     public static new App Current => (App)Application.Current;
+    /// <summary>
+    /// Null-safe variant for code that may run under a plain <see cref="Application"/> host
+    /// (the isolated UI smoke renders compiled pages without an <see cref="App"/>). Product
+    /// paths keep using <see cref="Current"/>; theme-change wiring uses this one.
+    /// </summary>
+    public static App? TryCurrent => Application.Current as App;
     public AppService Service { get; } = new();
     public LocalizationService Localization { get; }
     public ThemeService Theme { get; }
@@ -165,6 +171,8 @@ public partial class App : Application
         try { _singleInstanceMutex?.Dispose(); } catch { }
         try { Service.Dispose(); }
         catch (Exception ex) { StartupLog.Error("Service.Dispose failed during exit", ex); }
+        // SystemEvents keeps a static handler list, so the OS theme hook must be released.
+        try { Theme?.Shutdown(); } catch { }
         base.OnExit(e);
     }
 

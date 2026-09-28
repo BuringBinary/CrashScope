@@ -12,7 +12,6 @@
   },
   "nav": {
     "home": "  首页",
-    "recorder": "  录制器",
     "dashboard": "  仪表盘",
     "hardware": "  硬件",
     "diskHealth": "  磁盘健康",
@@ -29,6 +28,29 @@
     "recorderActive": "录制器: 运行中",
     "recorderStopped": "录制器: 已停止",
     "recorderState": "录制器: {0}"
+  },
+  "sidebarUi": {
+    "title": "记录状态",
+    "stopped": "未录制",
+    "starting": "正在启动",
+    "waiting": "等待首个采样",
+    "recording": "正在记录",
+    "stale": "采样已过期",
+    "stopping": "正在停止",
+    "faulted": "采集故障",
+    "stoppedHint": "开始记录后显示实时采样。",
+    "startingHint": "正在准备采集器…",
+    "waitingHint": "记录已开始，正在等待数据。",
+    "recordingHint": "最近采样：{0}",
+    "staleHint": "最后采样：{0}",
+    "stoppingHint": "正在保存当前会话…",
+    "faultedHint": "请检查采集器或诊断日志。",
+    "error": "原因：{0}",
+    "startRecording": "  开始记录",
+    "stopRecording": "  停止记录",
+    "retryRecording": "  重试记录",
+    "startingAction": "正在启动…",
+    "stoppingAction": "正在停止…"
   },
   "statusbar": {
     "ready": "就绪",
@@ -112,7 +134,7 @@
     "safetyNote": "所有系统修改需填写原因并可回滚，默认仅被动采集。",
     "recentIncidents": "最近事件",
     "viewAll": "查看全部",
-    "noIncidents": "暂无异常记录，录制器正在保护现场。",
+    "noIncidents": "暂无事件记录。录制状态请以上方状态卡片为准。",
     "cpuLine": "CPU: {0}",
     "gpuLine": "GPU: {0}",
     "ramUsed": "内存已用: {0:F1} GiB",
@@ -134,8 +156,6 @@
     "dlgCheck": "检查"
   },
   "recorder": {
-    "title": "录制器状态",
-    "subtitle": "控制和监控飞行记录器",
     "status": {
       "stopped": "已停止",
       "running": "运行中",
@@ -148,15 +168,9 @@
       "uptime": "运行时间",
       "samples": "采样数"
     },
-    "sessionDetails": "会话详情",
-    "dataDirectory": "数据目录",
-    "elevated": "管理员权限",
-    "elevatedYes": "是（管理员）",
-    "elevatedNo": "否（受限）",
     "previousSession": "上次会话",
     "cleanShutdown": "正常关闭",
     "uncleanShutdown": "异常结束 ⚠",
-    "agentVersion": "Agent 版本",
     "writeThroughput": "写入吞吐量",
     "buttons": {
       "startRecording": "  开始录制",
@@ -193,6 +207,8 @@
       "title": "传感器详情"
     },
     "updatedAt": "更新于 {0:HH:mm:ss}",
+    "ramTotal": "共 {0:F0} GiB",
+    "sensorUnavailable": "不可用（缺失或可疑）",
     "health": {
       "noIncidents": "暂无事件",
       "runRecorder": "运行录制器以采集崩溃数据。",
@@ -233,7 +249,14 @@
       "sources": "来源"
     },
     "volumes": "卷 (DriveInfo)",
-    "volumeQueryFailed": "卷查询失败: {0}"
+    "volumeQueryFailed": "卷查询失败: {0}",
+    "noReadyVolumes": "没有就绪的卷。",
+    "status": {
+      "waitingFirstSample": "录制中 — 等待第一个存储样本（约每 5 秒一个）。",
+      "live": "实时 — 最近样本时间 {0}。",
+      "stoppedNoReadings": "录制器已停止 — 无实时读数；磁盘指标仅在录制期间更新。",
+      "stoppedLastSample": "录制器已停止 — 显示最后收到的样本（{0}）。"
+    }
   },
   "speedTest": {
     "title": "网速测试",
@@ -279,6 +302,7 @@
     "agentLine": "Agent: {0}",
     "startFailed": "启动失败: {0}",
     "stopFailed": "停止失败: {0}",
+    "lastUpdate": "最近更新: {0}",
     "confirmStop": "停止 Agent 的录制会话？仅在成功关闭后才标记为正常结束；故障记录会保留。"
   },
   "agentIncidents": {
@@ -299,7 +323,23 @@
     "selectProcess": "请先选择进程。",
     "selectJournalRow": "请先选择一条日志。",
     "reasonRequired": "必须填写原因 — 这是取证约定。",
-    "notRollbackable": "操作 {0} 不可回滚（状态: {1}）。"
+    "notRollbackable": "操作 {0} 不可回滚（状态: {1}）。",
+    "status": {
+      "connectFailed": "连接失败: {0}",
+      "powerPlanSet": "已设置电源计划",
+      "prioritySet": "已设置优先级",
+      "rolledBack": "已回滚",
+      "done": "{0}；操作日志已更新",
+      "rejected": "被拒绝 [{0}]: {1}",
+      "failed": "失败: {0}"
+    },
+    "priorityLevels": {
+      "idle": "空闲",
+      "belowNormal": "低于正常",
+      "normal": "正常",
+      "aboveNormal": "高于正常",
+      "high": "高"
+    }
   },
   "incidents": {
     "title": "事件",
@@ -307,7 +347,7 @@
     "summary": {
       "totalIncidents": "总事件数",
       "lastIncident": "最近事件",
-      "topCause": "主要原因"
+      "topCause": "常见候选分类"
     },
     "buttons": {
       "compare": "  对比 (2)",
@@ -363,7 +403,11 @@
       "gpuTransition": "GPU 转换",
       "appProcess": "应用/进程",
       "windowsEvent": "Windows 事件",
-      "crashPoint": "崩溃点"
+      "lastRecord": "最后记录"
+    },
+    "marker": {
+      "lastRecord": "最后记录",
+      "lastRecordDesc": "最后心跳记录于此；精确故障时间未知 — 主要假设：{0}"
     }
   },
   "settings": {
@@ -376,7 +420,8 @@
       "languageSystem": "跟随系统",
       "theme": "主题",
       "themeDark": "深色",
-      "themeLight": "浅色"
+      "themeLight": "浅色",
+      "themeSystem": "跟随系统"
     },
     "startup": {
       "title": "启动与托盘",
@@ -436,7 +481,11 @@
     "title": "CrashScope — 原始传感器",
     "topmost": "置顶",
     "refreshCatalog": "刷新目录",
-    "live": "实时 — {0} 个传感器，每次遥测采样更新。"
+    "live": "实时 — {0} 个传感器，每次遥测采样更新。",
+    "catalogBuilding": "录制中 — 正在构建传感器目录；第一次采样后填充此列表。",
+    "catalogEmpty": "传感器目录为空 — 开始录制后自动构建。",
+    "stoppedNoValues": "录制器已停止 — 尚无实时读数；数值仅在录制期间出现。",
+    "stoppedLastValues": "录制器已停止 — 显示最后收到的 {0} 个传感器数值。"
   },
   "tray": {
     "stopped": "CrashScope - 已停止",
@@ -448,5 +497,97 @@
     "show": "显示 CrashScope",
     "exit": "退出",
     "uncleanBalloon": "检测到上次录制未正常结束。\n候选原因: {0}（证据支持度 {1:P0}，非概率）\n点击查看事件。"
+  },
+  "navGroups": {
+    "monitoring": "实时监控",
+    "diagnostics": "故障诊断",
+    "tools": "工具",
+    "advanced": "高级 / Agent"
+  },
+  "overviewUi": {
+    "eyebrow": "系统观测中心",
+    "title": "系统状态，一目了然。",
+    "subtitle": "实时遥测与故障证据，汇聚于同一工作空间。",
+    "cpu": "CPU 负载",
+    "gpu": "GPU 负载",
+    "memory": "内存占用",
+    "details": "会话与运行环境",
+    "signals": "实时指标",
+    "next": "进一步排查",
+    "waiting": "等待采样",
+    "recording": "正在录制",
+    "stopped": "已停止",
+    "faulted": "需要关注",
+    "stopping": "正在停止",
+    "starting": "正在启动"
+  },
+  "eventUi": {
+    "recordTitle": "异常会话记录",
+    "lastRecord": "最后记录：{0}",
+    "timeDetail": "最后一次心跳（非精确故障时间）。本地：{0}。原始：{1}",
+    "insufficientSupport": "证据不足",
+    "support": "证据支持度：{0}（不是故障概率）",
+    "open": "查看详情",
+    "back": "返回概览",
+    "missing": "该记录已不可用或无法读取。请选择其他记录，或返回概览。",
+    "technical": "技术详情",
+    "rawId": "记录 ID",
+    "rawMode": "原始分类",
+    "rawTime": "原始时间戳",
+    "timeNote": "上方时间为最后一次记录的心跳时间，不一定是故障发生时间。",
+    "score": "评分：{0} · {1}",
+    "exportTitle": "导出诊断包",
+    "exportFilter": "ZIP 压缩文件|*.zip",
+    "chooseOne": "选择一条记录查看详情并导出；选择两条可进行比较。",
+    "copyId": "复制记录 ID",
+    "copyFailed": "无法复制到剪贴板，可在下方选中并复制 ID。",
+    "copied": "记录 ID 已复制",
+    "noData": "暂无数据",
+    "noOpenQuestions": "本次记录未生成待确认问题。",
+    "noHypotheses": "本次记录没有假设数据。",
+    "modes": {
+      "HardFreeze": "系统卡死（候选）",
+      "BlueScreen": "蓝屏（候选）",
+      "DriverTimeoutRecovery": "驱动超时/恢复（候选）",
+      "HardwareError": "硬件错误（候选）",
+      "AppCrash": "应用崩溃（候选）",
+      "PowerLoss": "供电中断（候选）",
+      "Unclassified": "未分类",
+      "Unknown": "分类信息缺失"
+    },
+    "priority": {
+      "critical": "最高",
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    }
+  },
+  "liveUi": {
+    "Stopped": "未录制",
+    "Starting": "正在启动",
+    "Stopping": "正在停止",
+    "Faulted": "采集故障",
+    "Waiting": "等待首次采样",
+    "Fresh": "已收到采样；个别指标仍可能不可用",
+    "Stale": "读数已过期，等待新的有效采样",
+    "age": "最后采样：{0} · {1} 秒前",
+    "clock": "采样时间不确定，暂不显示实时读数",
+    "missingMetric": "此指标暂不可用",
+    "details": "采集状态详情"
+  },
+  "readUi": {
+    "loading": "正在读取事件记录…",
+    "retry": "重新读取",
+    "empty": "暂无可显示的事件记录。",
+    "partial": "已读取 {0} 条记录，另有 {1} 条未能读取；列表可能不完整。",
+    "failed": "有 {1} 条记录未能读取，不能据此判断没有历史事件。",
+    "rootUnavailable": "无法读取事件目录，当前列表不可用。请检查路径或权限后重试。",
+    "folder": "事件目录",
+    "details": "读取失败明细（最多显示前 20 条）",
+    "missingAnalysis": "分析文件缺失或记录已移动",
+    "accessDenied": "无权读取",
+    "invalidAnalysis": "分析文件无效或不完整",
+    "readError": "文件读取失败",
+    "evaluationError": "记录重评失败"
   }
 }

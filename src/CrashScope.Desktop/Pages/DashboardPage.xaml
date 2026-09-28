@@ -27,7 +27,7 @@
                         CornerRadius="12" Padding="20" Margin="0,0,8,0">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <Border Background="#FF6B6B22" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
+                            <Border Background="{DynamicResource CpuTint}" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
                                 <TextBlock Text="&#xE950;" FontFamily="{StaticResource IconTextFont}"
                                            FontSize="16" Foreground="{DynamicResource CpuColor}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -83,7 +83,7 @@
                         CornerRadius="12" Padding="20" Margin="4,0">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <Border Background="#00D68F22" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
+                            <Border Background="{DynamicResource GpuTint}" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
                                 <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource IconTextFont}"
                                            FontSize="16" Foreground="{DynamicResource GpuColor}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -157,7 +157,7 @@
                         CornerRadius="12" Padding="20" Margin="8,0,0,0">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <Border Background="#FFD93D22" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
+                            <Border Background="{DynamicResource RamTint}" CornerRadius="6" Width="32" Height="32" Margin="0,0,10,0">
                                 <TextBlock Text="&#xE950;" FontFamily="{StaticResource IconTextFont}"
                                            FontSize="16" Foreground="{DynamicResource RamColor}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -269,7 +269,7 @@
                     x:Name="GpuEnginesPanel" Visibility="Collapsed">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Border Background="#00D68F22" CornerRadius="6" Width="28" Height="28" Margin="0,0,10,0">
+                        <Border Background="{DynamicResource GpuTint}" CornerRadius="6" Width="28" Height="28" Margin="0,0,10,0">
                             <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource IconTextFont}"
                                        FontSize="14" Foreground="{DynamicResource GpuColor}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -295,7 +295,7 @@
                                                FontSize="12" Foreground="{DynamicResource TextSecondary}"
                                                VerticalAlignment="Center"/>
                                     <Border Grid.Column="1" Height="20" CornerRadius="4"
-                                            Background="#0F0F1A" Margin="8,0">
+                                            Background="{DynamicResource CardBgAlt}" Margin="8,0">
                                         <Border CornerRadius="4"
                                                 Background="{DynamicResource GpuColor}"
                                                 Width="{Binding BarWidth}"
@@ -319,7 +319,7 @@
                     x:Name="GpuTransitionsPanel" Visibility="Collapsed">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Border Background="#FFD93D22" CornerRadius="6" Width="28" Height="28" Margin="0,0,10,0">
+                        <Border Background="{DynamicResource WarningTint}" CornerRadius="6" Width="28" Height="28" Margin="0,0,10,0">
                             <TextBlock Text="&#xE946;" FontFamily="{StaticResource IconTextFont}"
                                        FontSize="14" Foreground="{DynamicResource WarningColor}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -345,7 +345,7 @@
                         <ItemsControl x:Name="GpuTransitionsList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="#0F0F1A" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
+                                    <Border Background="{DynamicResource CardBgAlt}" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -481,7 +481,7 @@
                     <ItemsControl x:Name="SensorList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#0F0F1A" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
+                                <Border Background="{DynamicResource CardBgAlt}" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>

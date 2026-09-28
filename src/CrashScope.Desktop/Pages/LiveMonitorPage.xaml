@@ -23,8 +23,6 @@
         <Border Grid.Row="1" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <CheckBox x:Name="FilterTelemetry" Content="{DynamicResource L.common.telemetry}" IsChecked="True"
-                          Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
                 <CheckBox x:Name="FilterForeground" Content="{DynamicResource L.common.foreground}" IsChecked="True"
                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
                 <CheckBox x:Name="FilterProcess" Content="{DynamicResource L.common.process}" IsChecked="True"
@@ -35,7 +33,7 @@
                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
                 <CheckBox x:Name="FilterPower" Content="{DynamicResource L.common.power}" IsChecked="True"
                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,0,12,0"/>
-                <Button Content="{DynamicResource L.common.clear}"
+                <Button x:Name="ClearEventsButton" Content="{DynamicResource L.common.clear}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
                         Height="26" Width="70" Margin="12,0,0,0"
                         Click="ClearButton_Click"/>
@@ -52,7 +50,7 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="#0F0F1A" CornerRadius="6"
+                        <Border Background="{DynamicResource CardBgAlt}" CornerRadius="6"
                                 Padding="10,6" Margin="0,0,0,4">
                             <Grid>
                                 <Grid.ColumnDefinitions>

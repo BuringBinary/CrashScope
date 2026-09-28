@@ -56,10 +56,10 @@ public partial class DiskHealthPage : UserControl
 
         StatusText.Text = (_service.IsRecording, _lastSample) switch
         {
-            (true, null) => "Recording — waiting for the first storage sample (about one per 5 seconds).",
-            (true, { } s) => $"Live — last sample at {s.Timestamp.LocalDateTime:HH:mm:ss}.",
-            (false, null) => "Recorder stopped — no live readings; disk metrics flow while recording.",
-            (false, { } s) => $"Recorder stopped — showing the last received sample from {s.Timestamp.LocalDateTime:HH:mm:ss}."
+            (true, null) => Loc.T("diskHealth.status.waitingFirstSample"),
+            (true, { } s) => Loc.F("diskHealth.status.live", s.Timestamp.LocalDateTime.ToString("HH:mm:ss")),
+            (false, null) => Loc.T("diskHealth.status.stoppedNoReadings"),
+            (false, { } s) => Loc.F("diskHealth.status.stoppedLastSample", s.Timestamp.LocalDateTime.ToString("HH:mm:ss"))
         };
     }
 
@@ -69,7 +69,7 @@ public partial class DiskHealthPage : UserControl
         {
             var lines = DriveInfo.GetDrives().Where(d => d.IsReady)
                 .Select(d => $"{d.Name} {d.DriveType} — {d.TotalSize / 1024 / 1024 / 1024:F0} GB total, {d.AvailableFreeSpace / 1024 / 1024 / 1024:F0} GB free");
-            VolumesText.Text = string.Join("\n", lines.DefaultIfEmpty("No ready volumes."));
+            VolumesText.Text = string.Join("\n", lines.DefaultIfEmpty(Loc.T("diskHealth.noReadyVolumes")));
         }
         catch (Exception ex)
         {

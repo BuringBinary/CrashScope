@@ -7,8 +7,6 @@ using CrashScope.Desktop.Services;
 using UserControl = System.Windows.Controls.UserControl;
 using Brush = System.Windows.Media.Brush;
 using Clipboard = System.Windows.Clipboard;
-using Color = System.Windows.Media.Color;
-using ColorConverter = System.Windows.Media.ColorConverter;
 
 namespace CrashScope.Desktop.Pages;
 
@@ -32,6 +30,12 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
         _uiSettings = App.Current.UiSettings;
 
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        _theme.ThemeChanged -= OnThemeChanged;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -41,7 +45,8 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
 
         RetentionDaysSlider.Value = _retention.Settings.MaxRetentionDays;
         MaxSizeSlider.Value = _retention.Settings.MaxTotalSizeMb;
-        RedactByDefaultCheckBox.IsChecked = true;
+        // Reflect the persisted export default; a hardcoded true made the checkbox a lie.
+        RedactByDefaultCheckBox.IsChecked = _uiSettings.RedactExportsByDefault;
 
         // Reflect the persisted tray behaviour instead of the XAML default, so the boxes
         // always show what the app will actually do.
@@ -56,6 +61,11 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
 
         PopulateLanguageComboBox();
         PopulateThemeComboBox();
+
+        // With "Follow system" selected the label carries the resolved palette in
+        // parentheses, so the dropdown has to be rebuilt when the OS flips it.
+        _theme.ThemeChanged -= OnThemeChanged;
+        _theme.ThemeChanged += OnThemeChanged;
 
         UpdateUsage();
         RefreshStartupState();
@@ -166,15 +176,38 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
         ThemeComboBox.Items.Clear();
         foreach (var theme in _theme.AvailableThemes)
         {
+            // "Follow system" shows the palette it currently resolves to, matching how the
+            // language picker renders its own follow-system entry.
+            var label = theme switch
+            {
+                ThemeService.Dark => Loc.T("settings.appearance.themeDark"),
+                ThemeService.Light => Loc.T("settings.appearance.themeLight"),
+                ThemeService.System =>
+                    $"{Loc.T("settings.appearance.themeSystem")} ({ThemeDisplayName(_theme.EffectiveTheme)})",
+                _ => theme
+            };
+
             ThemeComboBox.Items.Add(new ComboBoxItem
             {
-                Content = theme == "Dark" ? Loc.T("settings.appearance.themeDark")
-                        : theme == "Light" ? Loc.T("settings.appearance.themeLight") : theme,
+                Content = label,
                 Tag = theme,
                 IsSelected = theme == _theme.CurrentTheme
             });
         }
     }
+
+    private void OnThemeChanged() => Dispatcher.InvokeAsync(() =>
+    {
+        if (!IsLoaded) return;
+        var wasInitialized = _initialized;
+        _initialized = false;        // rebuilding sets IsSelected, which would re-enter SetTheme
+        PopulateThemeComboBox();
+        _initialized = wasInitialized;
+    });
+
+    private string ThemeDisplayName(string theme) => theme == ThemeService.Light
+        ? Loc.T("settings.appearance.themeLight")
+        : Loc.T("settings.appearance.themeDark");
 
     private void LanguageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -223,23 +256,32 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
         _retention.Settings.MaxTotalSizeMb = (int)MaxSizeSlider.Value;
         _retention.Save();
 
+        // Persist the export-redaction default alongside retention; the setter only
+        // writes the settings file when the value actually changed.
+        _uiSettings.RedactExportsByDefault = RedactByDefaultCheckBox.IsChecked == true;
+
         _retention.Enforce();
         UpdateUsage();
 
-        ShowStatus(Loc.T("settings.buttons.settingsSaved"), "#00D68F");
+        ShowStatus(Loc.T("settings.buttons.settingsSaved"), StatusSuccessKey);
     }
 
     private void CopyDataDir_Click(object sender, RoutedEventArgs e)
     {
         Clipboard.SetText(_service.RootDirectory);
-        ShowStatus(Loc.T("settings.buttons.pathCopied"), "#00D68F");
+        ShowStatus(Loc.T("settings.buttons.pathCopied"), StatusSuccessKey);
     }
 
-    private void ShowStatus(string message, string colorHex)
+    // Status colours come from the active theme dictionary, not from literal hex.
+    // The old hardcoded #00D68F / #FF6B6B measured 1.76-2.78:1 on the light theme's
+    // card surface - effectively unreadable - and never changed when the theme did.
+    private const string StatusSuccessKey = "SuccessColor";
+    private const string StatusErrorKey = "DangerColor";
+
+    private void ShowStatus(string message, string resourceKey)
     {
         SaveStatusText.Text = message;
-        SaveStatusText.Foreground = new SolidColorBrush(
-            (Color)ColorConverter.ConvertFromString(colorHex));
+        SaveStatusText.Foreground = SeverityPalette.Resolve(resourceKey);
         SaveStatusText.Visibility = Visibility.Visible;
 
         _statusTimer?.Stop();
@@ -262,11 +304,11 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
         {
             var enable = AutoStartCheckBox.IsChecked == true;
             SetAutoStart(enable);
-            ShowStatus(enable ? Loc.T("settings.startup.autoStartEnabled") : Loc.T("settings.startup.autoStartDisabled"), "#00D68F");
+            ShowStatus(enable ? Loc.T("settings.startup.autoStartEnabled") : Loc.T("settings.startup.autoStartDisabled"), StatusSuccessKey);
         }
         catch (Exception ex)
         {
-            ShowStatus(Loc.F("settings.startup.autoStartFailed", ex.Message), "#FF6B6B");
+            ShowStatus(Loc.F("settings.startup.autoStartFailed", ex.Message), StatusErrorKey);
             RefreshStartupState();
         }
     }
@@ -286,7 +328,7 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
         _uiSettings.MinimizeToTray = MinimizeToTrayCheckBox.IsChecked == true;
         _uiSettings.CloseToTray = CloseToTrayCheckBox.IsChecked == true;
 
-        ShowStatus(Loc.T("settings.startup.trayUpdated"), "#00D68F");
+        ShowStatus(Loc.T("settings.startup.trayUpdated"), StatusSuccessKey);
     }
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e)
@@ -301,7 +343,7 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
         }
         catch (Exception ex)
         {
-            ShowStatus(Loc.F("settings.startup.openFailed", ex.Message), "#FF6B6B");
+            ShowStatus(Loc.F("settings.startup.openFailed", ex.Message), StatusErrorKey);
         }
     }
 
@@ -319,7 +361,7 @@ public partial class SettingsPage : UserControl, IRefreshableLocale
         }
         catch (Exception ex)
         {
-            ShowStatus(Loc.F("settings.startup.openFailed", ex.Message), "#FF6B6B");
+            ShowStatus(Loc.F("settings.startup.openFailed", ex.Message), StatusErrorKey);
         }
     }
 }

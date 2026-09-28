@@ -17,6 +17,12 @@
                        FontSize="13"
                        Foreground="{DynamicResource TextSecondary}"
                        Margin="0,4,0,0"/>
+            <TextBlock x:Name="TimelineReadNotice"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextSecondary}"
+                       TextWrapping="Wrap"
+                       Margin="0,8,0,0"
+                       Visibility="Collapsed"/>
         </StackPanel>
 
         <!-- Legend -->
@@ -41,7 +47,7 @@
                            FontSize="11" Margin="0,0,16,0"/>
                 <Border Background="{DynamicResource DangerColor}"
                         CornerRadius="4" Width="12" Height="12" Margin="0,0,4,0"/>
-                <TextBlock Text="{DynamicResource L.timeline.legend.crashPoint}" Foreground="{DynamicResource TextSecondary}"
+                <TextBlock Text="{DynamicResource L.timeline.legend.lastRecord}" Foreground="{DynamicResource TextSecondary}"
                            FontSize="11"/>
             </StackPanel>
         </Border>
@@ -56,7 +62,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Time range selector -->
-                <Border Grid.Row="0" Background="#0F0F1A" CornerRadius="8"
+                <Border Grid.Row="0" Background="{DynamicResource CardBgAlt}" CornerRadius="8"
                         Padding="12" Margin="0,0,0,16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -67,7 +73,7 @@
                         <ComboBox x:Name="IncidentSelector"
                                   Grid.Column="0"
                                   Width="280"
-                                  Background="#1E1F3A"
+                                  Background="{DynamicResource CardBg}"
                                   Foreground="{DynamicResource TextPrimary}"
                                   BorderThickness="0"
                                   SelectionChanged="IncidentSelector_SelectionChanged">
@@ -116,7 +122,7 @@
                                     </Grid>
 
                                     <Border Grid.Column="2"
-                                            Background="#0F0F1A"
+                                            Background="{DynamicResource CardBgAlt}"
                                             CornerRadius="6" Padding="10,8"
                                             Margin="0,0,0,8">
                                         <StackPanel>

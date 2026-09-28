@@ -309,7 +309,9 @@ public sealed class AgentActionsViewModelTests : IDisposable
         Assert.NotEmpty(vm.Processes);
 
         await vm.SetPowerPlanAsync("high", "vm test");
-        Assert.Contains("journal updated", vm.StatusMessage);
+        // Without a WPF App, Loc.F falls back to the raw resource key, so a successful
+        // mutation surfaces as the success-status key rather than formatted text.
+        Assert.Equal("agentActions.status.done", vm.StatusMessage);
         Assert.Single(vm.Actions);
 
         await vm.RollbackAsync(vm.Actions[0].ActionId, "vm undo");

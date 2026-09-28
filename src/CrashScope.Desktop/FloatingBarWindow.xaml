@@ -5,6 +5,13 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ShowActivated="False"
         ResizeMode="NoResize" Width="560" Height="40">
+    <!-- DELIBERATELY NOT THEMED. This is a translucent always-on-top overlay that floats
+         over arbitrary desktop content, not a surface inside the app window. A dark
+         translucent plate with light text stays legible over any wallpaper or game, which
+         is the standard OSD treatment; following the light theme would make it wash out
+         against bright backgrounds. The 8-digit values are #AARRGGBB - the leading byte is
+         intentional alpha (E6 = 90% plate, 33 = 20% hairline border, F0/88 = text opacity).
+         Product decision 2026-09-21: keep fixed dark. Do not "fix" these to theme keys. -->
     <Border x:Name="BarBorder" Background="#E610141E" BorderBrush="#33FFFFFF" BorderThickness="1"
             CornerRadius="10" Padding="14,8" MouseLeftButtonDown="Bar_MouseLeftButtonDown">
         <StackPanel Orientation="Horizontal">

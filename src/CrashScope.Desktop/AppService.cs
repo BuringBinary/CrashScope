@@ -153,8 +153,6 @@ public sealed class AppService : IDisposable, ILiveMonitorEventSource
 
     public IncidentReadResult ReadIncidents() => _incidentReader.Read(_incidentsRoot);
     public Task<IncidentReadResult> ReadIncidentsAsync() => Task.Run(ReadIncidents);
-    // Transitional shim: HEAD pages still call this until the UI batch lands; that batch removes it.
-    public IReadOnlyList<IncidentInfo> GetIncidents() => ReadIncidents().Items;
 
     public void Dispose()
     {

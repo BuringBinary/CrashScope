@@ -8,8 +8,6 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using Color = System.Windows.Media.Color;
-using ColorConverter = System.Windows.Media.ColorConverter;
 using UserControl = System.Windows.Controls.UserControl;
 
 namespace CrashScope.Desktop.Pages;
@@ -38,6 +36,7 @@ public partial class DashboardPage : UserControl
 
     private GpuTransitionMonitor? _transitionMonitor;
     private string _gpuDisplayName = "GPU";
+    internal int HealthLoadVersion;
 
     private readonly PlotModel _cpuPlotModel;
     private readonly PlotModel _gpuPlotModel;
@@ -52,15 +51,16 @@ public partial class DashboardPage : UserControl
 
     private readonly List<GpuTransitionItem> _transitionItems = new();
 
-    private static readonly OxyColor CpuLineColor = OxyColor.FromRgb(0xFF, 0x6B, 0x6B);
-    private static readonly OxyColor GpuLineColor = OxyColor.FromRgb(0x00, 0xD6, 0x8F);
-    private static readonly OxyColor GpuClockColor = OxyColor.FromRgb(0x6C, 0x5C, 0xE7);
-    private static readonly OxyColor GpuPowerColor = OxyColor.FromRgb(0xFF, 0xD9, 0x3D);
-    private static readonly OxyColor TransitionDropColor = OxyColor.FromRgb(0xFF, 0x6B, 0x6B);
-    private static readonly OxyColor TransitionSurgeColor = OxyColor.FromRgb(0x00, 0xD6, 0x8F);
-    private static readonly OxyColor RamLineColor = OxyColor.FromRgb(0xFF, 0xD9, 0x3D);
-    private static readonly OxyColor GridColor = OxyColor.FromRgb(0x2A, 0x2B, 0x4A);
-    private static readonly OxyColor TextMuted = OxyColor.FromRgb(0x8B, 0x8B, 0xA0);
+    // Chart colours come from the active theme. OxyPlot cannot bind to DynamicResource,
+    // so ApplyChartTheme re-resolves and re-applies them on every theme change.
+    private static OxyColor CpuLineColor => ChartPalette.Resolve(ChartPalette.CpuKey);
+    private static OxyColor GpuLineColor => ChartPalette.Resolve(ChartPalette.GpuKey);
+    private static OxyColor GpuClockColor => ChartPalette.Resolve(ChartPalette.ClockKey);
+    private static OxyColor GpuPowerColor => ChartPalette.Resolve(ChartPalette.PowerKey);
+    private static OxyColor TransitionDropColor => ChartPalette.Resolve(ChartPalette.DropKey);
+    private static OxyColor RamLineColor => ChartPalette.Resolve(ChartPalette.RamKey);
+    private static OxyColor GridColor => ChartPalette.Resolve(ChartPalette.GridKey);
+    private static OxyColor TextMuted => ChartPalette.Resolve(ChartPalette.MutedKey);
 
     public DashboardPage()
     {
@@ -100,8 +100,15 @@ public partial class DashboardPage : UserControl
         _service.GpuEngineUpdated += OnGpuEngineUpdated;
         _service.StatusChanged -= OnStatusChanged;
         _service.StatusChanged += OnStatusChanged;
+        var theme = App.TryCurrent?.Theme;
+        if (theme is not null)
+        {
+            theme.ThemeChanged -= OnThemeChanged;
+            theme.ThemeChanged += OnThemeChanged;
+        }
+        ApplyChartTheme();
         BuildSensorMap();
-        DashboardHealth.Refresh(this);
+        _ = DashboardHealth.RefreshAsync(this);
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -109,6 +116,65 @@ public partial class DashboardPage : UserControl
         _service.SensorUpdated -= OnSensorUpdated;
         _service.GpuEngineUpdated -= OnGpuEngineUpdated;
         _service.StatusChanged -= OnStatusChanged;
+        var theme = App.TryCurrent?.Theme;
+        if (theme is not null) theme.ThemeChanged -= OnThemeChanged;
+    }
+
+    private void OnThemeChanged() => Dispatcher.InvokeAsync(() =>
+    {
+        if (IsLoaded) ApplyChartTheme();
+    });
+
+    /// <summary>
+    /// Re-resolve every chart colour from the active theme and refresh the plots.
+    /// Series data is left untouched, so switching themes does not clear chart history.
+    /// </summary>
+    private void ApplyChartTheme()
+    {
+        _cpuSeries.Color = CpuLineColor;
+        _gpuSeries.Color = GpuLineColor;
+        _gpuClockSeries.Color = GpuClockColor;
+        _gpuPowerSeries.Color = GpuPowerColor;
+        _ramSeries.Color = RamLineColor;
+
+        _gpuTransitionMarkers.MarkerFill = TransitionDropColor;
+        _gpuTransitionMarkers.MarkerStroke = ChartPalette.Resolve(ChartPalette.MutedKey);
+
+        StyleModel(_cpuPlotModel, TextMuted);
+        StyleModel(_gpuPlotModel, TextMuted);
+        StyleModel(_ramPlotModel, TextMuted);
+        StyleModel(_gpuClockPowerModel, TextMuted);
+
+        // The dual-axis plot colour-codes each axis to match its series.
+        foreach (var axis in _gpuClockPowerModel.Axes)
+        {
+            var accent = axis.Key switch
+            {
+                "ClockAxis" => GpuClockColor,
+                "PowerAxis" => GpuPowerColor,
+                _ => TextMuted
+            };
+            axis.TextColor = accent;
+            axis.TitleColor = accent;
+        }
+
+        _cpuPlotModel.InvalidatePlot(false);
+        _gpuPlotModel.InvalidatePlot(false);
+        _ramPlotModel.InvalidatePlot(false);
+        _gpuClockPowerModel.InvalidatePlot(false);
+    }
+
+    private static void StyleModel(PlotModel model, OxyColor muted)
+    {
+        model.TextColor = muted;
+        var grid = GridColor;
+        foreach (var axis in model.Axes)
+        {
+            axis.TicklineColor = grid;
+            axis.AxislineColor = grid;
+            axis.TextColor = muted;
+            axis.TitleColor = muted;
+        }
     }
 
     private void OnStatusChanged() => Dispatcher.InvokeAsync(() =>
@@ -135,7 +201,7 @@ public partial class DashboardPage : UserControl
             MarkerType = MarkerType.Diamond,
             MarkerSize = 6,
             MarkerFill = TransitionDropColor,
-            MarkerStroke = OxyColors.White,
+            MarkerStroke = ChartPalette.Resolve(ChartPalette.MutedKey),
             MarkerStrokeThickness = 1,
             Title = "Transitions"
         };
@@ -311,8 +377,8 @@ public partial class DashboardPage : UserControl
                 SensorLabel = $"{transition.SensorName} ({transition.SensorType})",
                 TransitionDetail = DescribeTransition(transition, _gpuDisplayName),
                 MarkerColor = transition.IsDrop
-                    ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"))
-                    : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F"))
+                    ? SeverityPalette.Resolve(SeverityPalette.Critical)
+                    : SeverityPalette.Resolve(SeverityPalette.Info)
             };
 
             _transitionItems.Insert(0, item);
@@ -418,7 +484,7 @@ public partial class DashboardPage : UserControl
     private void UpdateDisplay(IReadOnlyList<float?> values)
     {
         float? Value(int i) => i >= 0 && i < values.Count ? values[i] : null;
-        string Show(int i, string unit = "", string format = "F0") => Value(i) is { } v ? v.ToString(format) + unit : "N/A";
+        string Show(int i, string unit = "", string format = "F0") => Value(i) is { } v ? v.ToString(format) + unit : Loc.T("common.notAvailable");
         CpuLoadText.Text = Show(_cpuLoadIdx);
         CpuTempText.Text = Show(_cpuTempIdx, "°C");
         CpuClockText.Text = Show(_cpuClockIdx, " MHz");
@@ -426,12 +492,12 @@ public partial class DashboardPage : UserControl
         GpuTempText.Text = Show(_gpuTempIdx, "°C");
         GpuClockText.Text = Show(_gpuClockIdx, " MHz");
         GpuPowerText.Text = Show(_gpuPowerIdx, " W");
-        GpuVramText.Text = Value(_gpuVramUsedIdx) is { } vram ? $"{vram / 1024f:F1} GiB" : "N/A";
+        GpuVramText.Text = Value(_gpuVramUsedIdx) is { } vram ? $"{vram / 1024f:F1} GiB" : Loc.T("common.notAvailable");
         RamUsedText.Text = Show(_ramUsedIdx, format: "F1");
         RamAvailText.Text = Show(_ramAvailIdx, " GiB", "F1");
         RamPercentText.Text = Show(_ramLoadIdx, "%");
         RamTotalText.Text = Value(_ramUsedIdx) is { } used && Value(_ramAvailIdx) is { } available
-            ? $"{used + available:F0} GiB total" : "N/A";
+            ? Loc.F("dashboard.ramTotal", used + available) : Loc.T("common.notAvailable");
         UpdateSensorList(values);
     }
 
@@ -446,7 +512,7 @@ public partial class DashboardPage : UserControl
         {
             foreach (var engine in proc.Engines)
             {
-                var key = engine.EngineType.Length > 0 ? engine.EngineType : "Unknown";
+                var key = engine.EngineType.Length > 0 ? engine.EngineType : Loc.T("common.unknown");
                 if (aggregated.TryGetValue(key, out var existing))
                     aggregated[key] = existing + engine.UtilizationPercent;
                 else
@@ -503,7 +569,7 @@ public partial class DashboardPage : UserControl
                 items.Add(new SensorDisplayItem
                 {
                     Name = $"{entry.HardwareType} — {entry.SensorName}",
-                    Value = value.HasValue ? $"{value.Value:F1}{unit}" : "N/A (unavailable or suspect)"
+                    Value = value.HasValue ? $"{value.Value:F1}{unit}" : Loc.T("dashboard.sensorUnavailable")
                 });
             }
         }
@@ -537,20 +603,35 @@ public sealed class GpuTransitionItem
 
 internal static class DashboardHealth
 {
-    public static void Refresh(DashboardPage page)
+    public static async Task RefreshAsync(DashboardPage page)
     {
-        var incidents = App.Current.Service.GetIncidents();
+        // Reading off the UI thread keeps first navigation responsive while large
+        // analyses re-evaluate; the version guards against stale unload/reload races.
+        var version = ++page.HealthLoadVersion;
+        IncidentReadResult result;
+        try { result = await App.Current.Service.ReadIncidentsAsync(); }
+        catch (Exception ex) { result = IncidentReadResult.Failed(ex); }
+        if (!page.IsLoaded || version != page.HealthLoadVersion) return;
+
+        var incidents = result.Items;
         if (incidents.Count == 0)
         {
             page.HealthScoreText.Text = "--";
-            page.HealthMtbfText.Text = Loc.T("dashboard.health.noIncidents");
-            page.HealthTrendText.Text = "N/A";
-            page.HealthSummaryText.Text = Loc.T("dashboard.health.runRecorder");
+            page.HealthTrendText.Text = Loc.T("common.notAvailable");
             page.HealthTrendArrow.Text = "\uE74C";
-            page.HealthTrendArrow.Foreground = new SolidColorBrush(
-                (Color)ColorConverter.ConvertFromString("#8B8BA0"));
-            page.HealthScoreText.Foreground = new SolidColorBrush(
-                (Color)ColorConverter.ConvertFromString("#8B8BA0"));
+            page.HealthTrendArrow.Foreground = SeverityPalette.Resolve(SeverityPalette.Neutral);
+            page.HealthScoreText.Foreground = SeverityPalette.Resolve(SeverityPalette.Neutral);
+            if (result.HasIssues)
+            {
+                // A failed read must not look like a clean "no incidents" bill of health.
+                page.HealthMtbfText.Text = result.Summary(Loc.T, App.Current.Localization.CurrentLocale);
+                page.HealthSummaryText.Text = result.Details(Loc.T);
+            }
+            else
+            {
+                page.HealthMtbfText.Text = Loc.T("dashboard.health.noIncidents");
+                page.HealthSummaryText.Text = Loc.T("dashboard.health.runRecorder");
+            }
             return;
         }
 
@@ -567,9 +648,9 @@ internal static class DashboardHealth
 
             page.HealthScoreText.Foreground = trend.StabilityScore switch
             {
-                >= 80 => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F")),
-                >= 50 => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFD93D")),
-                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"))
+                >= 80 => SeverityPalette.Resolve(SeverityPalette.Info),
+                >= 50 => SeverityPalette.Resolve(SeverityPalette.High),
+                _ => SeverityPalette.Resolve(SeverityPalette.Critical)
             };
 
             page.HealthTrendArrow.Text = trend.TrendDirection switch
@@ -580,17 +661,22 @@ internal static class DashboardHealth
             };
             page.HealthTrendArrow.Foreground = trend.TrendDirection switch
             {
-                "Improving" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F")),
-                "Worsening" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B")),
-                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"))
+                "Improving" => SeverityPalette.Resolve(SeverityPalette.Info),
+                "Worsening" => SeverityPalette.Resolve(SeverityPalette.Critical),
+                _ => SeverityPalette.Resolve(SeverityPalette.Neutral)
             };
             page.HealthTrendText.Foreground = trend.TrendDirection switch
             {
-                "Improving" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F")),
-                "Worsening" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B")),
-                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"))
+                "Improving" => SeverityPalette.Resolve(SeverityPalette.Info),
+                "Worsening" => SeverityPalette.Resolve(SeverityPalette.Critical),
+                _ => SeverityPalette.Resolve(SeverityPalette.Neutral)
             };
         }
+
+        // Partial reads keep the score, but missing records stay visible.
+        if (result.HasIssues)
+            page.HealthSummaryText.Text =
+                result.Summary(Loc.T, App.Current.Localization.CurrentLocale) + "\n" + page.HealthSummaryText.Text;
 
         page.HealthCard.Visibility = Visibility.Visible;
     }

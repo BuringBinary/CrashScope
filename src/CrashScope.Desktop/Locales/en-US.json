@@ -12,7 +12,6 @@
   },
   "nav": {
     "home": "  Home",
-    "recorder": "  Recorder",
     "dashboard": "  Dashboard",
     "hardware": "  Hardware",
     "diskHealth": "  Disk Health",
@@ -29,6 +28,29 @@
     "recorderActive": "Recorder: Active",
     "recorderStopped": "Recorder: Stopped",
     "recorderState": "Recorder: {0}"
+  },
+  "sidebarUi": {
+    "title": "RECORDING STATUS",
+    "stopped": "Not recording",
+    "starting": "Starting",
+    "waiting": "Waiting for first sample",
+    "recording": "Recording",
+    "stale": "Sample is stale",
+    "stopping": "Stopping",
+    "faulted": "Collector fault",
+    "stoppedHint": "Live samples appear after recording starts.",
+    "startingHint": "Preparing the collectors…",
+    "waitingHint": "Recording has started; waiting for data.",
+    "recordingHint": "Last sample: {0}",
+    "staleHint": "Last sample: {0}",
+    "stoppingHint": "Saving the current session…",
+    "faultedHint": "Check the collector or diagnostic log.",
+    "error": "Reason: {0}",
+    "startRecording": "  Start recording",
+    "stopRecording": "  Stop recording",
+    "retryRecording": "  Retry recording",
+    "startingAction": "Starting…",
+    "stoppingAction": "Stopping…"
   },
   "statusbar": {
     "ready": "Ready",
@@ -112,7 +134,7 @@
     "safetyNote": "Every system change requires a reason and can be rolled back; passive collection only by default.",
     "recentIncidents": "Recent Incidents",
     "viewAll": "View all",
-    "noIncidents": "No incidents yet - the recorder is protecting the scene.",
+    "noIncidents": "No incident records found. Recording status is shown above.",
     "cpuLine": "CPU: {0}",
     "gpuLine": "GPU: {0}",
     "ramUsed": "RAM Used: {0:F1} GiB",
@@ -134,8 +156,6 @@
     "dlgCheck": "Check"
   },
   "recorder": {
-    "title": "Recorder Status",
-    "subtitle": "Control and monitor the flight recorder agent",
     "status": {
       "stopped": "STOPPED",
       "running": "RUNNING",
@@ -148,15 +168,9 @@
       "uptime": "Uptime",
       "samples": "Samples"
     },
-    "sessionDetails": "Session Details",
-    "dataDirectory": "Data Directory",
-    "elevated": "Elevated",
-    "elevatedYes": "Yes (Administrator)",
-    "elevatedNo": "No (Limited)",
     "previousSession": "Previous Session",
     "cleanShutdown": "Clean shutdown",
     "uncleanShutdown": "Unclean shutdown ⚠",
-    "agentVersion": "Agent Version",
     "writeThroughput": "Write Throughput",
     "buttons": {
       "startRecording": "  Start Recording",
@@ -193,6 +207,8 @@
       "title": "Sensor Details"
     },
     "updatedAt": "Updated {0:HH:mm:ss}",
+    "ramTotal": "{0:F0} GiB total",
+    "sensorUnavailable": "N/A (unavailable or suspect)",
     "health": {
       "noIncidents": "No incidents yet",
       "runRecorder": "Run the recorder to capture crash data.",
@@ -233,7 +249,14 @@
       "sources": "Sources"
     },
     "volumes": "Volumes (DriveInfo)",
-    "volumeQueryFailed": "Volume query failed: {0}"
+    "volumeQueryFailed": "Volume query failed: {0}",
+    "noReadyVolumes": "No ready volumes.",
+    "status": {
+      "waitingFirstSample": "Recording — waiting for the first storage sample (about one per 5 seconds).",
+      "live": "Live — last sample at {0}.",
+      "stoppedNoReadings": "Recorder stopped — no live readings; disk metrics flow while recording.",
+      "stoppedLastSample": "Recorder stopped — showing the last received sample from {0}."
+    }
   },
   "speedTest": {
     "title": "Speed Test",
@@ -279,6 +302,7 @@
     "agentLine": "Agent: {0}",
     "startFailed": "Start failed: {0}",
     "stopFailed": "Stop failed: {0}",
+    "lastUpdate": "Last update: {0}",
     "confirmStop": "Stop the agent's recording session? It is marked clean only after successful shutdown; faults remain recorded."
   },
   "agentIncidents": {
@@ -299,7 +323,23 @@
     "selectProcess": "Select a process first.",
     "selectJournalRow": "Select a journal row first.",
     "reasonRequired": "A reason is required - that is the forensic contract.",
-    "notRollbackable": "Action {0} is not rollback-able (status: {1})."
+    "notRollbackable": "Action {0} is not rollback-able (status: {1}).",
+    "status": {
+      "connectFailed": "Connect failed: {0}",
+      "powerPlanSet": "Power plan set",
+      "prioritySet": "Priority set",
+      "rolledBack": "Rolled back",
+      "done": "{0}; journal updated",
+      "rejected": "Rejected [{0}]: {1}",
+      "failed": "Failed: {0}"
+    },
+    "priorityLevels": {
+      "idle": "Idle",
+      "belowNormal": "Below normal",
+      "normal": "Normal",
+      "aboveNormal": "Above normal",
+      "high": "High"
+    }
   },
   "incidents": {
     "title": "Incidents",
@@ -307,7 +347,7 @@
     "summary": {
       "totalIncidents": "Total Incidents",
       "lastIncident": "Last Incident",
-      "topCause": "Top Cause"
+      "topCause": "Most common candidate"
     },
     "buttons": {
       "compare": "  Compare (2)",
@@ -363,7 +403,11 @@
       "gpuTransition": "GPU Transition",
       "appProcess": "App/Process",
       "windowsEvent": "Windows Event",
-      "crashPoint": "Crash Point"
+      "lastRecord": "Last record"
+    },
+    "marker": {
+      "lastRecord": "Last record",
+      "lastRecordDesc": "Last heartbeat recorded here; the exact failure time is unknown — leading hypothesis: {0}"
     }
   },
   "settings": {
@@ -376,7 +420,8 @@
       "languageSystem": "Follow system",
       "theme": "Theme",
       "themeDark": "Dark",
-      "themeLight": "Light"
+      "themeLight": "Light",
+      "themeSystem": "Follow system"
     },
     "startup": {
       "title": "Startup & Tray",
@@ -436,7 +481,11 @@
     "title": "CrashScope — Raw Sensors",
     "topmost": "Topmost",
     "refreshCatalog": "Refresh catalog",
-    "live": "Live — {0} sensors, updating on every telemetry tick."
+    "live": "Live — {0} sensors, updating on every telemetry tick.",
+    "catalogBuilding": "Recording — the sensor catalog is being built; the first tick fills this list.",
+    "catalogEmpty": "Sensor catalog is empty — start recording to build it.",
+    "stoppedNoValues": "Recorder stopped — no live readings yet; values appear while recording.",
+    "stoppedLastValues": "Recorder stopped — showing the last received values for {0} sensors."
   },
   "tray": {
     "stopped": "CrashScope - Stopped",
@@ -448,5 +497,97 @@
     "show": "Show CrashScope",
     "exit": "Exit",
     "uncleanBalloon": "Previous unclean recording detected.\nCandidate: {0} ({1:P0} evidence support, not probability)\nClick to view incident."
+  },
+  "navGroups": {
+    "monitoring": "MONITORING",
+    "diagnostics": "DIAGNOSTICS",
+    "tools": "TOOLS",
+    "advanced": "ADVANCED / AGENT"
+  },
+  "overviewUi": {
+    "eyebrow": "SYSTEM OBSERVATORY",
+    "title": "Your system, in focus.",
+    "subtitle": "Live telemetry and incident evidence, in one workspace.",
+    "cpu": "CPU LOAD",
+    "gpu": "GPU LOAD",
+    "memory": "MEMORY USED",
+    "details": "Session & environment",
+    "signals": "LIVE SIGNALS",
+    "next": "INVESTIGATE",
+    "waiting": "Awaiting sample",
+    "recording": "Recording",
+    "stopped": "Stopped",
+    "faulted": "Needs attention",
+    "stopping": "Stopping",
+    "starting": "Starting"
+  },
+  "eventUi": {
+    "recordTitle": "Abnormal session record",
+    "lastRecord": "Last recorded: {0}",
+    "timeDetail": "Last heartbeat (not an exact failure time). Local: {0}. Original: {1}",
+    "insufficientSupport": "Insufficient evidence",
+    "support": "Evidence support: {0} (not probability)",
+    "open": "View details",
+    "back": "Back to overview",
+    "missing": "This record is unavailable or could not be loaded. Select another record or return to the overview.",
+    "technical": "Technical details",
+    "rawId": "Record ID",
+    "rawMode": "Raw classification",
+    "rawTime": "Original timestamp",
+    "timeNote": "The time above is the last recorded heartbeat, not necessarily the time of failure.",
+    "score": "Score: {0} · {1}",
+    "exportTitle": "Export diagnostic package",
+    "exportFilter": "ZIP archive|*.zip",
+    "chooseOne": "Select one record to view details and export. Select two to compare.",
+    "copyId": "Copy record ID",
+    "copyFailed": "Could not copy to the clipboard. You can select and copy the ID below.",
+    "copied": "Record ID copied",
+    "noData": "No data",
+    "noOpenQuestions": "No open questions were generated for this record.",
+    "noHypotheses": "No hypothesis data in this record.",
+    "modes": {
+      "HardFreeze": "System freeze (candidate)",
+      "BlueScreen": "Blue screen (candidate)",
+      "DriverTimeoutRecovery": "Driver timeout/recovery (candidate)",
+      "HardwareError": "Hardware error (candidate)",
+      "AppCrash": "Application crash (candidate)",
+      "PowerLoss": "Power loss (candidate)",
+      "Unclassified": "Unclassified",
+      "Unknown": "Classification data missing"
+    },
+    "priority": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    }
+  },
+  "liveUi": {
+    "Stopped": "Not recording",
+    "Starting": "Starting",
+    "Stopping": "Stopping",
+    "Faulted": "Collector fault",
+    "Waiting": "Waiting for the first sample",
+    "Fresh": "Sample received; individual metrics may still be unavailable",
+    "Stale": "Readings are stale; waiting for a new sample",
+    "age": "Last sample: {0} · {1} s ago",
+    "clock": "Sample time is uncertain; live readings are hidden",
+    "missingMetric": "This metric is unavailable",
+    "details": "Collection status details"
+  },
+  "readUi": {
+    "loading": "Loading incident records…",
+    "retry": "Reload records",
+    "empty": "No incident records to display.",
+    "partial": "Loaded {0} records; {1} could not be read. This list may be incomplete.",
+    "failed": "{1} records could not be read. This does not mean there were no incidents.",
+    "rootUnavailable": "The incident folder cannot be read. Check the path or access permissions and retry.",
+    "folder": "Incident folder",
+    "details": "Read failure details (first 20 shown)",
+    "missingAnalysis": "Analysis file missing or record moved",
+    "accessDenied": "Access denied",
+    "invalidAnalysis": "Invalid or incomplete analysis file",
+    "readError": "File read failed",
+    "evaluationError": "Record reevaluation failed"
   }
 }

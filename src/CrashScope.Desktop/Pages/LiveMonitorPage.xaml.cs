@@ -7,21 +7,49 @@ namespace CrashScope.Desktop.Pages;
 
 public partial class LiveMonitorPage : UserControl
 {
-    private readonly AppService _service;
+    private readonly ILiveMonitorEventSource _service;
     private readonly List<LiveEventItem> _events = new();
     private const int MaxEvents = 500;
+    private bool _listening;
 
-    public LiveMonitorPage()
+    public LiveMonitorPage() : this(App.Current.Service) { }
+
+    public LiveMonitorPage(ILiveMonitorEventSource service)
     {
+        _service = service ?? throw new ArgumentNullException(nameof(service));
         InitializeComponent();
-        _service = App.Current.Service;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+        foreach (var filter in new[] { FilterForeground, FilterProcess, FilterGpuEngine, FilterDisplay, FilterPower })
+        {
+            filter.Checked += FilterChanged;
+            filter.Unchecked += FilterChanged;
+        }
+    }
 
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (_listening) return;
         _service.ForegroundChanged += OnForegroundChanged;
         _service.ProcessEventReceived += OnProcessEvent;
         _service.GpuEngineUpdated += OnGpuEngineUpdated;
         _service.DisplayChanged += OnDisplayChanged;
         _service.PowerSchemeChanged += OnPowerSchemeChanged;
         _service.RemoteSessionChanged += OnRemoteSessionChanged;
+        _listening = true;
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (!_listening) return;
+        // Queued dispatcher updates from the old page must not touch it after navigation.
+        _listening = false;
+        _service.ForegroundChanged -= OnForegroundChanged;
+        _service.ProcessEventReceived -= OnProcessEvent;
+        _service.GpuEngineUpdated -= OnGpuEngineUpdated;
+        _service.DisplayChanged -= OnDisplayChanged;
+        _service.PowerSchemeChanged -= OnPowerSchemeChanged;
+        _service.RemoteSessionChanged -= OnRemoteSessionChanged;
     }
 
     private void OnForegroundChanged(ForegroundEvent e) => AddEvent("Foreground",
@@ -46,6 +74,11 @@ public partial class LiveMonitorPage : UserControl
     {
         Dispatcher.InvokeAsync(() =>
         {
+            // Parent is cleared synchronously when MainWindow swaps pages, while the
+            // Unloaded broadcast (and the _listening reset) only runs later at Loaded
+            // priority. Without the Parent check a Normal-priority callback queued just
+            // before navigation would still update the detached page.
+            if (!_listening || !IsLoaded || Parent is null) return;
             _events.Add(new LiveEventItem
             {
                 Timestamp = DateTime.Now.ToString("HH:mm:ss.fff"),
@@ -56,35 +89,43 @@ public partial class LiveMonitorPage : UserControl
             while (_events.Count > MaxEvents)
                 _events.RemoveAt(0);
 
-            var showTelemetry = FilterTelemetry.IsChecked == true;
-            var showForeground = FilterForeground.IsChecked == true;
-            var showProcess = FilterProcess.IsChecked == true;
-            var showGpuEngine = FilterGpuEngine.IsChecked == true;
-            var showDisplay = FilterDisplay.IsChecked == true;
-            var showPower = FilterPower.IsChecked == true;
-
-            EventListBox.ItemsSource = _events
-                .Where(e => e.Category switch
-                {
-                    "Foreground" => showForeground,
-                    "Process" => showProcess,
-                    "GPU Engine" => showGpuEngine,
-                    "Display" => showDisplay,
-                    "Power" => showPower,
-                    "Remote" => showForeground,
-                    _ => true
-                })
-                .Reverse()
-                .ToList();
-
-            EventListBox.ScrollIntoView(EventListBox.Items[0]);
+            RefreshEvents();
         });
+    }
+
+    private void FilterChanged(object sender, RoutedEventArgs e) => RefreshEvents();
+
+    private void RefreshEvents()
+    {
+        var showForeground = FilterForeground.IsChecked == true;
+        var showProcess = FilterProcess.IsChecked == true;
+        var showGpuEngine = FilterGpuEngine.IsChecked == true;
+        var showDisplay = FilterDisplay.IsChecked == true;
+        var showPower = FilterPower.IsChecked == true;
+
+        var visible = _events
+            .Where(e => e.Category switch
+            {
+                "Foreground" => showForeground,
+                "Process" => showProcess,
+                "GPU Engine" => showGpuEngine,
+                "Display" => showDisplay,
+                "Power" => showPower,
+                "Remote" => showForeground,
+                _ => false
+            })
+            .Reverse()
+            .ToList();
+
+        EventListBox.ItemsSource = visible;
+        if (visible.Count > 0)
+            EventListBox.ScrollIntoView(visible[0]);
     }
 
     private void ClearButton_Click(object sender, RoutedEventArgs e)
     {
         _events.Clear();
-        EventListBox.ItemsSource = null;
+        RefreshEvents();
     }
 }
 

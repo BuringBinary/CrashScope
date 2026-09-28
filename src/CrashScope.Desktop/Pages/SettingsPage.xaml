@@ -85,7 +85,7 @@
                                 Style="{StaticResource SecondaryButton}" Click="OpenIncidentsFolder_Click"/>
                     </StackPanel>
                     <TextBlock x:Name="RecoveryPendingText" Text="" FontSize="11"
-                               Foreground="#FFD93D" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
+                               Foreground="{DynamicResource WarningColor}" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
                 </StackPanel>
             </Border>
 
@@ -152,7 +152,7 @@
                     </Grid>
 
                     <!-- Current Usage -->
-                    <Border Background="#0F0F1A" CornerRadius="8" Padding="12">
+                    <Border Background="{DynamicResource CardBgAlt}" CornerRadius="8" Padding="12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -186,7 +186,7 @@
                                Margin="0,0,0,16"
                                TextWrapping="Wrap"/>
 
-                    <Border Background="#0F0F1A" CornerRadius="8" Padding="14">
+                    <Border Background="{DynamicResource CardBgAlt}" CornerRadius="8" Padding="14">
                         <StackPanel>
                             <CheckBox x:Name="RedactByDefaultCheckBox"
                                       Content="{DynamicResource L.settings.privacy.redactByDefault}"
@@ -220,7 +220,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="0,0,6,0">
+                        <Border Background="{DynamicResource CardBgAlt}" CornerRadius="8" Padding="10" Margin="0,0,6,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.telemetry}"
                                            FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
@@ -230,7 +230,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
+                        <Border Background="{DynamicResource CardBgAlt}" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.processes}"
                                            FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
@@ -240,7 +240,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
+                        <Border Background="{DynamicResource CardBgAlt}" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.gpuEngines}"
                                            FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
@@ -250,7 +250,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="3,0">
+                        <Border Background="{DynamicResource CardBgAlt}" CornerRadius="8" Padding="10" Margin="3,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.display}"
                                            FontSize="11" Foreground="{DynamicResource TextSecondary}"/>
@@ -260,7 +260,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#0F0F1A" CornerRadius="8" Padding="10" Margin="6,0,0,0">
+                        <Border Background="{DynamicResource CardBgAlt}" CornerRadius="8" Padding="10" Margin="6,0,0,0">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource L.common.snapshot}"
                                            FontSize="11" Foreground="{DynamicResource TextSecondary}"/>

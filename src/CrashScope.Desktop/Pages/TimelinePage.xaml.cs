@@ -1,11 +1,10 @@
 using CrashScope.Core.Models;
+using CrashScope.Desktop.Services;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using UserControl = System.Windows.Controls.UserControl;
 using Brush = System.Windows.Media.Brush;
-using Color = System.Windows.Media.Color;
-using ColorConverter = System.Windows.Media.ColorConverter;
 
 namespace CrashScope.Desktop.Pages;
 
@@ -13,28 +12,80 @@ public partial class TimelinePage : UserControl
 {
     private readonly AppService _service;
     private IReadOnlyList<IncidentInfo> _incidents = Array.Empty<IncidentInfo>();
+    private bool _loading;
+    private int _loadVersion;
 
     public TimelinePage()
     {
         InitializeComponent();
         _service = App.Current.Service;
         Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        _incidents = _service.GetIncidents();
-        var items = _incidents.Select(i => new TimelineIncidentItem
+        // Timeline entry brushes are resolved once in BuildTimeline, so without this the
+        // markers keep the previous theme's colours after a switch.
+        var theme = App.TryCurrent?.Theme;
+        if (theme is not null)
         {
-            Title = $"{i.Timestamp.LocalDateTime:yyyy-MM-dd HH:mm} — {i.Mode}",
-            Incident = i
-        }).ToList();
+            theme.ThemeChanged -= OnThemeChanged;
+            theme.ThemeChanged += OnThemeChanged;
+        }
 
-        IncidentSelector.ItemsSource = items;
-
-        if (items.Count > 0)
-            IncidentSelector.SelectedIndex = 0;
+        await RefreshIncidentsAsync();
     }
+
+    private async Task RefreshIncidentsAsync()
+    {
+        if (_loading) return;
+        _loading = true;
+        var version = ++_loadVersion;
+        TimelineReadNotice.Visibility = Visibility.Visible;
+        TimelineReadNotice.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
+        TimelineReadNotice.Text = Loc.T("readUi.loading");
+        try
+        {
+            // Reading off the UI thread keeps navigation responsive while large analyses
+            // re-evaluate; a read failure must never be presented as an empty history.
+            IncidentReadResult result;
+            try { result = await _service.ReadIncidentsAsync(); }
+            catch (Exception ex) { result = IncidentReadResult.Failed(ex); }
+            if (!IsLoaded || version != _loadVersion) return;
+            _incidents = result.Items;
+            var items = _incidents.Select(i => new TimelineIncidentItem
+            {
+                Title = $"{i.Timestamp.LocalDateTime:yyyy-MM-dd HH:mm} — {i.Mode}",
+                Incident = i
+            }).ToList();
+            IncidentSelector.ItemsSource = items;
+            if (items.Count > 0)
+                IncidentSelector.SelectedIndex = 0;
+            var summary = result.Summary(Loc.T, App.Current.Localization.CurrentLocale);
+            TimelineReadNotice.SetResourceReference(TextBlock.ForegroundProperty,
+                result.HasIssues ? "WarningColor" : "TextSecondary");
+            TimelineReadNotice.ToolTip = result.HasIssues ? result.Details(Loc.T) : null;
+            TimelineReadNotice.Text = summary;
+            TimelineReadNotice.Visibility = summary.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        finally
+        {
+            if (version == _loadVersion) _loading = false;
+        }
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        var theme = App.TryCurrent?.Theme;
+        if (theme is not null) theme.ThemeChanged -= OnThemeChanged;
+    }
+
+    private void OnThemeChanged() => Dispatcher.InvokeAsync(() =>
+    {
+        if (IsLoaded && IncidentSelector.SelectedItem is TimelineIncidentItem item)
+            BuildTimeline(item.Incident);
+    });
 
     private void IncidentSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -62,13 +113,14 @@ public partial class TimelinePage : UserControl
             });
         }
 
-        // Add crash point marker
+        // The anchor is the last recorded heartbeat; the exact failure moment is unknown,
+        // so the marker must not claim a crash point or an unevidenced system failure.
         entries.Add(new TimelineDisplayEntry
         {
             Time = "T+0",
-            Category = "Crash Point",
-            Description = $"System failure — {incident.Mode}",
-            Color = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B"))
+            Category = Loc.T("timeline.marker.lastRecord"),
+            Description = Loc.F("timeline.marker.lastRecordDesc", incident.Mode),
+            Color = SeverityPalette.Resolve(SeverityPalette.Critical)
         });
 
         entries.Sort((a, b) =>
@@ -85,16 +137,8 @@ public partial class TimelinePage : UserControl
         TimelineList.ItemsSource = entries;
     }
 
-    private static SolidColorBrush GetCategoryBrush(string category) => category switch
-    {
-        "Telemetry" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6C5CE7")),
-        "GPU" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00D68F")),
-        "Process" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B")),
-        "App" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF6B6B")),
-        "Windows Event" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFD93D")),
-        "External Evidence" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFD93D")),
-        _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#8B8BA0"))
-    };
+    private static Brush GetCategoryBrush(string category) =>
+        SeverityPalette.Resolve(SeverityPalette.KeyForCategory(category));
 }
 
 public sealed class TimelineDisplayEntry

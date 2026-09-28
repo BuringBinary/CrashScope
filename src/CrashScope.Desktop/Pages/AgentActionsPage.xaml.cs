@@ -68,7 +68,8 @@ public partial class AgentActionsPage : UserControl
             return;
         }
 
-        var priority = (PriorityBox.SelectedItem as ComboBoxItem)?.Content as string ?? "Normal";
+        // The protocol value lives in Tag; Content is the localized display label.
+        var priority = (PriorityBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "Normal";
         var reason = PriorityReasonBox.Text.Trim();
         if (reason.Length == 0)
         {

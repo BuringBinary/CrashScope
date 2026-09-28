@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text.Json;
 using CrashScope.Contracts;
 using CrashScope.Core.Ipc;
+using CrashScope.Desktop.Services;
 
 namespace CrashScope.Desktop;
 
@@ -23,7 +24,8 @@ public sealed class AgentActionsViewModel : IDisposable
 
     public bool IsConnected { get; private set; }
     public string PipeName { get; private set; } = string.Empty;
-    public string StatusMessage { get; private set; } = "Not connected";
+    // Loc falls back to the raw key when no WPF App is loaded (unit tests assert the keys).
+    public string StatusMessage { get; private set; } = Loc.T("common.notConnected");
     /// <summary>Raised after StatusMessage changes (on the marshal thread).</summary>
     public event Action? StatusChanged;
 
@@ -49,7 +51,7 @@ public sealed class AgentActionsViewModel : IDisposable
             await client.SendRequestAsync(RpcMessages.Hello, new HelloPayload("desktop-actions", RpcProtocol.Version), ct: ct)
                 .ConfigureAwait(false);
             IsConnected = true;
-            SetStatus($"Connected: {PipeName}");
+            SetStatus(Loc.F("common.connected", PipeName));
             await RefreshAllAsync(ct).ConfigureAwait(false);
             return true;
         }
@@ -59,7 +61,7 @@ public sealed class AgentActionsViewModel : IDisposable
         }
         catch (Exception ex)
         {
-            SetStatus($"Connect failed: {ex.Message}");
+            SetStatus(Loc.F("agentActions.status.connectFailed", ex.Message));
             DisposeClient();
             return false;
         }
@@ -67,7 +69,7 @@ public sealed class AgentActionsViewModel : IDisposable
 
     public async Task RefreshAllAsync(CancellationToken ct = default)
     {
-        var client = Client ?? throw new InvalidOperationException("Not connected.");
+        var client = Client ?? throw new InvalidOperationException(Loc.T("common.notConnected"));
         var plans = Deserialize<PowerPlansPayload>(
             await client.SendRequestAsync(RpcMessages.GetPowerPlans, ct: ct).ConfigureAwait(false));
         var processes = Deserialize<ProcessesPayload>(
@@ -87,21 +89,21 @@ public sealed class AgentActionsViewModel : IDisposable
     {
         await SendMutationAsync(
             () => new RpcRequest(RpcMessages.SetPowerPlan, new SetPowerPlanRequest(planGuid, reason)),
-            "Power plan set", ct).ConfigureAwait(false);
+            Loc.T("agentActions.status.powerPlanSet"), ct).ConfigureAwait(false);
     }
 
     public async Task SetPriorityAsync(int pid, string priority, string reason, CancellationToken ct = default)
     {
         await SendMutationAsync(
             () => new RpcRequest(RpcMessages.SetProcessPriority, new SetProcessPriorityRequest(pid, priority, reason)),
-            "Priority set", ct).ConfigureAwait(false);
+            Loc.T("agentActions.status.prioritySet"), ct).ConfigureAwait(false);
     }
 
     public async Task RollbackAsync(string actionId, string reason, CancellationToken ct = default)
     {
         await SendMutationAsync(
             () => new RpcRequest(RpcMessages.RollbackAction, new RollbackActionRequest(actionId, reason)),
-            "Rolled back", ct).ConfigureAwait(false);
+            Loc.T("agentActions.status.rolledBack"), ct).ConfigureAwait(false);
     }
 
     private readonly record struct RpcRequest(string Type, object Payload);
@@ -110,19 +112,19 @@ public sealed class AgentActionsViewModel : IDisposable
     {
         try
         {
-            var client = Client ?? throw new InvalidOperationException("Not connected.");
+            var client = Client ?? throw new InvalidOperationException(Loc.T("common.notConnected"));
             var request = requestFactory();
             await client.SendRequestAsync(request.Type, request.Payload, ct: ct).ConfigureAwait(false);
-            SetStatus($"{successLabel}; journal updated");
+            SetStatus(Loc.F("agentActions.status.done", successLabel));
             await RefreshAllAsync(ct).ConfigureAwait(false);
         }
         catch (RpcException ex)
         {
-            SetStatus($"Rejected [{ex.Code}]: {ex.Message}");
+            SetStatus(Loc.F("agentActions.status.rejected", ex.Code, ex.Message));
         }
         catch (Exception ex)
         {
-            SetStatus($"Failed: {ex.Message}");
+            SetStatus(Loc.F("agentActions.status.failed", ex.Message));
         }
     }
 

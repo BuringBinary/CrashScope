@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using CrashScope.Contracts;
 using CrashScope.Core.Ipc;
+using CrashScope.Desktop.Services;
 
 namespace CrashScope.Desktop;
 
@@ -121,7 +122,7 @@ public sealed class AgentMonitorViewModel : IDisposable
     /// <summary>Re-polls status, catalog and latest telemetry (also the manual reconnect path).</summary>
     public async Task RefreshAsync(CancellationToken ct = default)
     {
-        var client = _client ?? throw new InvalidOperationException("Not connected.");
+        var client = _client ?? throw new InvalidOperationException(Loc.T("common.notConnected"));
         ApplyStatus(Deserialize<StatusPayload>(
             await client.SendRequestAsync(RpcMessages.GetStatus, ct: ct).ConfigureAwait(false)));
         ApplyCatalog(Deserialize<CatalogPayload>(
@@ -132,20 +133,20 @@ public sealed class AgentMonitorViewModel : IDisposable
 
     public async Task StartRecordingAsync(CancellationToken ct = default)
     {
-        var client = _client ?? throw new InvalidOperationException("Not connected.");
+        var client = _client ?? throw new InvalidOperationException(Loc.T("common.notConnected"));
         await client.SendRequestAsync(RpcMessages.StartRecording, ct: ct).ConfigureAwait(false);
     }
 
     public async Task StopRecordingAsync(CancellationToken ct = default)
     {
-        var client = _client ?? throw new InvalidOperationException("Not connected.");
+        var client = _client ?? throw new InvalidOperationException(Loc.T("common.notConnected"));
         await client.SendRequestAsync(RpcMessages.StopRecording, ct: ct).ConfigureAwait(false);
     }
 
     /// <summary>Reloads the incident list from the connected agent and clears the detail pane.</summary>
     public async Task LoadIncidentsAsync(CancellationToken ct = default)
     {
-        var client = _client ?? throw new InvalidOperationException("Not connected.");
+        var client = _client ?? throw new InvalidOperationException(Loc.T("common.notConnected"));
         var payload = Deserialize<IncidentListPayload>(
             await client.SendRequestAsync(RpcMessages.GetIncidents, ct: ct).ConfigureAwait(false));
         Incidents.Clear();
@@ -161,7 +162,7 @@ public sealed class AgentMonitorViewModel : IDisposable
 
     public async Task LoadIncidentDetailAsync(string id, CancellationToken ct = default)
     {
-        var client = _client ?? throw new InvalidOperationException("Not connected.");
+        var client = _client ?? throw new InvalidOperationException(Loc.T("common.notConnected"));
         var payload = Deserialize<IncidentDetailPayload>(
             await client.SendRequestAsync(RpcMessages.GetIncidentDetail, new IncidentDetailRequest(id), ct: ct)
                 .ConfigureAwait(false));

@@ -46,8 +46,8 @@ public partial class AgentMonitorPage : UserControl
         ConnectionText.Text = Loc.T("common.connecting");
         var ok = await _vm.ConnectAsync(StateDirBox.Text, pipeName: null);
         ConnectionText.Text = ok
-            ? $"Connected: {_vm.PipeName}"
-            : $"Not connected: {_vm.ConnectionError}";
+            ? Loc.F("common.connected", _vm.PipeName)
+            : Loc.F("common.notConnectedDetail", _vm.ConnectionError);
         RenderState();
     }
 
@@ -90,15 +90,13 @@ public partial class AgentMonitorPage : UserControl
     {
         RecordingText.Text = _vm.Recording ? Loc.T("agentMonitor.recordingDot") : _vm.RecorderState is null ? Loc.T("agentMonitor.idleDot") : $"\u25CF {_vm.RecorderState}";
         RecordingText.ToolTip = _vm.RecorderError ?? _vm.RecoveryError;
-        RecordingText.Foreground = _vm.Recording
-            ? (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(0x00, 0xD6, 0x8F))
-            : (System.Windows.Media.Brush)FindResource("TextSecondary");
+        // Themed keys, not the retired hex palette: the old #00D68F measured 1.9:1 on light cards.
+        RecordingText.Foreground = SeverityPalette.Resolve(_vm.Recording ? "SuccessColor" : "TextSecondary");
         SamplesText.Text = Loc.F("common.samples", _vm.SampleCount);
         UptimeText.Text = Loc.F("common.uptimeSeconds", _vm.UptimeSeconds);
         GpuText.Text = Loc.F("agentMonitor.gpuLine", _vm.PrimaryGpu ?? Loc.T("common.na"));
         VersionText.Text = Loc.F("agentMonitor.agentLine", _vm.AgentVersion ?? Loc.T("common.na"));
         SessionText.Text = Loc.F("common.session", _vm.SessionId is null ? "-" : _vm.SessionId[..8]);
-        LastUpdateText.Text = _vm.LastUpdateAt is { } at ? $"Last update: {at:HH:mm:ss}" : string.Empty;
+        LastUpdateText.Text = _vm.LastUpdateAt is { } at ? Loc.F("agentMonitor.lastUpdate", at.ToString("HH:mm:ss")) : string.Empty;
     }
 }
