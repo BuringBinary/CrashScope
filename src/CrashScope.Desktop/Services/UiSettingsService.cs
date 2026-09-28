@@ -19,6 +19,7 @@ public class UiSettingsService
     private const string ConfigFileName = "app_settings.json";
     private const string MinimizeToTrayKey = "minimizeToTray";
     private const string CloseToTrayKey = "closeToTray";
+    private const string RedactExportsKey = "redactExportsByDefault";
     private const string SchemaKey = "uiSettingsSchema";
     private const string FloatingBarLeftKey = "floatingBarLeft";
     private const string FloatingBarTopKey = "floatingBarTop";
@@ -37,6 +38,8 @@ public class UiSettingsService
     // a background recorder should keep running when the window is dismissed.
     private bool _minimizeToTray = false;
     private bool _closeToTray = true;
+    // Privacy-safe default: exports redact personal data unless the user opts out.
+    private bool _redactExportsByDefault = true;
 
     /// <summary>Minimise button hides to the tray instead of minimising to the taskbar.</summary>
     public bool MinimizeToTray
@@ -58,6 +61,18 @@ public class UiSettingsService
         {
             if (_closeToTray == value) return;
             _closeToTray = value;
+            Save();
+        }
+    }
+
+    /// <summary>Diagnostic exports pre-select "redact personal data" by default.</summary>
+    public bool RedactExportsByDefault
+    {
+        get => _redactExportsByDefault;
+        set
+        {
+            if (_redactExportsByDefault == value) return;
+            _redactExportsByDefault = value;
             Save();
         }
     }
@@ -111,6 +126,9 @@ public class UiSettingsService
             if (settings[CloseToTrayKey]?.GetValue<bool>() is bool close)
                 _closeToTray = close;
 
+            if (settings[RedactExportsKey]?.GetValue<bool>() is bool redact)
+                _redactExportsByDefault = redact;
+
             if (settings[FloatingBarLeftKey]?.GetValue<double>() is double left)
                 _floatingBarLeft = left;
             if (settings[FloatingBarTopKey]?.GetValue<double>() is double top)
@@ -160,6 +178,7 @@ public class UiSettingsService
 
             settings[MinimizeToTrayKey] = _minimizeToTray;
             settings[CloseToTrayKey] = _closeToTray;
+            settings[RedactExportsKey] = _redactExportsByDefault;
             if (_floatingBarLeft.HasValue) settings[FloatingBarLeftKey] = _floatingBarLeft.Value;
             if (_floatingBarTop.HasValue) settings[FloatingBarTopKey] = _floatingBarTop.Value;
             // Stamping the schema is what makes the migration in Load() run exactly once.

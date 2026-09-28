@@ -10,12 +10,13 @@ public sealed class DiagnosticExportService
 {
     public async Task<string> ExportAsync(
         IncidentInfo incident,
-        string outputDirectory,
+        string destinationZipPath,
         bool redactPersonalData = true,
         IProgress<int>? progress = null)
     {
-        var incidentName = SanitizeFileName(incident.DirectoryName);
-        var zipPath = Path.Combine(outputDirectory, $"CrashScope-{incidentName}.zip");
+        // The caller picked this exact file in a Save dialog; honour the chosen name and
+        // the dialog's overwrite confirmation instead of rebuilding a fixed one.
+        var zipPath = destinationZipPath;
 
         // One redactor per export keeps [PROCESS_n] tokens stable across every entry.
         _redactor = redactPersonalData
@@ -24,6 +25,9 @@ public sealed class DiagnosticExportService
 
         await Task.Run(() =>
         {
+            // ZipArchiveMode.Create refuses to replace an existing file; the Save dialog
+            // already asked the user about overwriting.
+            File.Delete(zipPath);
             using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
 
             AddIncidentFiles(zip, incident.FullPath);
@@ -162,14 +166,6 @@ public sealed class DiagnosticExportService
         writer.WriteLine("  - Window titles, command lines, file contents, typed text");
         writer.WriteLine();
         writer.WriteLine("To export without redaction, uncheck 'Redact personal data' in the export dialog.");
-    }
-
-    private static string SanitizeFileName(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        foreach (var c in invalid)
-            name = name.Replace(c, '_');
-        return name;
     }
 
     private static string ReadAllText(string path)

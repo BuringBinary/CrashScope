@@ -1,25 +1,28 @@
 using CrashScope.Core.Analysis;
 using CrashScope.Core.Models;
-using System.Collections.Concurrent;
+using System.Diagnostics;
 using CrashScope.Core.Monitoring;
 using System.IO;
 using System.Text.Json;
 
 namespace CrashScope.Desktop;
 
-public sealed class AppService : IDisposable
+public sealed class AppService : IDisposable, ILiveMonitorEventSource
 {
     private readonly string _root;
     private readonly string _stateDirectory;
     private readonly string _sessionsRoot;
     private readonly string _incidentsRoot;
 
-    private readonly ConcurrentDictionary<string, (DateTime Modified, long Length, IncidentAnalysis Analysis)> _incidentCache = new();
+    private readonly IncidentCatalogReader _incidentReader = new();
+    private readonly RecorderOperationGate _operation = new();
+    private LiveSampleSnapshot? _latestSample;
     private RecorderEngine? _engine;
     private readonly object _lifecycleGate = new();
 
     public AppService()
     {
+        _operation.Changed += () => StatusChanged?.Invoke();
         _root = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "CrashScope");
@@ -30,6 +33,25 @@ public sealed class AppService : IDisposable
 
     public RecorderState RecorderState => _engine?.State ?? RecorderState.Stopped;
     public IReadOnlyList<CollectorHealth> CollectorHealth => _engine?.CollectorHealth ?? [];
+    public LiveSampleSnapshot? LatestSample => Volatile.Read(ref _latestSample);
+    public TimeSpan SampleInterval => _engine?.SampleInterval ?? TimeSpan.FromSeconds(1);
+    public bool RecorderOperationPending => _operation.Pending != 0;
+    public string? RecorderActionError => _operation.LastError;
+    public RecorderState DisplayRecorderState => _operation.Pending switch
+    {
+        1 => RecorderState.Starting,
+        2 => RecorderState.Stopping,
+        _ => RecorderState
+    };
+
+    // Background start/stop is shared by the Home and Recorder pages. Existing engine locking remains authoritative.
+    public Task<bool> SetRecordingAsync(bool start) => _operation.RunAsync(start, () => Task.Run(async () =>
+    {
+        if (start && IsRecording) return;
+        await StopRecordingAsync(); // Also release a faulted recorder before a new start.
+        if (start) StartRecording();
+    }));
+
     public bool IsStopping => RecorderState == RecorderState.Stopping;
     public string? RecorderError => _engine?.LastError;
     public string? RecoveryError { get; private set; }
@@ -60,6 +82,7 @@ public sealed class AppService : IDisposable
             if (_engine?.IsRecording == true) return;
             if (_engine?.HasActiveResources == true)
                 throw new InvalidOperationException("The previous recorder is stopping or faulted; stop it before restarting.");
+            Volatile.Write(ref _latestSample, null);
             _engine?.Dispose();
             Directory.CreateDirectory(_stateDirectory);
             Directory.CreateDirectory(_sessionsRoot);
@@ -69,7 +92,16 @@ public sealed class AppService : IDisposable
 
             _engine = new RecorderEngine(sessionDirectory, _stateDirectory, _incidentsRoot);
             _engine.StatusChanged += () => StatusChanged?.Invoke();
-            _engine.SensorUpdated += v => SensorUpdated?.Invoke(v);
+            var sourceEngine = _engine;
+            _engine.SensorUpdated += values =>
+            {
+                if (!ReferenceEquals(_engine, sourceEngine)) return;
+                var sampleAt = sourceEngine.LastSampleAt ?? DateTimeOffset.UtcNow;
+                var snapshot = new LiveSampleSnapshot(sourceEngine.CurrentSession?.SessionId,
+                    sourceEngine.SensorCatalog, values.ToArray(), sampleAt, Stopwatch.GetTimestamp(), DateTimeOffset.UtcNow - sampleAt);
+                Volatile.Write(ref _latestSample, snapshot);
+                SensorUpdated?.Invoke(snapshot.Values);
+            };
             _engine.StorageUpdated += s => StorageUpdated?.Invoke(s);
             _engine.ForegroundChanged += e => ForegroundChanged?.Invoke(e);
             _engine.ProcessEventReceived += e => ProcessEventReceived?.Invoke(e);
@@ -119,53 +151,10 @@ public sealed class AppService : IDisposable
         }
     }
 
-    public IReadOnlyList<IncidentInfo> GetIncidents()
-    {
-        if (!Directory.Exists(_incidentsRoot))
-            return Array.Empty<IncidentInfo>();
-
-        var result = new List<IncidentInfo>();
-        foreach (var dir in Directory.GetDirectories(_incidentsRoot))
-        {
-            var analysisPath = Path.Combine(dir, "analysis.json");
-            if (!File.Exists(analysisPath)) continue;
-
-            try
-            {
-                var info = new FileInfo(analysisPath);
-                IncidentAnalysis analysis;
-                if (_incidentCache.TryGetValue(analysisPath, out var cached)
-                    && cached.Modified == info.LastWriteTimeUtc && cached.Length == info.Length)
-                    analysis = cached.Analysis;
-                else
-                {
-                    var stored = JsonSerializer.Deserialize<IncidentAnalysis>(File.ReadAllText(analysisPath),
-                        new JsonSerializerOptions(JsonSerializerDefaults.Web));
-                    if (stored is null) continue;
-                    analysis = IncidentAnalyzer.ReevaluateReadOnly(stored, dir);
-                    _incidentCache[analysisPath] = (info.LastWriteTimeUtc, info.Length, analysis);
-                }
-
-                var leading = analysis.Hypotheses.FirstOrDefault(h => h.Score > 0);
-                var dirName = Path.GetFileName(dir);
-                result.Add(new IncidentInfo(
-                    dirName,
-                    dir,
-                    analysis.PreviousSession.LastHeartbeatAt,
-                    leading?.Mode.ToString() ?? "Unclassified",
-                    leading?.Confidence ?? 0,
-                    analysis.OpenQuestions,
-                    analysis));
-            }
-            catch
-            {
-                // skip corrupted incidents
-            }
-        }
-
-        result.Sort((a, b) => b.Timestamp.CompareTo(a.Timestamp));
-        return result;
-    }
+    public IncidentReadResult ReadIncidents() => _incidentReader.Read(_incidentsRoot);
+    public Task<IncidentReadResult> ReadIncidentsAsync() => Task.Run(ReadIncidents);
+    // Transitional shim: HEAD pages still call this until the UI batch lands; that batch removes it.
+    public IReadOnlyList<IncidentInfo> GetIncidents() => ReadIncidents().Items;
 
     public void Dispose()
     {

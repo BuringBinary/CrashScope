@@ -102,6 +102,7 @@ public sealed class RecorderEngine : IDisposable
 
     public IReadOnlyList<CollectorHealth> CollectorHealth => _collectorHealth?.Snapshot() ?? [];
     public RecorderState State => _state;
+    public TimeSpan SampleInterval => _hooks?.Interval ?? TimeSpan.FromSeconds(1);
     public bool IsRecording => _state == RecorderState.Recording;
     public bool HasActiveResources => _owner is not null;
     public string? LastError { get; private set; }
@@ -337,7 +338,7 @@ public sealed class RecorderEngine : IDisposable
 
     private async Task RunLoopAsync(CancellationToken token)
     {
-        using var timer = new PeriodicTimer(_hooks?.Interval ?? TimeSpan.FromSeconds(1));
+        using var timer = new PeriodicTimer(SampleInterval);
         try
         {
             while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
