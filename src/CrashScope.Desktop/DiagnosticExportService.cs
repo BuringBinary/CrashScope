@@ -60,7 +60,7 @@ public sealed class DiagnosticExportService
             if (RedactableTextExtensions.Contains(ext))
             {
                 var content = ReadAllText(filePath);
-                content = _redactor.Redact(content);
+                content = _redactor.Redact(content, jsonEscaped: ext is ".json" or ".jsonl");
                 using var writer = new StreamWriter(output, Encoding.UTF8, leaveOpen: true);
                 writer.Write(content);
             }
@@ -90,8 +90,8 @@ public sealed class DiagnosticExportService
         if (redact)
         {
             sb.AppendLine("[PRIVACY NOTE: This export has been redacted. ");
-            sb.AppendLine("Process names, user profile paths, user names, ");
-            sb.AppendLine("IP addresses, and the machine name have been anonymized.]");
+            sb.AppendLine("Process names, user profile paths, user and domain names, ");
+            sb.AppendLine("IPv4/IPv6 addresses, and the machine name have been anonymized.]");
             sb.AppendLine();
         }
 
@@ -119,7 +119,7 @@ public sealed class DiagnosticExportService
         sb.AppendLine("--- Open Questions ---");
         foreach (var q in incident.Analysis.OpenQuestions)
         {
-            sb.AppendLine($"  * {q}");
+            sb.AppendLine($"  * {_redactor.Redact(q)}");
         }
         sb.AppendLine();
 
@@ -138,7 +138,7 @@ public sealed class DiagnosticExportService
             sb.AppendLine("--- GPU Sensor Transitions ---");
             foreach (var t in incident.Analysis.GpuTransitions)
             {
-                sb.AppendLine($"  {t.Timestamp:HH:mm:ss} {t.SensorName}: {t.FromValue:F1} → {t.ToValue:F1} [{t.Description}]");
+                sb.AppendLine($"  {t.Timestamp:HH:mm:ss} {t.SensorName}: {t.FromValue:F1} → {t.ToValue:F1} [{_redactor.Redact(t.Description)}]");
             }
         }
 
@@ -157,10 +157,15 @@ public sealed class DiagnosticExportService
         writer.WriteLine("===================================");
         writer.WriteLine();
         writer.WriteLine("The following patterns have been anonymized in this export:");
-        writer.WriteLine("  - Windows user profile paths -> [USERPROFILE]\\[USERNAME]");
+        writer.WriteLine("  - Windows user profile paths -> [USERPROFILE]\\[USERNAME] (plain, JSON-escaped or with forward slashes)");
+        writer.WriteLine("  - The Windows user name, and any MACHINE\\user or DOMAIN\\user account -> [USERNAME]");
+        writer.WriteLine("  - Windows domain name, when it differs from the machine name -> [DOMAIN]");
         writer.WriteLine("  - Process names -> [PROCESS_N] (consistent per process across the whole export)");
-        writer.WriteLine("  - IPv4 addresses -> [IP_ADDRESS]");
+        writer.WriteLine("  - IPv4 and IPv6 addresses -> [IP_ADDRESS]");
         writer.WriteLine("  - Machine name -> [HOSTNAME]");
+        writer.WriteLine();
+        writer.WriteLine("Not recognized: other accounts or computers named without a MACHINE\\ or DOMAIN\\");
+        writer.WriteLine("prefix, and process names embedded in longer identifiers such as WER folder names.");
         writer.WriteLine();
         writer.WriteLine("Not redacted, because never recorded in the first place:");
         writer.WriteLine("  - Window titles, command lines, file contents, typed text");
