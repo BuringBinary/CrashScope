@@ -79,6 +79,7 @@ public sealed class AgentMonitorViewModelTests : IDisposable
         var ok = await vm.ConnectAsync(emptyDir);
 
         Assert.False(ok);
+        Assert.Contains("common.agentDiscoveryFailed", vm.ConnectionError);
         Assert.Contains("rpc-endpoint", vm.ConnectionError);
         Assert.Contains("not running", vm.ConnectionError);
     }

@@ -36,7 +36,9 @@ public partial class LiveMonitorPage : UserControl
         _service.DisplayChanged += OnDisplayChanged;
         _service.PowerSchemeChanged += OnPowerSchemeChanged;
         _service.RemoteSessionChanged += OnRemoteSessionChanged;
+        _service.StatusChanged += OnStatusChanged;
         _listening = true;
+        RefreshEvents();
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -44,6 +46,7 @@ public partial class LiveMonitorPage : UserControl
         if (!_listening) return;
         // Queued dispatcher updates from the old page must not touch it after navigation.
         _listening = false;
+        _service.StatusChanged -= OnStatusChanged;
         _service.ForegroundChanged -= OnForegroundChanged;
         _service.ProcessEventReceived -= OnProcessEvent;
         _service.GpuEngineUpdated -= OnGpuEngineUpdated;
@@ -93,6 +96,11 @@ public partial class LiveMonitorPage : UserControl
         });
     }
 
+    private void OnStatusChanged() => Dispatcher.InvokeAsync(() =>
+    {
+        if (_listening && IsLoaded && Parent is not null) RefreshEvents();
+    });
+
     private void FilterChanged(object sender, RoutedEventArgs e) => RefreshEvents();
 
     private void RefreshEvents()
@@ -118,6 +126,10 @@ public partial class LiveMonitorPage : UserControl
             .ToList();
 
         EventListBox.ItemsSource = visible;
+        LiveStatusText.SetResourceReference(TextBlock.TextProperty, "L." + MonitoringPresentation.EventStatusKey(_service.DisplayRecorderState));
+        EmptyEventsText.SetResourceReference(TextBlock.TextProperty, "L." + MonitoringPresentation.EventEmptyKey(_service.DisplayRecorderState,
+            _events.Count, showForeground || showProcess || showGpuEngine || showDisplay || showPower));
+        EmptyEventsText.Visibility = visible.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (visible.Count > 0)
             EventListBox.ScrollIntoView(visible[0]);
     }

@@ -14,7 +14,7 @@
                        FontSize="24" FontWeight="Bold"
                        Foreground="{DynamicResource TextPrimary}"/>
             <TextBlock Text="{DynamicResource L.agentIncidents.subtitle}"
-                       FontSize="13"
+                       FontSize="13" TextWrapping="Wrap"
                        Foreground="{DynamicResource TextSecondary}"
                        Margin="0,4,0,0"/>
         </StackPanel>
@@ -22,18 +22,23 @@
         <!-- Connection bar -->
         <Border Grid.Row="1" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
-            <StackPanel Orientation="Horizontal">
+            <StackPanel>
+                <WrapPanel>
                 <TextBlock Text="{DynamicResource L.common.stateDir}" VerticalAlignment="Center"
                            Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="330" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
                 <Button x:Name="ConnectButton" Content="{DynamicResource L.common.refresh}" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
-                        Height="26" Width="96" Margin="8,0,0,0"
+                        Height="26" MinWidth="96" Margin="8,0,0,0"
                         Click="RefreshButton_Click"/>
-                <TextBlock x:Name="ConnectionText" Text="{DynamicResource L.common.notConnected}"
-                           VerticalAlignment="Center" FontSize="12"
-                           Foreground="{DynamicResource TextSecondary}" Margin="14,0,0,0"/>
+                </WrapPanel>
+                <TextBox x:Name="ConnectionText" Text="{DynamicResource L.common.notConnected}"
+                         IsReadOnly="True" TextWrapping="Wrap" MaxHeight="64"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                         ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                         BorderThickness="0" Background="Transparent" Padding="0"
+                         Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="4,8,4,0"/>
             </StackPanel>
         </Border>
 

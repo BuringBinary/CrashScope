@@ -79,7 +79,7 @@ public sealed class AgentMonitorViewModel : IDisposable
 
         if (!RpcEndpointResolver.TryResolve(stateDirectory, out var resolved, out var resolveError, pipeName))
         {
-            ConnectionError = resolveError;
+            ConnectionError = Loc.T("common.agentDiscoveryFailed") + "\n" + resolveError;
             RaiseStateChanged();
             return false;
         }

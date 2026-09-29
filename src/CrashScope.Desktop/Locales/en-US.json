@@ -65,6 +65,8 @@
     "homeFailed": "Home page failed: {0}"
   },
   "common": {
+    "agentDiscoveryFailed": "Cannot resolve the Agent connection. Check the state directory and whether the Agent is running.\nDiagnostic details:",
+    "close": "Close",
     "start": "  Start",
     "stop": "  Stop",
     "clear": "  Clear",
@@ -180,6 +182,12 @@
     "dataDirNotFound": "Data directory not found:\n{0}"
   },
   "dashboard": {
+    "modelPending": "Model not available yet",
+    "charts": {
+      "clock": "Clock (MHz)",
+      "power": "Power (W)",
+      "secondsAgo": "Time relative to now (s)"
+    },
     "title": "Hardware Dashboard",
     "subtitle": "Real-time CPU, GPU and memory telemetry with GPU state transition detection",
     "gpu": {
@@ -210,6 +218,11 @@
     "ramTotal": "{0:F0} GiB total",
     "sensorUnavailable": "N/A (unavailable or suspect)",
     "health": {
+      "trendLabel": "Historical score trend: ",
+      "stable": "Unchanged",
+      "improving": "Improving",
+      "worsening": "Worsening",
+      "historicalSummary": "Historical analysis of {0} saved incidents; not a measure of current hardware health or failure probability.",
       "noIncidents": "No incidents yet",
       "runRecorder": "Run the recorder to capture crash data.",
       "mtbf": "MTBF: {0:F1}h  ·  {1} incidents",
@@ -478,6 +491,7 @@
     "starting": "CrashScope starting…"
   },
   "rawSensors": {
+    "allTypes": "All",
     "title": "CrashScope — Raw Sensors",
     "topmost": "Topmost",
     "refreshCatalog": "Refresh catalog",
@@ -589,5 +603,18 @@
     "invalidAnalysis": "Invalid or incomplete analysis file",
     "readError": "File read failed",
     "evaluationError": "Record reevaluation failed"
+  },
+  "monitoring": {
+    "starting": "Recorder starting; collection is not ready yet.",
+    "stopping": "Recorder stopping; no new live data.",
+    "faulted": "Collection fault. Check the error on Home; empty or old readings do not imply healthy operation.",
+    "samplesStopped": "Not recording: no live readings. Start recording from Home. Existing curves are historical only.",
+    "samplesWaiting": "Recording: waiting for the first sample on this page.",
+    "samplesLive": "Receiving live samples. Curves contain only samples received while this page is open.",
+    "samplesUnavailable": "Samples received, but no usable sensor values. Check collector status and permissions.",
+    "eventsStopped": "Not recording: no new live events. Start recording from Home. Existing entries are historical only.",
+    "eventsLive": "Recording: showing events received since this page was opened.",
+    "eventsWaiting": "Waiting for events. Not every category produces events continuously while recording.",
+    "eventsFiltered": "No events match the current filters. Enable relevant categories or relax the filters."
   }
 }

@@ -28,6 +28,11 @@ internal static class Program
             var output = Path.GetFullPath(args[1]);
             Directory.CreateDirectory(output);
             var source = Path.Combine(root, "src", "CrashScope.Desktop");
+            var readme = File.ReadAllText(Path.Combine(root, "scripts", "test-package-readme.zh-CN.txt"));
+            Check(!readme.Contains("此包来自包含未提交修复的工作树"), "README does not always claim a dirty worktree");
+            Check(readme.Contains("build-info.json") && readme.Contains("dirtyWorkingTree"), "README points to authoritative build metadata");
+            var tokens = Regex.Matches(readme, @"\{\{([A-Z_]+)\}\}").Select(m => m.Groups[1].Value).ToHashSet();
+            Check(tokens.SetEquals(new[] { "VERSION", "INFO_VERSION", "ASSEMBLY_VERSION", "TEST_COUNT" }), "README retains supported publisher placeholders");
             _ = typeof(CrashScope.Desktop.OverviewMetricText).Assembly;
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             ResourceDictionary Dictionary(string name) => (ResourceDictionary)XamlReader.Parse(File.ReadAllText(Path.Combine(source, "Themes", name + ".xaml")));
@@ -102,9 +107,13 @@ internal static class Program
                     CrashScope.Desktop.IncidentPresentation.Create(sample with { DirectoryName = "fixture-2", Timestamp = sample.Timestamp.AddMinutes(-7) }, locale, k => (string)strings["L." + k])
                 };
                 ((TextBlock)home.FindName("IncidentsEmptyText")).Visibility = Visibility.Collapsed;
-                foreach (var file in new[] { "MainWindow.xaml", "Pages/HomePage.xaml" })
+                foreach (var file in new[] { "MainWindow.xaml", "Pages/HomePage.xaml", "Pages/DashboardPage.xaml", "Pages/LiveMonitorPage.xaml", "FloatingBarWindow.xaml" })
                     foreach (Match match in Regex.Matches(File.ReadAllText(Path.Combine(source, file)), @"\{DynamicResource\s+(L\.[^}]+)\}"))
                         Check(strings.Contains(match.Groups[1].Value), "Missing locale " + match.Groups[1].Value);
+                foreach (var code in new[] { "MonitoringPresentation.cs", "Pages/DashboardPage.xaml.cs" })
+                    foreach (Match match in Regex.Matches(File.ReadAllText(Path.Combine(source, code)), "\"((?:monitoring|dashboard)\\.[a-zA-Z.]+)\""))
+                        Check(strings.Contains("L." + match.Groups[1].Value), "Missing presentation locale " + match.Groups[1].Value);
+                Check(((Button)home.FindName("OpenDataFolderButton")).ContentTemplate == app.Resources["IconTextTemplate"], "Data-folder button uses separate icon and text fonts");
                 foreach (var theme in new[] { "Dark", "Light" })
                 {
                     app.Resources.MergedDictionaries[1] = theme == "Dark" ? dark : light;
@@ -185,9 +194,35 @@ internal static class Program
                 using var fixture = File.Create(Path.Combine(output, $"fixture-{state}-zh-CN-Dark.png")); encoder.Save(fixture); snapshots++;
             }
             _checks += IncidentInteractionChecks.Run(main, source, output, Pump);
-            _checks += LiveMonitorInteractionChecks.Run(main, Pump);
+            foreach (var locale in new[] { "zh-CN", "en-US" })
+            {
+                using var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(source, "Locales", locale + ".json")));
+                var strings = new ResourceDictionary(); Flatten(json.RootElement, "L", strings);
+                app.Resources.MergedDictionaries[3] = strings;
+                foreach (var theme in new[] { "Dark", "Light" })
+                {
+                    app.Resources.MergedDictionaries[1] = theme == "Dark" ? dark : light;
+                    _checks += LiveMonitorInteractionChecks.Run(main, Pump, output, $"{locale}-{theme}");
+                    _checks += AgentLayoutChecks.Run(main, source, output, $"{locale}-{theme}", Pump, ParseView);
+                }
+            }
+            using (var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(source, "Locales", "zh-CN.json"))))
+            {
+                var health = doc.RootElement.GetProperty("dashboard").GetProperty("health");
+                Check(health.GetProperty("stable").GetString() == "持平", "Stable describes a trend, not a healthy system");
+                Check(health.GetProperty("historicalSummary").GetString()!.Contains("历史"), "Health summary identifies historical evidence");
+            }
+            foreach (var state in Enum.GetValues<CrashScope.Core.Monitoring.RecorderState>())
+            {
+                var key = CrashScope.Desktop.MonitoringPresentation.SampleKey(state, false, false);
+                Check(key != "monitoring.samplesLive", "No received sample is never presented as live: " + state);
+            }
+            Check(CrashScope.Desktop.MonitoringPresentation.SampleKey(CrashScope.Core.Monitoring.RecorderState.Recording, true, false) == "monitoring.samplesUnavailable", "Invalid-only samples do not appear as working telemetry");
+            Check(CrashScope.Desktop.MonitoringPresentation.SampleKey(CrashScope.Core.Monitoring.RecorderState.Recording, true, true) == "monitoring.samplesLive", "Usable received samples have a live state");
+            Check(CrashScope.Desktop.MonitoringPresentation.TrendKey("Stable") == "dashboard.health.stable", "Stable maps to a localized trend label");
+            Check(CrashScope.Desktop.MonitoringPresentation.TrendKey("future-value") == "common.unknown", "Unknown trend is not called stable");
             main.Close();
-            Console.WriteLine($"PASS: {_checks} total checks; {snapshots} source-XAML snapshots plus 1 compiled incident screenshot.");
+            Console.WriteLine($"PASS: {_checks} total checks; {snapshots} source-XAML snapshots plus 24 Agent layout and 9 compiled interaction screenshots.");
             Console.WriteLine("DPI values are render resolutions, not real per-monitor DPI transitions. Incident and live-monitor interactions used synthetic data; no recorder or real export was run.");
             app.Shutdown(); return 0;
         }
@@ -222,7 +257,7 @@ internal static class Program
         var document = XDocument.Load(path);
         foreach (var element in document.Descendants())
             foreach (var attribute in element.Attributes().ToArray())
-                if (attribute.Name.LocalName is "Class" or "Click" or "Checked" or "MouseLeftButtonDown") attribute.Remove();
+                if (attribute.Name.LocalName is "Class" or "Click" or "Checked" or "Unchecked" or "TextChanged" or "SelectionChanged" or "MouseLeftButtonDown") attribute.Remove();
         return XamlReader.Parse(document.ToString());
     }
     private static void Flatten(JsonElement element, string prefix, ResourceDictionary target)

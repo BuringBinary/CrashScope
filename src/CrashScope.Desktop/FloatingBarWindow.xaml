@@ -18,8 +18,8 @@
             <TextBlock x:Name="BarText" Text="{DynamicResource L.floatingBar.starting}"
                        FontSize="13" FontFamily="Segoe UI" TextTrimming="CharacterEllipsis"
                        Foreground="#F0E8ECF4" VerticalAlignment="Center"/>
-            <Button x:Name="CloseButton" Content="&#xE8BB;" Width="22" Height="22"
-                    Margin="12,0,0,0" FontSize="9" Background="Transparent" BorderThickness="0"
+            <Button x:Name="CloseButton" Content="×" FontFamily="Segoe UI" ToolTip="{DynamicResource L.common.close}" AutomationProperties.Name="{DynamicResource L.common.close}" Width="22" Height="22"
+                    Margin="12,0,0,0" FontSize="14" Background="Transparent" BorderThickness="0"
                     Foreground="#88E8ECF4" Click="CloseButton_Click"/>
         </StackPanel>
     </Border>

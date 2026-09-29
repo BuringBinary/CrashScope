@@ -14,29 +14,36 @@
                        FontSize="24" FontWeight="Bold"
                        Foreground="{DynamicResource TextPrimary}"/>
             <TextBlock Text="{DynamicResource L.agentActions.subtitle}"
-                       FontSize="13"
+                       FontSize="13" TextWrapping="Wrap"
                        Foreground="{DynamicResource TextSecondary}"
                        Margin="0,4,0,0"/>
         </StackPanel>
 
         <Border Grid.Row="1" Background="{DynamicResource CardBg}"
                 CornerRadius="8" Padding="8,6" Margin="0,0,0,12">
-            <StackPanel Orientation="Horizontal">
+            <StackPanel>
+                <WrapPanel>
                 <TextBlock Text="{DynamicResource L.common.stateDir}" VerticalAlignment="Center"
                            Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="4,0,6,0"/>
                 <TextBox x:Name="StateDirBox" Width="320" Height="26" FontSize="12"
                          VerticalContentAlignment="Center"/>
                 <Button x:Name="ConnectButton" Content="{DynamicResource L.common.connect}" ContentTemplate="{StaticResource IconTextTemplate}"
                         FontSize="12" Style="{StaticResource SecondaryButton}"
-                        Height="26" Width="94" Margin="8,0,0,0"
+                        Height="26" MinWidth="94" Margin="8,0,0,0"
                         Click="ConnectButton_Click"/>
-                <TextBlock x:Name="StatusText" Text="{DynamicResource L.common.notConnected}"
-                           VerticalAlignment="Center" FontSize="12"
-                           Foreground="{DynamicResource TextSecondary}" Margin="14,0,0,0"/>
+                </WrapPanel>
+                <TextBox x:Name="StatusText" Text="{DynamicResource L.common.notConnected}"
+                         IsReadOnly="True" TextWrapping="Wrap" MaxHeight="64"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                         ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                         BorderThickness="0" Background="Transparent" Padding="0"
+                         Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="4,8,4,0"/>
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="2">
+        <ScrollViewer x:Name="ActionsViewport" Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+        <Grid MinHeight="360" Height="{Binding ViewportHeight, ElementName=ActionsViewport}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -73,13 +80,14 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                        <TextBox x:Name="PlanReasonBox" Width="200" Height="26" FontSize="12"
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBox x:Name="PlanReasonBox" Height="26" FontSize="12"
                                  VerticalContentAlignment="Center"/>
-                        <Button Content="{DynamicResource L.common.apply}" FontSize="12" Style="{StaticResource SecondaryButton}"
-                                Height="26" Width="64" Margin="6,0,0,0"
+                        <Button Grid.Column="1" x:Name="ApplyPlanButton" Content="{DynamicResource L.common.apply}" FontSize="12" Style="{StaticResource SecondaryButton}"
+                                Height="26" MinWidth="96" Margin="6,0,0,0"
                                 Click="ApplyPlanButton_Click"/>
-                    </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -112,8 +120,10 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                        <ComboBox x:Name="PriorityBox" Width="120" Height="26" FontSize="12"
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <ComboBox Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" x:Name="PriorityBox" Width="120" Height="26" FontSize="12"
                                   VerticalContentAlignment="Center" SelectedIndex="2">
                             <!-- Tag carries the RPC protocol value; Content is display-only. -->
                             <ComboBoxItem Content="{DynamicResource L.agentActions.priorityLevels.idle}" Tag="Idle"/>
@@ -122,12 +132,12 @@
                             <ComboBoxItem Content="{DynamicResource L.agentActions.priorityLevels.aboveNormal}" Tag="AboveNormal"/>
                             <ComboBoxItem Content="{DynamicResource L.agentActions.priorityLevels.high}" Tag="High"/>
                         </ComboBox>
-                        <TextBox x:Name="PriorityReasonBox" Width="130" Height="26" FontSize="12"
-                                 VerticalContentAlignment="Center" Margin="6,0,0,0"/>
-                        <Button Content="{DynamicResource L.common.apply}" FontSize="12" Style="{StaticResource SecondaryButton}"
-                                Height="26" Width="64" Margin="6,0,0,0"
+                        <TextBox Grid.Row="1" Grid.ColumnSpan="2" x:Name="PriorityReasonBox" Height="26" FontSize="12"
+                                 VerticalContentAlignment="Center" Margin="0,6,0,0"/>
+                        <Button Grid.Column="1" x:Name="ApplyPriorityButton" Content="{DynamicResource L.common.apply}" FontSize="12" Style="{StaticResource SecondaryButton}"
+                                Height="26" MinWidth="96" Margin="6,0,0,0"
                                 Click="ApplyPriorityButton_Click"/>
-                    </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -166,17 +176,19 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
-                        <TextBox x:Name="RollbackReasonBox" Width="240" Height="26" FontSize="12"
+                    <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBox x:Name="RollbackReasonBox" Height="26" FontSize="12"
                                  VerticalContentAlignment="Center"/>
-                        <Button Content="{DynamicResource L.agentActions.rollback}" ContentTemplate="{StaticResource IconTextTemplate}"
+                        <Button Grid.Column="1" x:Name="RollbackButton" Content="{DynamicResource L.agentActions.rollback}" ContentTemplate="{StaticResource IconTextTemplate}"
                                 FontSize="12" Style="{StaticResource SecondaryButton}"
-                                Height="26" Width="150" Margin="6,0,0,0"
+                                Height="26" MinWidth="150" Margin="6,0,0,0"
                                 Click="RollbackButton_Click"/>
-                    </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>
+        </ScrollViewer>
     </Grid>
 </UserControl>
 

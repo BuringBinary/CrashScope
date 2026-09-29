@@ -1,6 +1,7 @@
 using CrashScope.Core.Analysis;
 using CrashScope.Desktop.Services;
 using CrashScope.Core.Models;
+using CrashScope.Core.Monitoring;
 using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Series;
@@ -37,6 +38,8 @@ public partial class DashboardPage : UserControl
     private GpuTransitionMonitor? _transitionMonitor;
     private string _gpuDisplayName = "GPU";
     internal int HealthLoadVersion;
+    private bool _receivedSample;
+    private bool _hasUsableSample;
 
     private readonly PlotModel _cpuPlotModel;
     private readonly PlotModel _gpuPlotModel;
@@ -67,21 +70,21 @@ public partial class DashboardPage : UserControl
         InitializeComponent();
         _service = App.Current.Service;
 
-        _cpuSeries = CreateLineSeries(CpuLineColor, "CPU Load");
-        _gpuSeries = CreateLineSeries(GpuLineColor, "GPU Load");
-        _gpuClockSeries = CreateLineSeries(GpuClockColor, "GPU Clock");
-        _gpuPowerSeries = CreateLineSeries(GpuPowerColor, "GPU Power");
+        _cpuSeries = CreateLineSeries(CpuLineColor, Loc.T("dashboard.historyCharts.cpuLoad"));
+        _gpuSeries = CreateLineSeries(GpuLineColor, Loc.T("dashboard.historyCharts.gpuLoad"));
+        _gpuClockSeries = CreateLineSeries(GpuClockColor, Loc.T("dashboard.charts.clock"));
+        _gpuPowerSeries = CreateLineSeries(GpuPowerColor, Loc.T("dashboard.charts.power"));
         _gpuTransitionMarkers = CreateTransitionScatterSeries();
-        _ramSeries = CreateLineSeries(RamLineColor, "RAM Used");
+        _ramSeries = CreateLineSeries(RamLineColor, Loc.T("dashboard.historyCharts.ramUsage"));
 
-        _cpuPlotModel = CreatePlotModel("CPU Load %", _cpuSeries);
+        _cpuPlotModel = CreatePlotModel(Loc.T("dashboard.historyCharts.cpuLoad"), _cpuSeries);
 
-        _gpuPlotModel = CreatePlotModel("GPU Load %", _gpuSeries);
+        _gpuPlotModel = CreatePlotModel(Loc.T("dashboard.historyCharts.gpuLoad"), _gpuSeries);
         _gpuPlotModel.Series.Add(_gpuTransitionMarkers);
 
-        _gpuClockPowerModel = CreateDualAxisPlotModel("Clock MHz", "Power W", _gpuClockSeries, _gpuPowerSeries);
+        _gpuClockPowerModel = CreateDualAxisPlotModel(Loc.T("dashboard.charts.clock"), Loc.T("dashboard.charts.power"), _gpuClockSeries, _gpuPowerSeries);
 
-        _ramPlotModel = CreatePlotModel("RAM Used (GB)", _ramSeries);
+        _ramPlotModel = CreatePlotModel(Loc.T("dashboard.historyCharts.ramUsage"), _ramSeries);
 
         CpuChart.Model = _cpuPlotModel;
         GpuChart.Model = _gpuPlotModel;
@@ -179,7 +182,9 @@ public partial class DashboardPage : UserControl
 
     private void OnStatusChanged() => Dispatcher.InvokeAsync(() =>
     {
-        if (IsLoaded) BuildSensorMap();
+        if (!IsLoaded) return;
+        BuildSensorMap();
+        if (_service.DisplayRecorderState != RecorderState.Recording) UpdateDisplay([]);
     });
 
     private static LineSeries CreateLineSeries(OxyColor color, string title)
@@ -203,7 +208,7 @@ public partial class DashboardPage : UserControl
             MarkerFill = TransitionDropColor,
             MarkerStroke = ChartPalette.Resolve(ChartPalette.MutedKey),
             MarkerStrokeThickness = 1,
-            Title = "Transitions"
+            Title = Loc.T("dashboard.gpuTransitions.title")
         };
     }
 
@@ -238,7 +243,7 @@ public partial class DashboardPage : UserControl
             TicklineColor = GridColor,
             AxislineColor = GridColor,
             TextColor = TextMuted,
-            Title = "Seconds ago",
+            Title = Loc.T("dashboard.charts.secondsAgo"),
             TitleColor = TextMuted,
             TitleFontSize = 9,
             FontSize = 9
@@ -297,7 +302,7 @@ public partial class DashboardPage : UserControl
             TicklineColor = GridColor,
             AxislineColor = GridColor,
             TextColor = TextMuted,
-            Title = "Seconds ago",
+            Title = Loc.T("dashboard.charts.secondsAgo"),
             TitleColor = TextMuted,
             TitleFontSize = 9,
             FontSize = 9
@@ -311,13 +316,20 @@ public partial class DashboardPage : UserControl
         return model;
     }
 
+    private void UpdateSamplingStatus() => SamplingStatusText.Text = Loc.T(
+        MonitoringPresentation.SampleKey(_service.DisplayRecorderState, _receivedSample, _hasUsableSample));
+
     private void BuildSensorMap()
     {
+        UpdateSamplingStatus();
         var catalog = _service.SensorCatalog;
         var session = _service.CurrentSession?.SessionId;
         if (ReferenceEquals(catalog, _mappedCatalog) && session == _mappedSession) return;
         _mappedCatalog = catalog;
         _mappedSession = session;
+        _receivedSample = false;
+        _hasUsableSample = false;
+        UpdateSamplingStatus();
         _history.Clear();
         _transitionItems.Clear();
         GpuTransitionsList.ItemsSource = null;
@@ -339,8 +351,8 @@ public partial class DashboardPage : UserControl
         _ramUsedIdx = map.RamUsed;
         _ramAvailIdx = map.RamAvailable;
         _ramLoadIdx = map.RamLoad;
-        CpuModelText.Text = _cpuModelIdx >= 0 ? catalog[_cpuModelIdx].HardwareName : "CPU: unavailable / not recording";
-        _gpuDisplayName = _gpuModelIdx >= 0 ? catalog[_gpuModelIdx].HardwareName : "GPU: unavailable / not recording";
+        CpuModelText.Text = _cpuModelIdx >= 0 ? catalog[_cpuModelIdx].HardwareName : Loc.T("dashboard.modelPending");
+        _gpuDisplayName = _gpuModelIdx >= 0 ? catalog[_gpuModelIdx].HardwareName : Loc.T("dashboard.modelPending");
         GpuModelText.Text = _gpuDisplayName;
         _transitionMonitor = new GpuTransitionMonitor(_gpuLoadIdx, _gpuClockIdx, _gpuPowerIdx);
         _transitionMonitor.TransitionDetected += OnTransitionDetected;
@@ -358,6 +370,9 @@ public partial class DashboardPage : UserControl
             // Drop queued callbacks from an unloaded page or a prior recording/catalog.
             if (!IsLoaded || session != _service.CurrentSession?.SessionId || !ReferenceEquals(catalog, _service.SensorCatalog)) return;
             BuildSensorMap();
+            _receivedSample = true;
+            _hasUsableSample = displayValues.Any(v => v.HasValue);
+            UpdateSamplingStatus();
             _history.Push(displayValues);
             UpdateDisplay(displayValues);
             UpdateCharts();
@@ -618,7 +633,7 @@ internal static class DashboardHealth
         {
             page.HealthScoreText.Text = "--";
             page.HealthTrendText.Text = Loc.T("common.notAvailable");
-            page.HealthTrendArrow.Text = "\uE74C";
+            page.HealthTrendArrow.Text = "—";
             page.HealthTrendArrow.Foreground = SeverityPalette.Resolve(SeverityPalette.Neutral);
             page.HealthScoreText.Foreground = SeverityPalette.Resolve(SeverityPalette.Neutral);
             if (result.HasIssues)
@@ -643,8 +658,8 @@ internal static class DashboardHealth
             var trend = report.StabilityTrends[0];
             page.HealthScoreText.Text = trend.StabilityScore.ToString();
             page.HealthMtbfText.Text = Loc.F("dashboard.health.mtbf", trend.MtbfHours, trend.IncidentCount);
-            page.HealthTrendText.Text = trend.TrendDirection;
-            page.HealthSummaryText.Text = report.Summary;
+            page.HealthTrendText.Text = Loc.T(MonitoringPresentation.TrendKey(trend.TrendDirection));
+            page.HealthSummaryText.Text = Loc.F("dashboard.health.historicalSummary", report.TotalIncidents);
 
             page.HealthScoreText.Foreground = trend.StabilityScore switch
             {
@@ -655,9 +670,10 @@ internal static class DashboardHealth
 
             page.HealthTrendArrow.Text = trend.TrendDirection switch
             {
-                "Improving" => "\uE74D",
-                "Worsening" => "\uE74E",
-                _ => "\uE74C"
+                "Improving" => "↑",
+                "Worsening" => "↓",
+                "Stable" => "→",
+                _ => "—"
             };
             page.HealthTrendArrow.Foreground = trend.TrendDirection switch
             {

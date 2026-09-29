@@ -32,7 +32,7 @@
                                     MinWidth="126" Margin="0,0,10,4" Style="{StaticResource AccentButton}" Click="StartStopButton_Click"/>
                             <Button x:Name="CheckButton" Content="{DynamicResource L.home.checkLast}" MinWidth="126" Margin="0,0,0,4"
                                     Style="{StaticResource SecondaryButton}" Click="CheckButton_Click"/>
-                            <Button x:Name="OpenDataFolderButton" Content="{DynamicResource L.recorder.buttons.openDataFolder}"
+                            <Button ContentTemplate="{StaticResource IconTextTemplate}" x:Name="OpenDataFolderButton" Content="{DynamicResource L.recorder.buttons.openDataFolder}"
                                     MinWidth="126" Margin="10,0,0,4"
                                     Style="{StaticResource SecondaryButton}" Click="OpenDataFolder_Click"/>
                         </WrapPanel>

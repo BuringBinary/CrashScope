@@ -1,4 +1,5 @@
 using CrashScope.Core.Models;
+using CrashScope.Core.Monitoring;
 
 namespace CrashScope.Desktop;
 
@@ -8,6 +9,8 @@ namespace CrashScope.Desktop;
 /// </summary>
 public interface ILiveMonitorEventSource
 {
+    RecorderState DisplayRecorderState { get; }
+    event Action? StatusChanged;
     event Action<ForegroundEvent>? ForegroundChanged;
     event Action<ProcessEvent>? ProcessEventReceived;
     event Action<GpuEngineSample>? GpuEngineUpdated;

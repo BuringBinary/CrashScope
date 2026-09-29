@@ -65,6 +65,8 @@
     "homeFailed": "首页加载失败: {0}"
   },
   "common": {
+    "agentDiscoveryFailed": "无法解析 Agent 连接信息。请检查状态目录及 Agent 的运行状态。\n诊断详情：",
+    "close": "关闭",
     "start": "  开始",
     "stop": "  停止",
     "clear": "  清除",
@@ -180,6 +182,12 @@
     "dataDirNotFound": "数据目录不存在:\n{0}"
   },
   "dashboard": {
+    "modelPending": "型号暂无数据",
+    "charts": {
+      "clock": "频率 (MHz)",
+      "power": "功耗 (W)",
+      "secondsAgo": "相对当前时间 (秒)"
+    },
     "title": "硬件仪表盘",
     "subtitle": "实时 CPU、GPU 和内存遥测，含 GPU 状态转换检测",
     "gpu": {
@@ -210,6 +218,11 @@
     "ramTotal": "共 {0:F0} GiB",
     "sensorUnavailable": "不可用（缺失或可疑）",
     "health": {
+      "trendLabel": "历史评分趋势：",
+      "stable": "持平",
+      "improving": "改善",
+      "worsening": "下降",
+      "historicalSummary": "基于 {0} 条已保存事件的历史分析，不代表当前硬件健康或故障概率。",
       "noIncidents": "暂无事件",
       "runRecorder": "运行录制器以采集崩溃数据。",
       "mtbf": "MTBF: {0:F1} 小时  ·  {1} 个事件",
@@ -478,6 +491,7 @@
     "starting": "CrashScope 启动中…"
   },
   "rawSensors": {
+    "allTypes": "全部",
     "title": "CrashScope — 原始传感器",
     "topmost": "置顶",
     "refreshCatalog": "刷新目录",
@@ -589,5 +603,18 @@
     "invalidAnalysis": "分析文件无效或不完整",
     "readError": "文件读取失败",
     "evaluationError": "记录重评失败"
+  },
+  "monitoring": {
+    "starting": "录制器正在启动，采集尚未就绪。",
+    "stopping": "录制器正在停止，没有新的实时数据。",
+    "faulted": "采集故障。请到首页查看错误详情；不要将空白或旧读数视为正常。",
+    "samplesStopped": "未录制：当前没有实时读数。可到首页开始录制；已有曲线仅供回看。",
+    "samplesWaiting": "录制中：本页正在等待首个采样。",
+    "samplesLive": "实时采样中。下方曲线仅包含本页打开期间收到的采样。",
+    "samplesUnavailable": "已收到采样，但没有可用传感器值。请检查采集器状态与权限。",
+    "eventsStopped": "未录制：不会接收新的实时事件。可到首页开始录制；已有列表仅供回看。",
+    "eventsLive": "录制中：显示本页打开后收到的事件。",
+    "eventsWaiting": "正在等待事件。录制中不代表每个类别都会持续产生事件。",
+    "eventsFiltered": "当前筛选条件下没有事件。请启用相关类别或清除筛选限制。"
   }
 }

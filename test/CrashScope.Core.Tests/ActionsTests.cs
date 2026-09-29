@@ -291,6 +291,18 @@ public sealed class AgentActionsViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task ConnectMissingEndpoint_KeepsDiagnosticDetail()
+    {
+        var vm = new AgentActionsViewModel();
+        Assert.False(await vm.ConnectAsync(_root));
+        Assert.False(vm.IsConnected);
+        // Without WPF App, Loc.T returns its key; raw diagnostic details must survive.
+        Assert.Contains("common.agentDiscoveryFailed", vm.StatusMessage);
+        Assert.Contains("rpc-endpoint", vm.StatusMessage);
+        Assert.Contains("not running", vm.StatusMessage);
+    }
+
+    [Fact]
     public async Task ConnectRefreshMutateRollback_OverLiveServer()
     {
         var stateDir = Path.Combine(_root, "state");

@@ -37,7 +37,7 @@ public sealed class AgentActionsViewModel : IDisposable
         Disconnect();
         if (!RpcEndpointResolver.TryResolve(stateDirectory, out var resolved, out var resolveError, pipeName))
         {
-            SetStatus(resolveError);
+            SetStatus(Loc.T("common.agentDiscoveryFailed") + "\n" + resolveError);
             return false;
         }
 

@@ -25,6 +25,8 @@ build-*.txt
 build_*.txt
 test-*.txt
 test_*.txt
+# Product publishing template, not an ad-hoc test capture.
+!scripts/test-package-readme.zh-CN.txt
 all_output.txt
 
 # Local MCP probe workspace: scripts, logs and machine-readable evidence (not product source)
