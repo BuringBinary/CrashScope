@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [main, feature/local-desktop-work]
+    branches: [main, feature/local-desktop-work, develop/server-work]
   pull_request:
-    branches: [main, feature/local-desktop-work]
+    branches: [main, feature/local-desktop-work, develop/server-work]
 
 jobs:
   build-windows:
@@ -28,6 +28,7 @@ jobs:
           dotnet restore .\src\CrashScope.Service\CrashScope.Service.csproj
           dotnet restore .\src\CrashScope.Desktop\CrashScope.Desktop.csproj
           dotnet restore .\test\CrashScope.Core.Tests\CrashScope.Core.Tests.csproj
+          dotnet restore .\test\CrashScope.Ui.Smoke\CrashScope.Ui.Smoke.csproj
 
       - name: Build (all projects)
         run: |
@@ -37,6 +38,7 @@ jobs:
           dotnet build .\src\CrashScope.Service\CrashScope.Service.csproj  -c Release --no-restore
           dotnet build .\src\CrashScope.Desktop\CrashScope.Desktop.csproj  -c Release --no-restore
           dotnet build .\test\CrashScope.Core.Tests\CrashScope.Core.Tests.csproj -c Release --no-restore
+          dotnet build .\test\CrashScope.Ui.Smoke\CrashScope.Ui.Smoke.csproj -c Release --no-restore
 
       - name: Test
         run: dotnet test .\test\CrashScope.Core.Tests\CrashScope.Core.Tests.csproj -c Release --no-build --logger "trx;LogFileName=CrashScope-Core-Tests.trx" --results-directory .\TestResults
